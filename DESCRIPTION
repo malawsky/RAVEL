@@ -1,0 +1,27 @@
+Package: RAVEL
+Title: Recovering Assortment-Adjusted Variance Explained by Genetic Liabilities
+Version: 0.2.0
+Authors@R:
+    person("Daniel", "Malawsky", , "dm22@sanger.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-4421-8688"))
+Description: Structural equation modeling framework for estimating direct and
+    indirect genetic effects on offspring phenotypes using parent-offspring trio
+    data with polygenic scores. RAVEL accounts for measurement error in PGS,
+    assortative mating, hidden genetic variants not captured by the PGS,
+    cross-parent tagging confounds, and population stratification. The method
+    uses latent variable modeling with multiple PGS indicators to correct for
+    measurement error and provides unbiased estimates of direct child effects,
+    maternal effects, paternal effects, and the degree of assortative mating.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.0.0)
+Imports:
+    lavaan (>= 0.6-12),
+    MASS
+Suggests:
+    testthat (>= 3.0.0)
+URL: https://github.com/malawsky/RAVEL
+BugReports: https://github.com/malawsky/RAVEL/issues

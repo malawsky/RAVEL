@@ -1,0 +1,29 @@
+# R package build artifacts
+*.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.tar.gz
+*.Rcheck/
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation builds
+docs/
+inst/doc/*.html
+inst/doc/*.pdf
+vignettes/*.html
+vignettes/*.pdf
+
+# Test artifacts
+tests/testthat/_snaps/
