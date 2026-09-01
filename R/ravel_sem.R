@@ -1504,12 +1504,8 @@ ravel_fit <- function(dat,
 
     # SEM-implied R2 for Y explained by visible latent factors
     # Note: when h>0, the SEM residual includes omitted (hidden) genetic variance.
-    if (outcome == "continuous") {
-      theta_Y <- PE[PE$lhs == "Y" & PE$op == "~~" & PE$rhs == "Y", "est"]
-      theta_Y <- if (length(theta_Y) == 0) NA_real_ else theta_Y[1]
-    } else {
-      theta_Y <- 1  # probit liability residual variance fixed to 1
-    }
+    theta_Y <- PE[PE$lhs == "Y" & PE$op == "~~" & PE$rhs == "Y", "est"]
+    theta_Y <- if (length(theta_Y) == 0) NA_real_ else theta_Y[1]
 
     components_vis <- .variance_components_trio(beta_vis, cov_cm, cov_cf, cov_mf)
     s2_gen_vis <- sum(components_vis)
@@ -1534,7 +1530,7 @@ ravel_fit <- function(dat,
       varY <- if (is.null(data_for_r2)) NA_real_ else stats::var(data_for_r2$Y, na.rm = TRUE)
       R2_total_assumed <- s2_gen_total_assumed / varY
     } else {
-      R2_total_assumed <- s2_gen_total_assumed / (s2_gen_total_assumed + 1)
+      R2_total_assumed <- s2_gen_total_assumed / (s2_gen_vis + theta_Y)
     }
 
     list(
