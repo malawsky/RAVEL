@@ -220,6 +220,16 @@
     fe_lines <- paste(sprintf("Y ~ c_%d*%s", seq_along(fixed_effects), fixed_effects),
                       collapse = "\n    ")
     y_syntax <- paste0(y_syntax, "\n    # Fixed effects (covariates)\n    ", fe_lines)
+    for (g in c("Gc", "Gm", "Gf")) {
+      y_syntax <- paste(y_syntax, paste(g, "~~", paste(fixed_effects, collapse = " + ")),
+                        sep = "\n    ")
+    }
+    if (length(fixed_effects) > 1L) {
+      pairs <- utils::combn(fixed_effects, 2L)
+      y_syntax <- paste(y_syntax,
+                        paste(pairs[1, ], "~~", pairs[2, ], collapse = "\n    "),
+                        sep = "\n    ")
+    }
   }
 
   y_syntax
@@ -1061,7 +1071,11 @@
       warning("Bootstrap uncertainty requested, but no bootstrap results are available; reporting point estimates only.")
       return(NULL)
     }
-    return(result$bootstrap)
+    bootstrap <- result$bootstrap
+    bootstrap$visible$estimate <- c(result$beta_vis, rhoMF = unname(result$rho_vis))
+    bootstrap$total_raw$estimate <- c(result$beta_total_assumed, rhoMF = unname(result$cov_total_assumed))
+    bootstrap$total_std$estimate <- c(result$beta_total_assumed_std, rhoMF = unname(result$rho_total_assumed))
+    return(bootstrap)
   }
 
   if (uncertainty == "lavaan") {
@@ -1206,7 +1220,13 @@
 #'   \code{1} means the mating parents are on the founder scale and the child is
 #'   produced by the first mating round. Ignored otherwise.
 #' @param fix_parent_paths Logical. If TRUE, constrain β_M = β_F = 0.
-#' @param fixed_effects Character vector of covariate column names to include.
+#' @param fixed_effects Character vector of numeric covariate column names to
+#'   include jointly. Encode categorical covariates as treatment dummies, or use
+#'   \code{ravel_dataframe_report}. With a binary outcome, conditional-probit
+#'   moments from all six scores and these covariates are mapped to a marginal
+#'   variance-one liability before SEM fitting. Positive working weights and a
+#'   full joint sandwich covariance are used for robust SEs. This assumes a
+#'   linear, homoscedastic conditional-probit liability model.
 #' @param n_boot Integer. Number of bootstrap replicates (0 = no bootstrap).
 #' @param cluster_var Character. Column name for cluster bootstrap sampling.
 #' @param ci_level Numeric. Confidence level for bootstrap CIs.
@@ -1374,17 +1394,43 @@ ravel_fit <- function(dat,
   # Fitting function
   # ---------------------------------------------------------------------------
   .fit_once <- function(data) {
-    lavaan::sem(
+    input <- if (outcome == "binary_liability" && length(fixed_effects) > 0L) {
+      .ravel_binary_moments(data, model)
+    } else {
+      list(data = data)
+    }
+    fit_model <- function(...) do.call(lavaan::sem, c(list(
       model = model,
-      data = data,
       std.lv = TRUE,
       fixed.x = FALSE,
+      conditional.x = FALSE,
       estimator = estimator,
       missing = if (outcome == "continuous") "fiml" else "listwise",
       ordered = ordered_Y,
       check.gradient = FALSE,
-      warn = FALSE
-    )
+      warn = FALSE,
+      ...
+    ), input))
+
+    if (length(fixed_effects) == 0L) return(fit_model())
+
+    valid_fit <- function(fit) {
+      if (is.null(fit) || !isTRUE(lavaan::lavInspect(fit, "converged"))) return(FALSE)
+      if (!suppressWarnings(isTRUE(lavaan::lavInspect(fit, "post.check")))) return(FALSE)
+      V <- tryCatch(lavaan::vcov(fit), error = function(e) NULL)
+      core <- c("bD", if (!fix_parent_paths) c("bm", "bf"), "rhoMF", "eta_m", "eta_f")
+      is.matrix(V) && all(core %in% rownames(V)) &&
+        all(is.finite(V)) && all(diag(V)[core] > 0)
+    }
+
+    fit <- suppressWarnings(tryCatch(fit_model(), error = function(e) NULL))
+    if (!valid_fit(fit)) {
+      fit <- suppressWarnings(tryCatch(fit_model(start = "simple"), error = function(e) NULL))
+    }
+    if (!valid_fit(fit)) {
+      stop("Covariate SEM did not produce an admissible converged fit with finite SEs.")
+    }
+    fit
   }
 
   # ---------------------------------------------------------------------------
@@ -1509,7 +1555,12 @@ ravel_fit <- function(dat,
 
     components_vis <- .variance_components_trio(beta_vis, cov_cm, cov_cf, cov_mf)
     s2_gen_vis <- sum(components_vis)
-    R2_model <- s2_gen_vis / (s2_gen_vis + theta_Y)
+    varY_model <- if (length(fixed_effects) > 0L) {
+      lavaan::lavInspect(fit, "cov.ov")["Y", "Y"]
+    } else {
+      s2_gen_vis + theta_Y
+    }
+    R2_model <- s2_gen_vis / varY_model
 
     components_total_assumed <- .variance_components_trio_general(
       beta_total_assumed,
@@ -1525,12 +1576,12 @@ ravel_fit <- function(dat,
     # "Total genetic R2" is only directly interpretable if Y is standardized.
     # For convenience, compute:
     #   - continuous: divide by empirical Var(Y)
-    #   - binary liability: use probit scale Var(e)=1
+    #   - binary liability: divide by the SEM-implied liability variance
     if (outcome == "continuous") {
       varY <- if (is.null(data_for_r2)) NA_real_ else stats::var(data_for_r2$Y, na.rm = TRUE)
       R2_total_assumed <- s2_gen_total_assumed / varY
     } else {
-      R2_total_assumed <- s2_gen_total_assumed / (s2_gen_vis + theta_Y)
+      R2_total_assumed <- s2_gen_total_assumed / varY_model
     }
 
     list(

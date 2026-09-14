@@ -1,3 +1,4 @@
 ^LICENSE\.md$
 ^RAVEL.*\.tar\.gz$
 ^RAVEL\.Rcheck$
+^data-raw$

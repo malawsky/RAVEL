@@ -84,7 +84,13 @@ produced by the first mating round. Ignored otherwise.}
 
 \item{fix_parent_paths}{Logical. If TRUE, constrain β_M = β_F = 0.}
 
-\item{fixed_effects}{Character vector of covariate column names to include.}
+\item{fixed_effects}{Character vector of numeric covariate column names to
+include jointly. Encode categorical covariates as treatment dummies, or use
+\code{ravel_dataframe_report}. With a binary outcome, conditional-probit
+moments from all six scores and these covariates are mapped to a marginal
+variance-one liability before SEM fitting. Positive working weights and a
+full joint sandwich covariance are used for robust SEs. This assumes a
+linear, homoscedastic conditional-probit liability model.}
 
 \item{n_boot}{Integer. Number of bootstrap replicates (0 = no bootstrap).}
 

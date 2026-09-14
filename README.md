@@ -97,16 +97,126 @@ print_ravel_results(fit, uncertainty = "bootstrap")
 
 ### Fixed effects / covariates
 
-Covariates can be included via `fixed_effects`, which residualizes Y on the specified columns within the SEM. Alternatively, you can residualize Y yourself before fitting (recommended):
+Covariates can be included jointly via `fixed_effects`. The SEM allows genetic
+factors to correlate with these covariates. Residualizing only Y before fitting
+is not equivalent when covariates and genetic predictors correlate; binary Y
+must remain coded 0/1 rather than residualized.
+
+With a binary outcome and covariates, a joint probit regression on all six
+scores and the encoded covariates supplies marginal variance-one liability
+moments. RAVEL fits the same SEM to those moments with positive working
+weights and a full joint sandwich covariance for robust SEs. This avoids
+singular first-stage information from dummy covariates. It assumes a linear,
+homoscedastic conditional-probit liability model; it does not require the
+covariates themselves to be Gaussian. Continuous fits and binary fits without
+covariates retain their existing estimators.
+For this binary-covariate path, baseline-relative fit indices such as CFI/TLI
+are marked unavailable rather than interpreted using an unvalidated
+independence baseline. See the report diagnostics for fit-statistic limitations.
 
 ```r
-# Option 1: let RAVEL handle it
 fit <- ravel_fit(dat, fixed_effects = c("sex", "PC1", "PC2"))
-
-# Option 2: residualize beforehand (recommended)
-dat$Y <- residuals(lm(Y ~ sex + PC1 + PC2 + PC3 + PC4, data = dat))
-fit <- ravel_fit(dat)
 ```
+
+### One-call dataframe report
+
+Supply raw scores, outcome and covariates, with one independent trio per row.
+Default score names are `pgs1_child`, `pgs1_mother`, `pgs1_father` and their
+`pgs2_` counterparts. Categorical covariates are treatment-dummy coded and
+incomplete trios are excluded. Both fixed (parent-child 0.5, spouse 0) and
+free within-version score-residual correlations are fitted by default.
+
+```r
+out <- ravel_dataframe_report(
+  df, outcome = "Y", covariates = c("age", "sex", "PC1", "PC2"),
+  out_dir = "results", report_name = "analysis_1"
+)
+out$summary
+print(out$plot)
+```
+
+RAVEL inputs use each score version's child mean/SD across all roles; parental
+variance ratios are preserved. Vanilla trio regressions use each role's own
+score SD. Continuous Y is standardized and covariates are fitted jointly.
+For binary outcomes use `outcome_type = "binary_liability"`; vanilla probit
+and SEM liability units are labelled and plotted separately.
+
+The default reports model-based SEs, CIs and p-values for coefficients and the
+visible spouse correlation. Add `n_boot = 500, seed = 123` to select whole-trio
+bootstrap SEs and percentile CIs, retaining the original point estimates.
+Bootstrap p-values use a normal approximation with the empirical SE. Failed
+draws are recorded and insufficient successful draws produce NA uncertainty,
+not a silent model-based fallback. Original model-based inference remains in
+`out$summary_model_based`. Descriptive moments, reliability and fit indices do
+not all carry SEs. See `?ravel_dataframe_report` for the complete specification.
+
+The optional new output folder contains CSV tables, an aggregate-only RDS,
+and a PDF/PNG diagnostic plot; existing report folders are not overwritten.
+Send `ravel_report.rds`, not just the summary CSV, for later corrections.
+`ravel_correct_packet(out$packets$fixed, h = 0.4, ...)` propagates the full
+joint parameter covariance or stored bootstrap draws to total-liability
+coefficients. Joint-covariate corrections require explicit confirmation that
+the mapping applies conditional on those covariates.
+
+Inspect `out$model_status` and `out$diagnostics` before interpretation. Binary
+covariate fits remain subject to rare numerical/SE failures; successful checks
+do not establish calibration for every covariate mechanism.
+
+To evaluate every combination of assumed hidden fraction and AM history:
+
+```r
+total_grid <- ravel_correct_grid(
+  out,
+  hidden_fraction = seq(.4, .5, .02),
+  n_generations = c(1, 3, 15, Inf),
+  include_raw = FALSE,
+  covariate_mapping_confirmed = TRUE
+)
+```
+
+Only set the confirmation flag after reviewing the conditional mapping
+assumption. Scalars work too; `Inf` denotes equilibrium. Both recorded residual
+models are included unless `residual_models` selects one. The full `out`, not
+`out$summary`, is needed for corrected SEs. The returned table labels every
+scenario and preserves the selected uncertainty method without refitting.
+With `include_raw = TRUE` (default), raw total-liability coefficients are also
+returned. Incompatible cells remain flagged NA rows. Intervals are conditional
+on each assumed scenario, not simultaneous bands over the grid.
+
+### Try the bundled example
+
+`ravel_example` contains 4,000 simulated independent trios with raw scores,
+continuous and binary outcomes, and numeric and categorical covariates. It uses
+the Gaussian trio-moment model from the validation simulations: hidden fraction
+0.4, one generation of assortment with total-liability mate correlation 0.4,
+random-mating PGS reliabilities 0.5 and 0.3, and direct plus maternal effects.
+No real participant data or simulated SNP genotypes are included.
+
+```r
+data("ravel_example", package = "RAVEL")
+df <- ravel_example
+head(df)
+
+out <- ravel_dataframe_report(
+  df, outcome = "Y",
+  covariates = c("age", "sex", "site", paste0("PC", 1:6)),
+  categorical_covariates = c("sex", "site")
+)
+out$model_status
+out$summary
+```
+
+Use `outcome = "Y_binary", outcome_type = "binary_liability"` for the binary
+example. The complete installed example fits both outcomes and demonstrates a
+total-liability correction:
+
+```r
+source(system.file("examples", "dataframe_workflow.R", package = "RAVEL"))
+```
+
+See `?ravel_example` for the data-generating assumptions and
+`attr(df, "simulation")` for the parameters and population expectations. The
+repository script `data-raw/generate_ravel_example.R` regenerates the dataset.
 
 ### Fixing cross-person residual correlations
 
@@ -138,7 +248,7 @@ fit <- ravel_fit(
 | `fixed_crossperson_corr` | `NULL` | Optional named vector fixing selected cross-person residual correlations (`crossperson = "free"` only) |
 | `am_correction` | `"n_gen"` | Raw assortative-mating state used for the total-liability mapping: finite n-generation recursion or equilibrium. |
 | `am_n_generations` | `1L` | Number of mating rounds in the constant-strength finite-generation model. For `n = 1` the mating parents are on the founder scale and the child is the first generation produced under assortment. |
-| `fixed_effects` | `NULL` | Character vector of covariate column names to residualize Y |
+| `fixed_effects` | `NULL` | Character vector of jointly adjusted covariate column names |
 | `n_boot` | `0` | Number of bootstrap replicates for 95% CIs |
 | `cluster_var` | `"FID"` | Column name for cluster bootstrap; if missing from `dat`, bootstrap falls back to row resampling |
 | `ci_level` | `0.95` | Confidence level for bootstrap intervals |

@@ -19,8 +19,13 @@ RoxygenNote: 7.3.3
 Depends:
     R (>= 4.0.0)
 Imports:
+    graphics,
+    grDevices,
     lavaan (>= 0.6-12),
-    MASS
+    MASS,
+    stats,
+    tools,
+    utils
 Suggests:
     testthat (>= 3.0.0)
 URL: https://github.com/malawsky/RAVEL
