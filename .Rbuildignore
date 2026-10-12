@@ -2,3 +2,5 @@
 ^RAVEL.*\.tar\.gz$
 ^RAVEL\.Rcheck$
 ^data-raw$
+^dev$
+^audit$

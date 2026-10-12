@@ -5,7 +5,7 @@ RAVEL is a structural equation framework for estimating direct-offspring and
 parental genetic-liability-correlated coefficients from polygenic scores in
 parent-offspring trios.
 
-**Author**: Daniel Malawsky (dm22@sanger.ac.uk), Wellcome Sanger Institute
+**Author**: Daniel Malawsky (d.malawsky@gmail.com), Wellcome Sanger Institute
 
 ---
 
@@ -77,6 +77,270 @@ fit <- ravel_fit(dat,
 
 print_simple(fit)
 ```
+
+### Optional inheritance constraints
+
+The default fit remains unchanged. To impose stronger measurement and
+inheritance assumptions during fitting, use:
+
+```r
+fit_eq <- ravel_fit(dat, h = 0.4, fit_constraints = "equilibrium")
+fit_g3 <- ravel_fit(dat, h = 0.4, fit_constraints = "n_gen",
+                   am_n_generations = 3L)
+```
+
+All constrained modes retain a separate unknown reliability for each PGS. They fix
+within-PGS residual spouse correlation to zero and child-parent correlations
+to 0.5, and assume independent errors across PGSs. The scores measure the same
+visible genetic component and their errors are orthogonal to that component
+and the outcome. Scores should be oriented toward the same genetic target.
+Unknown marginal score variances remain nuisance parameters, so separately
+standardizing the scores does not supply known population variances.
+
+At equilibrium, each score's reliability is equal across family roles and
+both latent child-parent correlations equal `(1 + rho_visible) / 2`. The two
+scores' reliabilities are not equated to each other. With two scores and no
+covariates there are 13 covariance parameters, compared with 19 when only the
+residual correlations are fixed.
+
+For finite generations, child reliability changes with the modeled genetic
+variance. The model assumes random-mating founders, Mendelian transmission,
+and a constant total-liability spouse correlation across mating rounds. The
+generation count is supplied, not estimated; generation one means founder
+parents and their first offspring generation. This is a specified finite
+assortment history, not arbitrary time-varying assortment. Fits after generation
+one depend on the supplied founder hidden fraction `h`. Changing that fraction
+or the assumed history requires refitting.
+
+With the same GWAS weights and constant raw error variance, reliability evolves
+with the visible signal variance. Let `R_j,n` be the reliability of score j in
+generation n, and `B_n = V_G,n+1 / V_G,n` the visible-variance growth factor. Then
+
+```
+R_j,n+1 = B_n * R_j,n / (1 + (B_n - 1) * R_j,n)
+R_j,n+1 - R_j,n = (B_n - 1) * R_j,n * (1 - R_j,n) /
+                  (1 + (B_n - 1) * R_j,n)
+```
+
+The two scores share the growth factor, but retain their own reliabilities.
+With generation zero denoting random-mating founders, constant total-liability
+spouse correlation r, and founder hidden fraction pi, the model gives
+`V_G,n = pi + (1 - pi) * (1 - r * ((1 + r)/2)^n) / (1 - r)`.
+Positive assortment increases reliability toward equilibrium; negative
+assortment decreases it. Changes tend to zero at equilibrium. Separately
+standardizing each observed score to variance one leaves reliability unchanged.
+The API's `am_n_generations = n + 1` compares parents in generation n with
+children in generation n + 1.
+
+The same option is available in `ravel_dataframe_report()`. Constrained modes
+select the fixed residual model when `residual_models` is omitted and reject
+an explicitly requested free residual model. Report summaries remain on the
+visible scale, with the fitting assumptions recorded in the correction packet.
+
+```r
+out_eq <- ravel_dataframe_report(df, fit_constraints = "equilibrium")
+out_g3 <- ravel_dataframe_report(df, fit_constraints = "n_gen",
+                                h = 0.4, am_n_generations = 3L)
+```
+
+These restrictions can improve precision when their assumptions hold. The
+package's correction uses a supplied hidden fraction and estimates the total
+spouse correlation. The earlier pooled-score comparison instead conditioned
+on a known total spouse correlation; its numerical SE gains are not a promise
+for this different uncertainty budget.
+
+### Estimating the variance state without specifying generations
+
+Use `estimated_state` when the generation count is unknown:
+
+```r
+fit_state <- ravel_fit(dat, h = 0.4, fit_constraints = "estimated_state")
+fit_state$hidden_correction_details$estimated_state
+corrected_state <- ravel_correct_pi(fit_state, pi = 0.4, pi_se = 0.02)
+attr(corrected_state, "estimated_state")$summary
+```
+
+This model estimates one more covariance parameter than the equilibrium or
+specified-generation modes: 14 parameters with two scores and no covariates.
+The two PGSs retain separate unknown reliabilities. Parent-child correlations
+identify the signal variance growth, even if each observed PGS was separately
+standardized. Let `rho` be the fitted visible spouse correlation and `eta` the
+common fitted child-parent correlation. On the scale where founder visible
+variance is one,
+
+```
+B = ((1 + rho) / (2 * eta))^2
+V_G,parent = 1 / (2 * B - 1 - rho)
+V_G,child = B * V_G,parent
+V_T,parent = (V_G,parent - pi) / (1 - pi)
+rho_total = rho * V_G,parent / (V_G,parent - pi)
+```
+
+The founder anchor comes from Mendelian segregation variance equal to half the
+founder variance. Correction also assumes random-mating founders with independent
+visible and hidden components, and assortment along the same total genetic
+target over time. Founder pi remains external. Pre-existing founder LD, a changing
+genetic target, or a different segregation model are not identified by these data.
+
+The estimated-state model is a smooth relaxation of a constant-strength history:
+it estimates the accumulated variance and current assortment rather than selecting
+an integer number of generations. It also accommodates changing assortment strength
+when the target and segregation assumptions remain valid. Diagnostics indicate
+whether the fitted state lies on a constant-strength founder-to-equilibrium
+trajectory and, when defined, its effective duration. A fractional effective
+duration is not an integer-generation estimate. Near equilibrium or random mating,
+duration can be unidentifiable even when correction is estimable. The fit does not
+force noisy estimates onto the founder or equilibrium boundary.
+
+Fitting this mode is independent of pi; an incompatible supplied pi is rejected
+by post-estimation correction. The full fitted covariance propagates uncertainty
+in growth and founder scaling, and `ravel_correct_pi()` adds external pi uncertainty
+without refitting. Its `estimated_state` attribute includes a table of estimates,
+SEs and intervals for growth, parental visible and total variance, and the total
+spouse correlation, together with their joint covariance. It does not report a
+Wald SE for effective duration. Precision can decrease relative to a correctly specified
+generation count. Low score signal and nearly singular reconstructed states can
+make inference unstable. The model does not promise identifiable separate
+reliabilities when both assortment and all score-outcome associations vanish.
+Estimated-state fits explicitly check the rank of the observed-moment derivative
+along the fitted constraint surface and the full parameter covariance before
+allowing inference. Nonidentified fits and active inequality boundaries are
+flagged; their correction packets cannot be used for ordinary Wald inference.
+
+`ravel_dataframe_report(..., fit_constraints = "estimated_state")` supports the
+same mode and retains it in the aggregate packet. Correct these packets with
+`ravel_correct_packet()` or `ravel_correct_pi()`, or sweep `hidden_fraction` using
+`ravel_correct_grid()` with `n_generations` omitted. The grid then uses the
+estimated state for every cell and records the generation count as `NA`.
+Supplying a generation grid for an estimated-state fit is rejected because
+that would change the fitting assumptions.
+
+### Corrected estimates with uncertainty in external pi
+
+Use the separate `ravel_correct_pi()` extension when `h` is estimated externally,
+supplying its standard error directly on the raw pi scale:
+
+```r
+# pi is the same founder hidden fraction called h by ravel_fit().
+corrected <- ravel_correct_pi(fit_eq, pi = 0.4, pi_se = 0.05)
+corrected[, c("scale", "parameter", "estimate", "se", "ci_low", "ci_high")]
+attr(corrected, "covariance")
+
+# The finite-generation case also propagates how changing pi changes the fit.
+corrected_g3 <- ravel_correct_pi(fit_g3, pi = 0.4, pi_se = 0.05)
+```
+
+The external variance is `pi_se^2`. No pi Monte Carlo draws or CI-to-SE
+conversion are needed. Supply exactly one of `pi_se` or `pi_ci`; `pi_se = 0`
+adds no external uncertainty. `ci_level` controls the returned effect intervals.
+The method uses a local delta approximation and does not clip confidence
+intervals to parameter bounds.
+
+For compatibility, `pi_ci = c(lower, upper)` is also accepted. By default it
+is interpreted as a 95% normal-Wald interval and must be symmetric about the
+estimate. For a logit-Wald interval, use
+`pi_ci_scale = "logit"`; the interval must be symmetric on that scale. An
+arbitrary percentile or asymmetric interval does not uniquely specify a
+sampling variance and is rejected. `pi_ci_level` describes the supplied
+interval. These CI-specific settings apply only with `pi_ci`. Zero external
+variance reduces model-based inference to the fixed-pi delta method.
+
+The external pi estimate is assumed independent of the target-trio estimator
+unless `core_pi_cov` supplies their covariance. For pi-dependent fits, this
+must describe covariance with SEM estimation noise at fixed pi; supplying the
+already marginalized plug-in core covariance would double-count pi uncertainty.
+The joint propagation retains covariance among all six visible core parameters.
+For a live finite-generation fit it also uses perturb-and-refit sensitivity,
+so the result includes uncertainty in both fitting and correction. The pi
+point estimate must match the value used in that finite fit.
+
+Visible-transfer packets are accepted too. Pi-dependent aggregate packets
+need a separately supplied, validated `core_pi_sensitivity`, because they do
+not contain individual data for refitting; use the live fit for automatic
+sensitivity. Bootstrap inputs use the covariance of complete joint core draws
+and return explicitly labeled delta-Wald intervals, not percentile intervals.
+Existing fixed-h fitting, correction and reporting APIs retain their meaning.
+
+### Choosing a fitting mode
+
+| `fit_constraints` | Assortment state | External inputs for fitting | External inputs for total correction |
+|---|---|---|---|
+| `"none"` (default) | Existing unconstrained measurement and latent correlations | None | `h` and a finite history or equilibrium |
+| `"equilibrium"` | Equilibrium transmission and equal within-score reliability across roles | None | Founder `h` |
+| `"n_gen"` | Constant strength from random-mating founders | Generation count; `h` after generation one | Matching generation count; fitted `h` after generation one |
+| `"estimated_state"` | Current growth and accumulated variance inferred from the trio | None | Founder `h` |
+
+The three constrained modes share the residual-error assumptions described above
+and estimate separate PGS reliabilities. `h` and `pi` name the same **founder
+hidden genetic variance fraction**, not GWAS prediction error and not the
+fraction of the outcome variance that is genetic. Larger `pi` means more
+uncaptured genetic variation. These are opt-in models: imposing incorrect
+restrictions can introduce bias, and more constraints do not guarantee a better
+result in a misspecified model.
+
+### Reporting and exporting the extensions
+
+All fitting modes use the existing fit, table, print, report and bootstrap
+interfaces. Fit summaries name the constraint and correction mode; estimated-state
+summaries also show growth and founder-scaled variances. Table conversion retains
+its existing column names (including `beta_F` for the paternal effect), with
+assumptions in `attr(table, "settings")`, `attr(table, "constraint_spec")`, and
+state diagnostics in `attr(table, "estimated_state")`.
+
+```r
+print_simple(fit_state)
+fit_table <- as.data.frame(fit_state, include_raw = TRUE)
+attr(fit_table, "settings")
+
+# Correction is a separate step: a fixed-h fit table does not include pi SE.
+corrected <- ravel_correct_pi(fit_state, pi = .4, pi_se = .02)
+print_simple(corrected)                 # print_ravel_results(corrected) also works
+print(ravel_plot_report(corrected))     # corrected_std by default
+print(ravel_plot_report(corrected, scale = "corrected_raw"))
+
+# A report uses the same constrained fitting mode and selected uncertainty.
+state_report <- ravel_dataframe_report(df, fit_constraints = "estimated_state",
+                                      h = .4, out_dir = "ravel_state_report")
+state_corrected <- ravel_correct_pi(state_report$packet, pi = .4, pi_se = .02)
+state_grid <- ravel_correct_grid(state_report, hidden_fraction = c(.3, .4, .5),
+                                 pi_se = .02)  # no generation count
+print(ravel_plot_report(state_grid))
+
+saveRDS(state_corrected, "corrected_with_pi_uncertainty.rds")
+write.csv(state_corrected, "corrected_with_pi_uncertainty.csv", row.names = FALSE)
+write.csv(attr(state_corrected, "estimated_state")$summary,
+          "estimated_variance_state.csv", row.names = FALSE)
+```
+
+`ravel_dataframe_report()` summaries and its automatic plots remain visible-scale
+comparisons with the two ordinary PGS regressions. Corrected tables use `beta_P`
+for the paternal effect; plotting accepts both paternal labels. Corrected plots
+select one predictor scale at a time, retain scenario labels, and distinguish
+π-adjusted delta-Wald intervals from fixed-π bootstrap percentile intervals.
+Binary outcomes retain their SEM liability units; plain probit regression rows
+are displayed separately. Live continuous fits retain the supplied outcome units;
+the report workflow uses its prepared, standardized phenotype.
+
+`include_raw = TRUE` returns founder-scale raw effects even at `h = 0`.
+With assortment these generally differ from effects per current genetic SD,
+although visible and standardized total effects coincide when `h = 0`.
+Bootstrap aliases now follow their named scale in this case as well.
+
+Omitting `n_generations` in a correction grid inherits a constrained report's
+fitted mode and generation count. For an unconstrained report it retains the
+legacy 15-generation correction default. Explicit incompatible cells are flagged;
+a pi-dependent finite-generation fit cannot be reused for a sweep over pi.
+Supplying `pi_se` asks for independent external pi uncertainty in each grid cell.
+Finite-generation packets after generation one additionally require validated
+`core_pi_sensitivity`; use `ravel_correct_pi()` on the live fit for automatic
+perturb-and-refit sensitivity. Use that function directly if external pi and
+trio estimation errors are correlated and `core_pi_cov` is needed.
+
+CSV preserves row-level estimates, uncertainty and scenario labels. RDS also
+preserves joint covariance matrices, derivative matrices, state diagnostics and
+assumptions stored as attributes. Use RDS for further inference. The report's
+`model_status` and `diagnostics` retain identification and fit failure reasons;
+failed cells and missing intervals must be inspected before interpretation.
 
 ### Choosing uncertainty source
 
@@ -246,7 +510,7 @@ fit <- ravel_fit(
 | `crossperson` | `"free"` | `"free"` (6 residual covariances) or `"equal_pc"` (constrain parent-child) |
 | `fixed_crossperson` | `NULL` | Optional named vector fixing selected cross-person residual covariances |
 | `fixed_crossperson_corr` | `NULL` | Optional named vector fixing selected cross-person residual correlations (`crossperson = "free"` only) |
-| `am_correction` | `"n_gen"` | Raw assortative-mating state used for the total-liability mapping: finite n-generation recursion or equilibrium. |
+| `am_correction` | `"n_gen"` | Total-liability mapping from finite generations, equilibrium, or `"estimated_state"` with matching fitting constraints. |
 | `am_n_generations` | `1L` | Number of mating rounds in the constant-strength finite-generation model. For `n = 1` the mating parents are on the founder scale and the child is the first generation produced under assortment. |
 | `fixed_effects` | `NULL` | Character vector of jointly adjusted covariate column names |
 | `n_boot` | `0` | Number of bootstrap replicates for 95% CIs |

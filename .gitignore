@@ -27,3 +27,8 @@ vignettes/*.pdf
 
 # Test artifacts
 tests/testthat/_snaps/
+
+# Local validation and private working documents
+/audit/
+/RAVEL_mathematical_derivations_private.md
+tests/testthat/Rplots.pdf

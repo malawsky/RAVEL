@@ -22,3 +22,5 @@ print_simple(
 Prints a concise summary with point estimates plus either bootstrap
 or lavaan-based uncertainty for both visible and hidden-corrected scales.
 }
+
+\details{Fit output names its constraint mode and correction history, with variance-state diagnostics for estimated-state fits. The function also accepts a correction data frame from \code{ravel_correct_packet}, \code{ravel_correct_pi}, or \code{ravel_correct_grid}, retaining its already selected intervals and inference labels. Use \code{uncertainty = "auto"} for these tables; recompute the correction to change uncertainty source.}

@@ -47,7 +47,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Daniel Malawsky \email{dm22@sanger.ac.uk} (\href{https://orcid.org/0000-0003-4421-8688}{ORCID})
+\strong{Maintainer}: Daniel Malawsky \email{d.malawsky@gmail.com} (\href{https://orcid.org/0000-0003-4421-8688}{ORCID})
 
 }
 \keyword{internal}

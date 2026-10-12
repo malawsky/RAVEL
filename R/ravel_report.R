@@ -3,7 +3,7 @@
 .report_transform_fingerprint <- function() {
   ns <- asNamespace("RAVEL")
   funs <- sort(ls(ns, all.names = TRUE))
-  funs <- funs[grepl("^\\.(hidden|compute_scale|standardize_total|latent_corr|finite_difference|build_lavaan)", funs)]
+  funs <- funs[grepl("^\\.(hidden|compute_scale|standardize_total|latent_corr|finite_difference|build_lavaan|ravel_estimated_state)", funs)]
   path <- tempfile()
   on.exit(unlink(path))
   writeLines(unlist(lapply(funs, function(nm) c(nm, deparse(get(nm, ns))))), path)
@@ -11,13 +11,28 @@
 }
 
 #' @export
-ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibrium"),
+ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibrium", "estimated_state"),
                                   am_n_generations = 15L, ci_level = .95,
                                   covariate_mapping_confirmed = FALSE,
                                   uncertainty = c("auto", "lavaan", "bootstrap")) {
   if (is.character(packet)) packet <- readRDS(packet)
+  history <- packet$settings$constraint_spec
+  if (!is.null(history$mode) && history$mode %in% c("equilibrium", "n_gen", "estimated_state")) {
+    if (missing(am_correction)) am_correction <- history$mode
+    if (missing(am_n_generations) && history$mode == "n_gen")
+      am_n_generations <- history$n_generations
+  }
   am_correction <- match.arg(am_correction)
+  if (am_correction == "estimated_state" && !identical(history$mode, "estimated_state"))
+    stop("Estimated-state correction requires a packet from fit_constraints = 'estimated_state'.")
+  if (am_correction == "estimated_state" && !isTRUE(packet$diagnostics$estimated_state_identified))
+    stop("Estimated-state correction requires a packet with a validated identification check; regenerate the report.")
+  if (am_correction == "estimated_state" &&
+      abs(packet$theta["eta_m"] - packet$theta["eta_f"]) > 1e-5)
+    stop("Estimated-state correction requires equal maternal and paternal transmission correlations.")
   uncertainty <- match.arg(uncertainty)
+  .ravel_check_constraint_correction(packet$settings$constraint_spec, h,
+    am_correction, am_n_generations)
   if (uncertainty == "auto") uncertainty <- if (identical(packet$settings$uncertainty, "bootstrap"))
     "bootstrap" else "lavaan"
   if (uncertainty == "bootstrap" && is.null(packet$bootstrap$core_draws))
@@ -79,6 +94,8 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
         n_boot_success = NA_integer_, uncertainty_status = "ok")
     }
     cbind(data.frame(outcome_variable = packet$outcome$name,
+      outcome_scale = if (identical(packet$outcome$type, "binary_liability"))
+        "SEM_probit_liability" else "prepared_phenotype_SD",
       residual_model = if (is.null(packet$settings$residual_model)) "unspecified" else packet$settings$residual_model,
       scale = block,
       parameter = c("beta_D", "beta_M", "beta_P", if (block == "corrected_std") "rho_corrected" else "cov_corrected"),
@@ -87,7 +104,14 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
       h = h, am_correction = am_correction,
       am_n_generations = if (am_correction == "n_gen") am_n_generations else NA_integer_), interval)
   })
-  do.call(rbind, out)
+  result <- do.call(rbind, out)
+  attr(result, "ci_level") <- ci_level
+  attr(result, "constraint_spec") <- history
+  if (am_correction == "estimated_state") {
+    state <- .hidden_estimated_state(theta["rhoMF"], theta["eta_m"], theta["eta_f"], h)
+    attr(result, "estimated_state") <- state$estimated_state
+  }
+  result
 }
 
 .ravel_report_vanilla <- function(dat, version, fixed_effects, scaling, response_scale,
@@ -249,7 +273,22 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
                                     residual_models = c("fixed", "free"),
                                     uncertainty = c("auto", "lavaan", "bootstrap"),
                                     n_boot = 0L, seed = NULL, make_plot = TRUE,
-                                    report_name = NULL) {
+                                    report_name = NULL,
+                                    fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
+                                    h = 0, am_n_generations = 1L) {
+  fit_constraints <- match.arg(fit_constraints)
+  if (fit_constraints != "none") {
+    if (missing(residual_models)) residual_models <- "fixed"
+    if (!identical(residual_models, "fixed"))
+      stop("Constrained fitting requires residual_models = 'fixed'.")
+    if (!is.numeric(h) || length(h) != 1L || !is.finite(h) || h < 0 || h >= 1)
+      stop("h must be a single finite number in [0, 1).")
+    if (fit_constraints == "n_gen" && (!is.numeric(am_n_generations) ||
+        length(am_n_generations) != 1L || !is.finite(am_n_generations) ||
+        am_n_generations < 1 || am_n_generations > .Machine$integer.max ||
+        am_n_generations != floor(am_n_generations)))
+      stop("am_n_generations must be a positive integer for constrained finite-generation fitting.")
+  }
   report_stage <- "preprocessing"
   report_model_status <- setNames(rep("not_attempted", length(residual_models) + 2L),
                                   c(residual_models, "PGS1", "PGS2"))
@@ -437,7 +476,9 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
       counts_0_1 = if (outcome_type == "binary_liability") base::table(dat$Y) else NULL,
       sample_prevalence = if (outcome_type == "binary_liability") mean(dat$Y) else NULL),
     settings = list(n_initial = nrow(df), n_complete = n, excluded = nrow(df) - n,
-      h = 0, n_boot = 0, ci_level = ci_level,
+      h = if (fit_constraints == "none") 0 else h, n_boot = 0, ci_level = ci_level,
+      fit_constraints = fit_constraints, am_n_generations =
+        if (fit_constraints %in% c("equilibrium", "estimated_state")) NA_integer_ else am_n_generations,
       fixed_effects = fe, requires_covariate_mapping_review = length(fe) > 0,
       independent_families_assumed = TRUE,
       pgs_scaling_sem = "same child reference mean and SD for all roles within each score version",
@@ -478,7 +519,9 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   out["summary_bootstrap"] <- list(NULL)
   out["bootstrap"] <- list(NULL)
   out$settings <- list(uncertainty = uncertainty, n_boot = n_boot, seed = seed,
-    ci_level = ci_level, outcome_type = outcome_type)
+    ci_level = ci_level, outcome_type = outcome_type, fit_constraints = fit_constraints,
+    h = if (fit_constraints == "none") 0 else h, am_n_generations =
+      if (fit_constraints %in% c("equilibrium", "estimated_state")) NA_integer_ else am_n_generations)
   if (n_boot > 0) {
     boot_data <- source[unname(pgs_columns)]
     names(boot_data) <- expected
@@ -621,7 +664,9 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     sample <- dat[sample.int(nrow(dat), nrow(dat), replace = TRUE), , drop = FALSE]
     fitted <- tryCatch(ravel_dataframe_report(sample, outcome = "Y", covariates = covariates,
       pgs_columns = pgs_map, outcome_type = outcome_type, continuous_adjustment = continuous_adjustment,
-      residual_models = residual_models, ci_level = ci_level, make_plot = FALSE), error = identity)
+      residual_models = residual_models, ci_level = ci_level, make_plot = FALSE,
+      fit_constraints = out$settings$fit_constraints %||% "none",
+      h = out$settings$h %||% 0, am_n_generations = out$settings$am_n_generations %||% 1L), error = identity)
     if (inherits(fitted, "error")) {
       models <- c(residual_models, "PGS1", "PGS2")
       fit_status <- setNames(rep("not_attempted", length(models)), models)
@@ -666,21 +711,85 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
 }
 
 #' @export
-ravel_plot_report <- function(out) {
-  tab <- out$summary[out$summary$parameter %in% c("beta_D", "beta_M", "beta_P"), , drop = FALSE]
+ravel_plot_report <- function(out, scale = NULL) {
+  direct <- is.data.frame(out)
+  tab <- if (direct) out else out$summary
+  # Legacy hand-built report objects predate explicit predictor-scale columns.
+  if (!direct && is.data.frame(tab) && !"scale" %in% names(tab))
+    tab$scale <- if ("regression" %in% names(tab))
+      ifelse(tab$regression == "RAVEL", "visible", "own_role_PGS_SD") else "visible"
+  if (!is.data.frame(tab) || !all(c("parameter", "scale", "estimate", "ci_low", "ci_high") %in% names(tab)))
+    stop("Supply a RAVEL report or a coefficient table with scale, parameter, estimate and interval columns.")
+  settings <- if (direct) attr(out, "settings") else out$settings
+  if (is.null(scale) && direct) scale <- if ("corrected_std" %in% tab$scale) "corrected_std" else "visible"
+  if (!is.null(scale)) {
+    if (!is.character(scale) || length(scale) != 1L || is.na(scale) || !scale %in% tab$scale)
+      stop("scale must name one available scale in the coefficient table.")
+    tab <- tab[tab$scale == scale, , drop = FALSE]
+  }
+  tab$parameter[tab$parameter == "beta_F"] <- "beta_P"
+  tab <- tab[tab$parameter %in% c("beta_D", "beta_M", "beta_P"), , drop = FALSE]
   if (!nrow(tab)) stop("No coefficient estimates to plot")
-  tab$model <- ifelse(tab$regression == "RAVEL", paste0("Visible RAVEL (", tab$residual_model, ")"),
-                      paste0(tab$regression, " trio regression"))
+  if (!"regression" %in% names(tab)) tab$regression <- "RAVEL"
+  if (!"residual_model" %in% names(tab)) tab$residual_model <- "unspecified"
+  if (!"outcome_variable" %in% names(tab)) tab$outcome_variable <- "Y"
+  if (length(unique(tab$outcome_variable)) != 1L)
+    stop("Plot one outcome at a time; subset the table before plotting.")
+  corrected <- tab$scale %in% c("corrected_std", "corrected_raw")
+  if (!"am_correction" %in% names(tab) && !is.null(settings$am_correction))
+    tab$am_correction <- settings$am_correction
+  if (!any(c("am_n_generations", "n_generations") %in% names(tab)) && !is.null(settings$am_n_generations))
+    tab$am_n_generations <- settings$am_n_generations
+  if (!any(c("pi", "h", "hidden_fraction") %in% names(tab)) && !is.null(settings$h)) tab$h <- settings$h
+  tab$model <- ifelse(tab$regression == "RAVEL",
+    paste0(ifelse(corrected, "Corrected RAVEL", "Visible RAVEL"), " (", tab$residual_model, ")"),
+    paste0(tab$regression, " trio regression"))
+  # Keep each sensitivity scenario on its own row; never overlay distinct pi/n values.
+  for (nm in intersect(c("am_correction", "am_n_generations", "n_generations",
+                         "pi", "h", "hidden_fraction", "pi_se"), names(tab))) {
+    show <- corrected & !is.na(tab[[nm]])
+    if (any(show)) {
+      label <- switch(nm, am_n_generations = "n", n_generations = "n",
+                      hidden_fraction = "pi", h = "pi", pi_se = "SE(pi)", nm)
+      value <- format(tab[[nm]][show], trim = TRUE)
+      value <- if (nm == "am_correction") gsub("_", " ", value, fixed = TRUE) else paste0(label, "=", value)
+      value[value == "n gen"] <- "finite generations"
+      tab$model[show] <- paste0(tab$model[show], "; ", value)
+    }
+  }
+  mode <- settings$fit_constraints
+  if (!is.null(mode) && mode != "none") {
+    show <- tab$regression == "RAVEL" & !corrected
+    tab$model[show] <- paste0(tab$model[show], "; ", gsub("_", " ", mode, fixed = TRUE))
+  }
+  key <- paste(tab$model, tab$parameter, sep = "|")
+  if (anyDuplicated(key)) stop("Multiple estimates share a plot row; select one outcome, scale and uncertainty source.")
+  inference <- unique(tab$inference %||% tab$uncertainty_source)
+  pi_delta <- any(grepl("pi_delta_wald", inference))
+  uncertainty <- if (pi_delta) "pi_delta_wald" else settings$uncertainty %||%
+    if (any(grepl("bootstrap", inference))) "bootstrap" else "lavaan"
+  level <- attr(out, "ci_level") %||% settings$ci_level %||%
+    attr(out, "pi_uncertainty")$correction_ci_level %||% unique(tab$ci_level)
+  binary <- identical(settings$outcome_type, "binary_liability") ||
+    any(grepl("probit|liability", tab$outcome_scale %||% ""))
+  raw <- all(tab$scale == "corrected_raw")
+  caption <- paste0(if (length(level) == 1L && is.finite(level)) paste0(round(100 * level), "% ") else "",
+    "intervals: ", if (pi_delta) "joint delta-Wald, including external pi uncertainty" else
+    if (uncertainty == "mixed") "mixed model-based and bootstrap percentile; see inference column" else
+    if (uncertainty == "bootstrap") "whole-trio bootstrap (percentile)" else "model-based (lm/glm; lavaan delta)")
   structure(list(data = tab, outcome = unique(tab$outcome_variable),
-    ci_level = out$settings$ci_level, uncertainty = out$settings$uncertainty,
-    binary = identical(out$settings$outcome_type, "binary_liability")), class = "ravel_report_plot")
+    ci_level = level, uncertainty = uncertainty, inference = inference, caption = caption,
+    scale = scale, raw = raw, binary = binary,
+    pi_uncertainty = attr(out, "pi_uncertainty"),
+    estimated_state = attr(out, "estimated_state")), class = "ravel_report_plot")
 }
 
 #' @export
 print.ravel_report_plot <- function(x, ...) {
   old <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(old))
-  groups <- if (x$binary) c("PGS", "RAVEL") else "all"
+  groups <- if (x$binary) intersect(c("PGS", "RAVEL"),
+    unique(ifelse(x$data$regression == "RAVEL", "RAVEL", "PGS"))) else "all"
   graphics::par(mfrow = c(length(groups), 3L), mar = c(3.8, 8.4, 2.7, 1.1),
                 oma = c(if (x$binary) 3.2 else 2.3, 0, 2.5, 0), family = "sans", las = 1)
   roles <- c(beta_D = "Offspring", beta_M = "Mother", beta_P = "Father")
@@ -696,12 +805,16 @@ print.ravel_report_plot <- function(x, ...) {
       d <- tab[tab$parameter == role, , drop = FALSE]
       yy <- length(models) + 1L - match(d$model, models)
       graphics::plot(NA_real_, NA_real_, xlim = lim, ylim = c(.4, length(models) + .6),
-        xlab = if (x$binary) if (group == "PGS") "Probit residual-SD units" else "SEM liability units" else
+        xlab = if (isTRUE(x$raw)) "Effect per founder-scale total liability" else
+          if (identical(x$scale, "corrected_std")) "Effect per current total-liability SD" else
+          if (x$binary) if (group == "PGS") "Probit residual-SD units" else "SEM liability units" else
           "Standardized coefficient", ylab = "", axes = FALSE, main = roles[[role]])
       graphics::axis(1)
-      graphics::axis(2, at = seq_along(models), labels = rev(models), tick = FALSE, cex.axis = .85)
+      labels <- vapply(models, function(label) paste(strwrap(label, width = 29L), collapse = "\n"), character(1))
+      graphics::axis(2, at = seq_along(models), labels = rev(labels), tick = FALSE, cex.axis = .75)
       graphics::abline(v = 0, col = "#969696", lty = 3)
       col <- unname(colors[ifelse(d$regression == "RAVEL", d$residual_model, d$regression)])
+      col[is.na(col)] <- "#175a83"
       graphics::segments(d$ci_low, yy, d$ci_high, yy, col = col, lwd = 2)
       graphics::points(d$estimate, yy, pch = ifelse(d$regression == "RAVEL", 16, 17), col = col, cex = 1.15)
       bad <- !is.finite(d$estimate)
@@ -712,23 +825,41 @@ print.ravel_report_plot <- function(x, ...) {
     }
   }
   graphics::mtext(paste(x$outcome, collapse = ", "), side = 3, outer = TRUE, line = .7, font = 2, cex = 1.1)
-  caption <- paste0(round(100 * x$ci_level), "% intervals: ",
-    if (x$uncertainty == "bootstrap") "whole-trio bootstrap (percentile)" else "model-based (lm/glm; lavaan)")
+  caption <- x$caption %||% paste0(round(100 * x$ci_level), "% intervals: ", x$uncertainty)
   graphics::mtext(caption, side = 1, outer = TRUE, line = .5, cex = .85)
-  if (x$binary) graphics::mtext("Separate outcome scales: do not compare magnitudes between rows directly.",
+  if (x$binary && length(groups) > 1L) graphics::mtext("Separate outcome scales: do not compare magnitudes between rows directly.",
     side = 1, outer = TRUE, line = 1.8, cex = .8)
   invisible(x)
 }
 
 .ravel_report_save_plot <- function(plot, out_dir) {
-  height <- if (plot$binary) 8 else 4.5
-  for (extension in c("pdf", "png")) {
-    path <- file.path(out_dir, paste0("diagnostic_estimates.", extension))
-    if (extension == "pdf") grDevices::pdf(path, width = 14, height = height) else
-      grDevices::png(path, width = 14, height = height, units = "in", res = 160,
-                     type = if (capabilities("cairo")) "cairo" else getOption("bitmapType"))
-    tryCatch(print(plot), finally = grDevices::dev.off())
+  lines <- sum(vapply(unique(plot$data$model), function(x) length(strwrap(x, width = 29L)), integer(1)))
+  separate_outcomes <- plot$binary && any(plot$data$regression != "RAVEL") && any(plot$data$regression == "RAVEL")
+  height <- max(if (separate_outcomes) 8 else 4.5, 2 + .28 * lines)
+  path <- file.path(out_dir, "diagnostic_estimates.pdf")
+  grDevices::pdf(path, width = 14, height = height)
+  tryCatch(print(plot), finally = grDevices::dev.off())
+  path <- file.path(out_dir, "diagnostic_estimates.png")
+  # capabilities("cairo") describes the build, not whether its shared libraries
+  # can load. Try native devices and verify the file rather than trusting it.
+  types <- unique(c(if (isTRUE(capabilities("aqua"))) "quartz", getOption("bitmapType"),
+    if (isTRUE(capabilities("cairo"))) "cairo", if (.Platform$OS.type == "windows") "windows"))
+  failures <- character()
+  for (type in types) {
+    before <- grDevices::dev.cur()
+    ok <- tryCatch(withCallingHandlers({
+      grDevices::png(path, width = 14, height = height, units = "in", res = 160, type = type)
+      print(plot)
+      grDevices::dev.off()
+      file.exists(path) && isTRUE(file.info(path)$size > 0)
+    }, warning = function(w) stop(conditionMessage(w))), error = function(e) {
+      failures <<- c(failures, paste0(type, ": ", conditionMessage(e)))
+      FALSE
+    }, finally = if (grDevices::dev.cur() != before) grDevices::dev.off())
+    if (ok) return(invisible(NULL))
+    if (file.exists(path)) unlink(path)
   }
+  stop("No usable PNG device: ", paste(failures, collapse = "; "))
 }
 
 .ravel_report_sem <- function(dat, common_packet, specification, fixed_corr, wanted,
@@ -739,12 +870,16 @@ print.ravel_report_plot <- function(x, ...) {
   settings <- common_packet$settings
   chosen_corr <- if (specification == "fixed") fixed_corr else NULL
   tryCatch(withCallingHandlers({
-    fit <- RAVEL::ravel_fit(dat, h = 0, outcome = outcome$type,
+    constraint_mode <- settings$fit_constraints %||% "none"
+    correction_mode <- if (constraint_mode == "none") "n_gen" else constraint_mode
+    fit <- RAVEL::ravel_fit(dat, h = settings$h %||% 0, outcome = outcome$type,
       fixed_effects = settings$fixed_effects, crossperson = "free",
       fixed_crossperson_corr = chosen_corr, n_boot = 0, ci_level = settings$ci_level,
-      am_correction = "n_gen", am_n_generations = 1L)
+      am_correction = correction_mode,
+      am_n_generations = if (constraint_mode == "none") 1L else settings$am_n_generations,
+      fit_constraints = constraint_mode)
     diagnostics$converged <- isTRUE(fit$converged)
-    if (!diagnostics$converged) stop("RAVEL did not converge")
+    if (!diagnostics$converged) stop(fit$error %||% "RAVEL did not converge")
     V <- lavaan::vcov(fit$fit)
     if (!is.matrix(V) || !all(.report_core_labels %in% rownames(V))) stop("Missing joint parameter covariance matrix")
     V_core <- V[.report_core_labels, .report_core_labels, drop = FALSE]
@@ -760,6 +895,7 @@ print.ravel_report_plot <- function(x, ...) {
         stop("Fitted residual correlations violate the requested fixed constraints; numerical review required")
     }
     visible <- RAVEL::ravel_to_dataframe(fit, uncertainty = "lavaan", include_vanilla = FALSE)
+    visible <- visible[visible$scale == "visible", , drop = FALSE]
     visible$parameter[visible$parameter == "beta_F"] <- "beta_P"
     visible$outcome_variable <- outcome$name
     visible$outcome_scale <- if (outcome$type == "continuous") "prepared_phenotype_SD" else "SEM_probit_liability"
@@ -788,6 +924,7 @@ print.ravel_report_plot <- function(x, ...) {
     statistics <- stats_table(measures, "RAVEL", specification)
     options <- lavaan::lavInspect(fit$fit, "options")
     diagnostics$admissible <- TRUE
+    if (constraint_mode == "estimated_state") diagnostics$estimated_state_identified <- TRUE
     diagnostics$warnings <- unique(messages)
     diagnostics$maximum_core_se <- max(sqrt(diag(V_core)))
     diagnostics$covariate_design_condition <- condition
@@ -811,6 +948,7 @@ print.ravel_report_plot <- function(x, ...) {
     packet$diagnostics <- diagnostics
     packet$outcome$model_implied_variance <- lavaan::lavInspect(fit$fit, "cov.ov")["Y", "Y"]
     packet$settings$residual_model <- specification
+    packet$settings$constraint_spec <- fit$constraint_spec
     packet$settings$binary_covariate_moments <- if (binary_covariates)
       "conditional_probit_joint_marginal_liability" else "not_applicable"
     packet$settings$fixed_crossperson_corr <- chosen_corr

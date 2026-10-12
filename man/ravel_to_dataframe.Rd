@@ -17,7 +17,7 @@ ravel_to_dataframe(
 \item{uncertainty}{Character. One of \code{"auto"}, \code{"bootstrap"},
 \code{"lavaan"}, or \code{"none"}.}
 
-\item{include_raw}{Logical. If \code{TRUE} and \code{h > 0}, also return the
+\item{include_raw}{Logical. If \code{TRUE}, also return the
 corrected raw total-liability rows.}
 
 \item{include_vanilla}{Logical. If \code{TRUE}, append the plain observed-PGS
@@ -50,3 +50,5 @@ normal-approximation p-values based on the lavaan/delta-method SEs. When
 bootstrap intervals, while p-values are normal-approximation p-values based
 on the bootstrap SEs.
 }
+
+\section{Fitting assumptions}{The table retains \code{settings}, \code{constraint_spec}, \code{ci_level}, and (when present) \code{estimated_state} attributes. Raw rows are available even at \code{h = 0}; their founder units can differ from current-generation standardized units. External pi sampling error requires the separate \code{ravel_correct_pi} step.}

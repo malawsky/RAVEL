@@ -1,8 +1,8 @@
 Package: RAVEL
 Title: Recovering Assortment-Adjusted Variance Explained by Genetic Liabilities
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R:
-    person("Daniel", "Malawsky", , "dm22@sanger.ac.uk", role = c("aut", "cre"),
+    person("Daniel", "Malawsky", , "d.malawsky@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-4421-8688"))
 Description: Structural equation modeling framework for estimating direct and
     indirect genetic effects on offspring phenotypes using parent-offspring trio

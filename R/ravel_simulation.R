@@ -3,7 +3,7 @@
 # =============================================================================
 # RAVEL Simulation Framework for Trio Genetic Data
 #
-# Author: Daniel Malawsky (dm22@sanger.ac.uk)
+# Author: Daniel Malawsky (d.malawsky@gmail.com)
 # =============================================================================
 
 #' Simulate Trio Data for RAVEL Analysis

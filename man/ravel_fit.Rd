@@ -12,7 +12,7 @@ ravel_fit(
   crossperson = c("free", "equal_pc"),
   fixed_crossperson = NULL,
   fixed_crossperson_corr = NULL,
-  am_correction = c("n_gen", "equilibrium"),
+  am_correction = c("n_gen", "equilibrium", "estimated_state"),
   am_n_generations = 1L,
   fix_parent_paths = FALSE,
   fixed_effects = NULL,
@@ -27,7 +27,8 @@ ravel_fit(
   col_pgs2_father = "PGS2_father",
   col_pgs1_child = "PGS1_child",
   col_pgs2_child = "PGS2_child",
-  col_outcome = "Y"
+  col_outcome = "Y",
+  fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state")
 )
 }
 \arguments{
@@ -75,7 +76,8 @@ assortative mating and recursively propagates the covariance state forward; sett
 \code{"equilibrium"} assumes assortative mating has reached equilibrium over
 many generations. This choice also determines raw-scale assortative-mating
 inflation at \code{h = 0}, although standardized total coefficients then
-equal visible coefficients.}
+equal visible coefficients.
+\code{"estimated_state"} recovers founder-scaled covariance from fitted spouse and parent-child correlations without a generation count, and requires matching \code{fit_constraints}.}
 
 \item{am_n_generations}{Integer. Number of assortative-mating generations to
 use when \code{am_correction = "n_gen"}. Must be at least 1. The value
@@ -91,6 +93,22 @@ moments from all six scores and these covariates are mapped to a marginal
 variance-one liability before SEM fitting. Positive working weights and a
 full joint sandwich covariance are used for robust SEs. This assumes a
 linear, homoscedastic conditional-probit liability model.}
+
+\item{fit_constraints}{Character. Optional strong measurement/inheritance
+restrictions: \code{"none"} (default), \code{"equilibrium"},
+\code{"n_gen"}, or \code{"estimated_state"}. Each score has its own unknown reliability; observed
+marginal scales remain free. Residual correlations are zero between spouses,
+0.5 between parent and child, and zero across scores. At equilibrium each
+score has equal reliability across roles and latent parent-child correlation
+is \eqn{(1+\rho)/2}. In finite generations, child reliability evolves under
+random-mating founders and constant total-liability spouse correlation.
+For two or more generations fitting is conditional on supplied \code{h}.
+The matching \code{am_correction} is selected when omitted; an explicit
+conflict is rejected. Score loadings use the same positive orientation.
+Estimated-state fitting recovers variance growth independently of \code{h}.
+It relaxes exact integer-generation history while retaining founder segregation
+and assortment along the same genetic target. Compatibility diagnostics are
+returned in \code{hidden_correction_details$estimated_state}.}
 
 \item{n_boot}{Integer. Number of bootstrap replicates (0 = no bootstrap).}
 

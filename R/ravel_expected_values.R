@@ -9,7 +9,7 @@
 # alongside ravel_sem.R, the internal helpers defined here are identical to the
 # ones used by the fitting code, so there is no conflict.
 #
-# Author: Daniel Malawsky (dm22@sanger.ac.uk)
+# Author: Daniel Malawsky (d.malawsky@gmail.com)
 # =============================================================================
 
 

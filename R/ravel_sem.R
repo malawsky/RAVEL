@@ -3,7 +3,7 @@
 # =============================================================================
 # RAVEL Structural Equation Model for Trio Genetic Analysis
 #
-# Author: Daniel Malawsky (dm22@sanger.ac.uk)
+# Author: Daniel Malawsky (d.malawsky@gmail.com)
 # =============================================================================
 
 # =============================================================================
@@ -513,7 +513,7 @@
 #'
 #' @noRd
 .hidden_correction_trio_core <- function(beta_vis, cov_cm, cov_cf, cov_mf, h,
-                                         am_correction = c("n_gen", "equilibrium"),
+                                         am_correction = c("n_gen", "equilibrium", "estimated_state"),
                                          n_generations = 1L) {
 
   am_correction <- match.arg(am_correction)
@@ -547,7 +547,14 @@
     return(.hidden_correction_na_result(beta_vis, Sigma_xx, t_m, t_f, h, n_gen_field))
   }
 
-  if (h == 0) {
+  if (identical(am_correction, "estimated_state")) {
+    st <- .hidden_estimated_state(cov_mf, cov_cm, cov_cf, h)
+    if (is.null(st)) {
+      warning("Hidden correction: estimated variance state is incompatible with the supplied founder hidden fraction; returning NAs.")
+      return(.hidden_correction_na_result(beta_vis, Sigma_xx, t_m, t_f, h, n_gen_field))
+    }
+    rho_T <- st$rho_T
+  } else if (h == 0) {
     rho_T <- cov_mf
   } else if (abs(cov_mf) < 1e-12) {
     rho_T <- 0
@@ -612,7 +619,8 @@
     }
   }
 
-  st <- .am_state_components(rho_T, h, am_correction, as.integer(n_generations))
+  if (!identical(am_correction, "estimated_state"))
+    st <- .am_state_components(rho_T, h, am_correction, as.integer(n_generations))
   if (is.null(st)) {
     warning("Hidden correction: component-variance state is not well defined; returning NAs.")
     return(.hidden_correction_na_result(beta_vis, Sigma_xx, t_m, t_f, h, n_gen_field))
@@ -701,6 +709,7 @@
     M_component = M,
     M = M
   )
+  if (!is.null(st$estimated_state)) out$estimated_state <- st$estimated_state
   if (!is.null(n_gen_field)) out$n_generations <- n_gen_field
   out
 }
@@ -867,7 +876,9 @@
       beta_vis, cov_cm, cov_cf, cov_mf, h,
       n_generations = am_n_generations
     ),
-    "equilibrium" = .hidden_correction_trio_equilibrium(beta_vis, cov_cm, cov_cf, cov_mf, h)
+    "equilibrium" = .hidden_correction_trio_equilibrium(beta_vis, cov_cm, cov_cf, cov_mf, h),
+    "estimated_state" = .hidden_correction_trio_core(beta_vis, cov_cm, cov_cf, cov_mf, h,
+      am_correction = "estimated_state")
   )
 
   beta_h_only_assumed <- hc$beta_h_only_assumed
@@ -944,6 +955,7 @@
         Sigma_hh = if (is.null(hc$Sigma_hh)) NULL else hc$Sigma_hh,
         M = hc$M
       ),
+      if (!is.null(hc$estimated_state)) list(estimated_state = hc$estimated_state),
       list(d = hc$d, d_child = if (is.null(hc$d_child)) hc$d else hc$d_child, q = hc$q)
     )
   )
@@ -1215,6 +1227,9 @@
 #'   many generations. This choice also determines raw-scale assortative-mating
 #'   inflation at \code{h = 0}, although standardized total coefficients then
 #'   equal visible coefficients.
+#'   \code{"estimated_state"} recovers the founder-scaled covariance state
+#'   from fitted spouse and parent-child correlations, without a generation
+#'   count. Requires matching \code{fit_constraints = "estimated_state"}.
 #' @param am_n_generations Integer. Number of assortative-mating generations to
 #'   use when \code{am_correction = "n_gen"}. Must be at least 1. The value
 #'   \code{1} means the mating parents are on the founder scale and the child is
@@ -1227,6 +1242,23 @@
 #'   variance-one liability before SEM fitting. Positive working weights and a
 #'   full joint sandwich covariance are used for robust SEs. This assumes a
 #'   linear, homoscedastic conditional-probit liability model.
+#' @param fit_constraints Character. Optional strong measurement/inheritance
+#'   restrictions: \code{"none"} (default), \code{"equilibrium"},
+#'   \code{"n_gen"}, or \code{"estimated_state"}. Scores retain separate unknown reliabilities, six free
+#'   marginal scales, independent cross-score residuals, zero spouse residual
+#'   correlation and parent-child residual correlation 0.5. At equilibrium,
+#'   each score's reliability is shared across roles and latent parent-child
+#'   correlation is \eqn{(1+\rho)/2}. Finite-generation constraints follow
+#'   random-mating founders and constant total-liability spouse correlation;
+#'   child reliability evolves with genetic variance. For two or more
+#'   generations, these fitting restrictions are conditional on supplied
+#'   \code{h}. The matching \code{am_correction} is selected automatically
+#'   if omitted; an explicit conflicting value is rejected. Loadings must have
+#'   the same positive orientation. See the package constrained-fitting notes.
+#'   Estimated-state fitting estimates variance growth independently of
+#'   \code{h}, retaining Mendelian segregation and a shared genetic target.
+#'   It relaxes exact constant-strength integer-generation history; a
+#'   compatibility diagnostic is returned, not an estimated integer count.
 #' @param n_boot Integer. Number of bootstrap replicates (0 = no bootstrap).
 #' @param cluster_var Character. Column name for cluster bootstrap sampling.
 #' @param ci_level Numeric. Confidence level for bootstrap CIs.
@@ -1280,7 +1312,7 @@ ravel_fit <- function(dat,
                       crossperson = c("free", "equal_pc"),
                       fixed_crossperson = NULL,
                       fixed_crossperson_corr = NULL,
-                      am_correction = c("n_gen", "equilibrium"),
+                      am_correction = c("n_gen", "equilibrium", "estimated_state"),
                       am_n_generations = 1L,
                       fix_parent_paths = FALSE,
                       fixed_effects = NULL,
@@ -1295,9 +1327,12 @@ ravel_fit <- function(dat,
                       col_pgs2_father = "PGS2_father",
                       col_pgs1_child  = "PGS1_child",
                       col_pgs2_child  = "PGS2_child",
-                      col_outcome     = "Y") {
+                      col_outcome     = "Y",
+                      fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state")) {
 
   # Input validation
+  correction_missing <- missing(am_correction)
+  fit_constraints <- match.arg(fit_constraints)
   outcome <- match.arg(outcome)
   measurement <- match.arg(measurement)
   crossperson <- match.arg(crossperson)
@@ -1312,6 +1347,15 @@ ravel_fit <- function(dat,
     arg_name = "fixed_crossperson_corr"
   )
   am_correction <- match.arg(am_correction)
+  constraint_options <- .ravel_prepare_constraints(
+    fit_constraints, h, am_correction, am_n_generations, correction_missing,
+    crossperson, fixed_crossperson, fixed_crossperson_corr)
+  am_correction <- constraint_options$am_correction
+  if (am_correction == "estimated_state" && fit_constraints != "estimated_state")
+    stop("am_correction = 'estimated_state' requires fit_constraints = 'estimated_state'.")
+  crossperson <- constraint_options$crossperson
+  fixed_crossperson <- constraint_options$fixed_cov
+  fixed_crossperson_corr <- constraint_options$fixed_corr
 
   if (am_correction == "n_gen") {
     if (!is.numeric(am_n_generations) || length(am_n_generations) != 1 ||
@@ -1383,6 +1427,11 @@ ravel_fit <- function(dat,
     fixed_crossperson = fixed_crossperson,
     fixed_crossperson_corr = fixed_crossperson_corr
   )
+
+  if (fit_constraints != "none") {
+    model <- paste(model, .ravel_constraint_syntax(fit_constraints, h, am_n_generations), sep = "\n")
+    model <- .ravel_constraint_starts(model, dat, fit_constraints, h, am_n_generations)
+  }
 
   if (verbose) {
     cat("=== MODEL SYNTAX ===\n")
@@ -1622,13 +1671,16 @@ ravel_fit <- function(dat,
     NULL
   })
 
-  if (is.null(fit) || !lavaan::inspect(fit, "converged")) {
+  if (is.null(fit) || !lavaan::inspect(fit, "converged") ||
+      (fit_constraints != "none" && !.ravel_constraint_fit_valid(fit))) {
     return(structure(list(
       converged = FALSE,
       N = nrow(dat),
       model = model,
       fit = fit,
-      error = "Model did not converge",
+      error = if (fit_constraints == "none") "Model did not converge" else if (fit_constraints == "estimated_state")
+        "Estimated-state fit failed convergence, constraint, local-identification, or full-covariance checks; inference is unavailable" else
+        "Constrained model did not produce an admissible converged fit satisfying its restrictions",
       outcome_variable = col_outcome
     ), class = c("ravel_results", "list")))
   }
@@ -1663,6 +1715,8 @@ ravel_fit <- function(dat,
     boot_raw_bD <- boot_raw_bM <- boot_raw_bF <- rep(NA_real_, n_boot)
     boot_cov_Tmf <- boot_corr_Tmf <- rep(NA_real_, n_boot)
     boot_std_bD <- boot_std_bM <- boot_std_bF <- rep(NA_real_, n_boot)
+    boot_core <- matrix(NA_real_, n_boot, 6L,
+      dimnames = list(NULL, c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")))
     n_ok <- 0
 
     for (b in seq_len(n_boot)) {
@@ -1677,6 +1731,7 @@ ravel_fit <- function(dat,
 
       fit_b <- tryCatch(.fit_once(dat_b), error = function(e) NULL)
       if (is.null(fit_b) || !lavaan::inspect(fit_b, "converged")) next
+      if (fit_constraints != "none" && !.ravel_constraint_fit_valid(fit_b)) next
 
       ext_b <- tryCatch(.extract(fit_b, data_for_r2 = dat_b), error = function(e) NULL)
       if (is.null(ext_b)) next
@@ -1685,6 +1740,7 @@ ravel_fit <- function(dat,
       boot_vis_bM[b] <- ext_b$beta_vis["bm"]
       boot_vis_bF[b] <- ext_b$beta_vis["bf"]
       boot_vis_rho[b] <- ext_b$rho_vis
+      boot_core[b, ] <- c(ext_b$beta_vis, ext_b$latent_cov_vis)[colnames(boot_core)]
 
       boot_raw_bD[b] <- ext_b$beta_total_assumed["bD"]
       boot_raw_bM[b] <- ext_b$beta_total_assumed["bm"]
@@ -1731,6 +1787,8 @@ ravel_fit <- function(dat,
       boot_results <- list(
         source = "bootstrap",
         n_successful = n_ok,
+        core_draws = boot_core,
+        minimum_success = max(10L, ceiling(.8 * n_boot)),
         ci_level = ci_level,
         visible = visible_block,
         total_raw = total_raw_block,
@@ -1743,26 +1801,26 @@ ravel_fit <- function(dat,
         visible_bF_ci = visible_block$ci[, "bf"],
         visible_rho_se = visible_block$se["rhoMF"],
         visible_rho_ci = visible_block$ci[, "rhoMF"],
-        bD_se = if (h > 0) total_raw_block$se["bD"] else visible_block$se["bD"],
-        bD_ci = if (h > 0) total_raw_block$ci[, "bD"] else visible_block$ci[, "bD"],
-        bM_se = if (h > 0) total_raw_block$se["bm"] else visible_block$se["bm"],
-        bM_ci = if (h > 0) total_raw_block$ci[, "bm"] else visible_block$ci[, "bm"],
-        bF_se = if (h > 0) total_raw_block$se["bf"] else visible_block$se["bf"],
-        bF_ci = if (h > 0) total_raw_block$ci[, "bf"] else visible_block$ci[, "bf"],
-        total_std_bD_se = if (h > 0) total_std_block$se["bD"] else NULL,
-        total_std_bD_ci = if (h > 0) total_std_block$ci[, "bD"] else NULL,
-        total_std_bM_se = if (h > 0) total_std_block$se["bm"] else NULL,
-        total_std_bM_ci = if (h > 0) total_std_block$ci[, "bm"] else NULL,
-        total_std_bF_se = if (h > 0) total_std_block$se["bf"] else NULL,
-        total_std_bF_ci = if (h > 0) total_std_block$ci[, "bf"] else NULL,
+        bD_se = total_raw_block$se["bD"],
+        bD_ci = total_raw_block$ci[, "bD"],
+        bM_se = total_raw_block$se["bm"],
+        bM_ci = total_raw_block$ci[, "bm"],
+        bF_se = total_raw_block$se["bf"],
+        bF_ci = total_raw_block$ci[, "bf"],
+        total_std_bD_se = total_std_block$se["bD"],
+        total_std_bD_ci = total_std_block$ci[, "bD"],
+        total_std_bM_se = total_std_block$se["bm"],
+        total_std_bM_ci = total_std_block$ci[, "bm"],
+        total_std_bF_se = total_std_block$se["bf"],
+        total_std_bF_ci = total_std_block$ci[, "bf"],
         # Raw total-scale spouse covariance (kappa_T). At h = 0 its
         # standardized correlation, rather than its raw covariance, coincides
         # with the visible-scale spouse correlation.
-        cov_Tmf_se  = if (h > 0) total_raw_block$se["rhoMF"] else visible_block$se["rhoMF"],
-        cov_Tmf_ci  = if (h > 0) total_raw_block$ci[, "rhoMF"] else visible_block$ci[, "rhoMF"],
+        cov_Tmf_se  = total_raw_block$se["rhoMF"],
+        cov_Tmf_ci  = total_raw_block$ci[, "rhoMF"],
         # Standardized total-scale spouse correlation (rho_T).
-        corr_Tmf_se = if (h > 0) total_std_block$se["rhoMF"] else visible_block$se["rhoMF"],
-        corr_Tmf_ci = if (h > 0) total_std_block$ci[, "rhoMF"] else visible_block$ci[, "rhoMF"]
+        corr_Tmf_se = total_std_block$se["rhoMF"],
+        corr_Tmf_ci = total_std_block$ci[, "rhoMF"]
       )
     }
   }
@@ -1881,6 +1939,18 @@ ravel_fit <- function(dat,
     lavaan_inference = lavaan_inference,
     bootstrap = boot_results,
 
+    # Opt-in constraint metadata and finite-generation sensitivity refit inputs.
+    # The latter is retained only when fitting itself depends on external h.
+    constraint_spec = list(mode = fit_constraints, h = h,
+      n_generations = if (fit_constraints == "n_gen") am_n_generations else NA_integer_,
+      depends_on_pi = fit_constraints == "n_gen" && am_n_generations > 1L),
+    constraint_refit = if (fit_constraints == "n_gen" && am_n_generations > 1L) list(
+      dat = dat, h = h, outcome = outcome, measurement = measurement,
+      crossperson = crossperson, am_correction = am_correction,
+      am_n_generations = am_n_generations, fix_parent_paths = fix_parent_paths,
+      fixed_effects = fixed_effects, n_boot = 0, ci_level = ci_level,
+      fit_constraints = fit_constraints) else NULL,
+
     # Settings
     h = h,
     am_n_generations = if (am_correction == "n_gen") am_n_generations else NA_integer_,
@@ -1898,6 +1968,45 @@ ravel_fit <- function(dat,
 # =============================================================================
 # OUTPUT FUNCTIONS
 # =============================================================================
+
+.ravel_print_assumptions <- function(result, digits) {
+  cat("Fit constraints:", result$constraint_spec$mode %||% "none", "\n")
+  cat("AM correction:", result$am_correction %||% "unspecified")
+  if (identical(result$am_correction, "n_gen"))
+    cat("; generations =", result$am_n_generations)
+  if (identical(result$am_correction, "estimated_state")) cat("; generation count not specified")
+  cat("\n")
+  state <- result$hidden_correction_details$estimated_state
+  if (!is.null(state)) {
+    cat("Estimated variance state (founder reference):\n")
+    for (nm in intersect(c("B", "vGp", "vTp", "rT"), names(state)))
+      cat(sprintf("  %s = %.*f\n", if (nm == "B") "growth (B)" else nm, digits, state[[nm]]))
+    if (!is.null(state$history_status)) cat("  History diagnostic:", state$history_status, "\n")
+  }
+  invisible(NULL)
+}
+
+.ravel_print_correction_table <- function(result, digits) {
+  if (!all(c("scale", "parameter", "estimate", "se", "ci_low", "ci_high", "am_correction") %in% names(result)))
+    stop("Supply a fitted RAVEL result or a table from ravel_correct_packet, ravel_correct_pi, or ravel_correct_grid.")
+  cat("RAVEL corrected estimates\n")
+  cat("AM correction:", paste(unique(result$am_correction), collapse = ", "), "\n")
+  columns <- intersect(c("outcome_variable", "residual_model", "scale", "parameter", "estimate", "se",
+    "ci_low", "ci_high", "scenario_id", "pi", "pi_se", "h", "hidden_fraction", "am_correction",
+    "am_n_generations", "n_generations", "inference", "status", "correction_status", "error"), names(result))
+  print.data.frame(result[columns], digits = digits, row.names = FALSE)
+  state <- attr(result, "estimated_state")
+  if (!is.null(state$summary)) {
+    cat("\nEstimated variance state (same uncertainty propagation):\n")
+    print.data.frame(state$summary, digits = digits, row.names = FALSE)
+  } else if (!is.null(state)) {
+    cat("\nEstimated variance state (point estimates):\n")
+    for (nm in intersect(c("B", "vGp", "vTp", "rT"), names(state)))
+      cat(sprintf("  %s = %.*f\n", if (nm == "B") "growth (B)" else nm, digits, state[[nm]]))
+    if (!is.null(state$history_status)) cat("  History diagnostic:", state$history_status, "\n")
+  }
+  invisible(result)
+}
 
 #' Fetch a named CI vector from an uncertainty block
 #' @noRd
@@ -2131,8 +2240,8 @@ ravel_fit <- function(dat,
 #' @param result A fitted RAVEL result object from \code{\link{ravel_fit}}.
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
 #'   \code{"lavaan"}, or \code{"none"}.
-#' @param include_raw Logical. If \code{TRUE} and \code{h > 0}, also return the
-#'   corrected raw total-liability rows.
+#' @param include_raw Logical. If \code{TRUE}, also return the
+#'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
 #'   trio regression rows returned by \code{ravel_fit()}.
 #'
@@ -2178,7 +2287,7 @@ ravel_to_dataframe <- function(result,
     )
   }
 
-  if (isTRUE(include_raw) && result$h > 0) {
+  if (isTRUE(include_raw)) {
     out <- rbind(
       out,
       .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", source_label, p_value_method)
@@ -2208,6 +2317,12 @@ ravel_to_dataframe <- function(result,
     "uncertainty_source", "p_value_method"
   )]
 
+  attr(out, "settings") <- list(fit_constraints = result$constraint_spec$mode %||% "none",
+    am_correction = result$am_correction, am_n_generations = result$am_n_generations,
+    h = result$h, ci_level = unc$ci_level, outcome_type = result$outcome)
+  attr(out, "constraint_spec") <- result$constraint_spec
+  attr(out, "estimated_state") <- result$hidden_correction_details$estimated_state
+  attr(out, "ci_level") <- unc$ci_level
   out
 }
 
@@ -2218,8 +2333,8 @@ ravel_to_dataframe <- function(result,
 #' @param optional Ignored. Included for compatibility with the generic.
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
 #'   \code{"lavaan"}, or \code{"none"}.
-#' @param include_raw Logical. If \code{TRUE} and \code{h > 0}, also return the
-#'   corrected raw total-liability rows.
+#' @param include_raw Logical. If \code{TRUE}, also return the
+#'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
 #'   trio regression rows returned by \code{ravel_fit()}.
 #' @param ... Unused.
@@ -2247,7 +2362,7 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 
 #' Print RAVEL Results
 #'
-#' @param result Output from \code{\link{ravel_fit}}
+#' @param result Output from \code{\link{ravel_fit}}, or a corrected coefficient table.
 #' @param gold Optional named vector with gold standard values for comparison
 #' @param digits Number of decimal places
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
@@ -2258,8 +2373,13 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 print_ravel_results <- function(result, gold = NULL, digits = 4,
                                 uncertainty = c("auto", "bootstrap", "lavaan", "none")) {
 
+  if (is.data.frame(result)) {
+    if (match.arg(uncertainty) != "auto")
+      stop("A correction table already contains its chosen uncertainty; recompute it to change the source.")
+    return(.ravel_print_correction_table(result, digits))
+  }
   if (!result$converged) {
-    cat("Model did not converge.\n")
+    cat(result$error %||% "Model did not converge.", "\n")
     return(invisible(result))
   }
 
@@ -2288,7 +2408,9 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
     cat("  Fixed cross-person residual correlations:", fixed_text, "\n")
   }
   cat("  Outcome:", result$outcome, "\n")
-  cat("  Hidden variance fraction (h, assumed):", result$h, "\n\n")
+  cat("  Hidden variance fraction (h, assumed):", result$h, "\n")
+  .ravel_print_assumptions(result, digits)
+  cat("\n")
 
   # Effect estimates
   cat("Effect estimates (visible latent genetics):\n")
@@ -2296,7 +2418,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat(sprintf("  bm (maternal): %.*f\n", digits, result$beta_vis["bm"]))
   cat(sprintf("  bf (paternal): %.*f\n\n", digits, result$beta_vis["bf"]))
 
-  if (result$h > 0) {
+  if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Assumption-based post-estimation corrections:\n")
     cat("  (1) h-only scaling (assumes no cross-component tagging):\n")
     cat(sprintf("      beta_D: %.*f\n", digits, result$beta_h_only_assumed["bD"]))
@@ -2325,7 +2447,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
                 digits, .uncertainty_ci(unc, "visible", "bf")[2]))
     cat(sprintf("  rho_MF: [%.*f, %.*f]\n", digits, .uncertainty_ci(unc, "visible", "rhoMF")[1],
                 digits, .uncertainty_ci(unc, "visible", "rhoMF")[2]))
-    if (result$h > 0) {
+    if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
       cat("Corrected raw total-liability intervals:\n")
       cat(sprintf("  beta_D: [%.*f, %.*f]\n", digits, .uncertainty_ci(unc, "total_raw", "bD")[1],
                   digits, .uncertainty_ci(unc, "total_raw", "bD")[2]))
@@ -2358,7 +2480,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat(sprintf("\nR2 (SEM / visible): %.*f\n\n", digits, result$R2_model))
 
   # Variance decomposition (assumed total)
-  if (result$h > 0) {
+  if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Variance decomposition (assumed total genetic liability):\n")
     for (nm in names(result$components_total_assumed)) {
       cat(sprintf("  %-20s: %.*f\n", nm, digits, result$components_total_assumed[nm]))
@@ -2373,7 +2495,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat(sprintf("  eta_m (Gc, Gm): %.*f\n", digits, result$latent_cov_vis["eta_m"]))
   cat(sprintf("  eta_f (Gc, Gf): %.*f\n\n", digits, result$latent_cov_vis["eta_f"]))
 
-  if (result$h > 0) {
+  if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Latent covariances (assumed total; raw covariances):\n")
     cat(sprintf("  Cov(Tm*, Tf*): %.*f\n", digits, result$latent_cov_total_assumed["rhoMF"]))
     cat(sprintf("  Cov(Tc*, Tm*): %.*f\n", digits, result$latent_cov_total_assumed["eta_m"]))
@@ -2504,7 +2626,7 @@ cat("Within-person Cor(PGS1,PGS2):\n")
 #' Prints a concise summary with point estimates plus either bootstrap
 #' or lavaan-based uncertainty for both visible and hidden-corrected scales.
 #'
-#' @param result A fitted RAVEL result object from \code{ravel_fit}.
+#' @param result A fitted RAVEL result object from \code{ravel_fit}, or a corrected coefficient table.
 #' @param digits Integer. Number of decimal places.
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
 #'   \code{"lavaan"}, or \code{"none"}.
@@ -2513,8 +2635,13 @@ cat("Within-person Cor(PGS1,PGS2):\n")
 print_simple <- function(result, digits = 4,
                          uncertainty = c("auto", "bootstrap", "lavaan", "none")) {
 
+  if (is.data.frame(result)) {
+    if (match.arg(uncertainty) != "auto")
+      stop("A correction table already contains its chosen uncertainty; recompute it to change the source.")
+    return(.ravel_print_correction_table(result, digits))
+  }
   if (!result$converged) {
-    cat("Model did not converge.\n")
+    cat(result$error %||% "Model did not converge.", "\n")
     return(invisible(result))
   }
 
@@ -2529,12 +2656,13 @@ print_simple <- function(result, digits = 4,
   }
 
   has_boot <- !is.null(result$bootstrap)
-  has_h    <- result$h > 0
+  has_h    <- result$h > 0 || (result$constraint_spec$mode %||% "none") != "none"
 
   cat(sprintf("RAVEL (h = %s, N = %s", fmt_est(result$h),
               if (!is.null(result$N)) result$N else "?"))
   if (!is.null(unc)) cat(sprintf(", %s", .uncertainty_label(unc)))
   cat(")\n")
+  .ravel_print_assumptions(result, digits)
   if (!is.null(result$fixed_crossperson)) {
     cat("Fixed cross-person residual covariances:",
         paste(sprintf("%s=%s", names(result$fixed_crossperson), result$fixed_crossperson),
