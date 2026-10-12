@@ -28,7 +28,11 @@ ravel_fit(
   col_pgs1_child = "PGS1_child",
   col_pgs2_child = "PGS2_child",
   col_outcome = "Y",
-  fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state")
+  fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
+  pi = NULL,
+  pi_se = NULL,
+  core_pi_cov = NULL,
+  covariate_mapping_confirmed = FALSE
 )
 }
 \arguments{
@@ -36,9 +40,31 @@ ravel_fit(
 an outcome column, and optionally fixed-effect columns. Column names can be
 specified via the mapping parameters below.}
 
-\item{h}{Numeric [0,1). Hidden additive-variance fraction \eqn{\pi} on the
+\item{h}{Legacy name for \code{pi}. Numeric [0,1). Hidden additive-variance fraction \eqn{\pi} on the
 founder or random-mating reference scale. At \code{h = 0} there is no
-hidden component.}
+hidden component. If both \code{h} and \code{pi} are explicitly supplied,
+their values must agree.}
+
+\item{pi}{Preferred name for the founder hidden genetic variance fraction,
+a finite scalar in [0,1). Supply either \code{pi} or the legacy \code{h}.
+Omitting both retains the default of zero hidden variance.}
+
+\item{pi_se}{Optional finite nonnegative standard error of the external
+\code{pi} estimate on the raw fraction scale. Requires an explicitly supplied
+\code{pi} or \code{h}. When supplied, corrected estimates reported by the
+print and table helpers include this sampling uncertainty using
+\code{\link{ravel_correct_pi}}. Omit for the existing fixed-pi inference;
+zero contributes no external variance. A positive SE at pi zero is rejected.}
+
+\item{core_pi_cov}{Optional named length-six conditional sampling covariance
+between the visible core estimates and the external pi estimator. Requires
+\code{pi_se}. Defaults to independence. See \code{\link{ravel_correct_pi}}
+for the required names and the distinction between conditional and marginal
+covariance in pi-dependent finite-generation fits.}
+
+\item{covariate_mapping_confirmed}{Logical. When using \code{pi_se} with jointly
+fitted covariates, explicitly confirm that the visible-to-total correction
+mapping applies conditional on those covariates. Defaults to \code{FALSE}.}
 
 \item{outcome}{Character. "continuous" (uses MLR) or "binary_liability"
 (uses WLSMV with probit link for a liability-threshold model).}
@@ -114,7 +140,8 @@ returned in \code{hidden_correction_details$estimated_state}.}
 
 \item{cluster_var}{Character. Column name for cluster bootstrap sampling.}
 
-\item{ci_level}{Numeric. Confidence level for bootstrap CIs.}
+\item{ci_level}{Numeric. Confidence level for model-based, bootstrap, and
+external-pi corrected intervals.}
 
 \item{seed}{Integer. Random seed for reproducibility.}
 
@@ -163,6 +190,11 @@ A list with components (selected):
 \item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied}
 \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
 \item{bootstrap}{Bootstrap results (if n_boot > 0), including visible-scale and corrected-scale summaries}
+\item{pi_correction}{When \code{pi_se} is supplied, the corrected table with
+external-pi uncertainty and attributes containing the full transformed covariance,
+derivatives, variance contributions, and estimated-state uncertainty. The
+original \code{lavaan_inference} and \code{bootstrap} blocks remain conditional
+on pi; public print and table helpers select the pi-aware corrected inference.}
 }
 }
 \description{
@@ -196,4 +228,21 @@ visible trio covariance block and uses them to build the cross-component block
 \eqn{\Sigma_{GH}} induced by assortative mating. See the
 "beta_total_assumed" and "beta_total_assumed_std" outputs and the Methods
 write-up for details.
+
+\strong{External pi uncertainty in one call:}
+Use \code{ravel_fit(dat, pi = 0.4, pi_se = 0.05,
+fit_constraints = "estimated_state")} to fit and propagate external-pi
+uncertainty together. With \code{pi_se}, corrected intervals are joint
+delta-Wald intervals, including when the SEM covariance comes from joint
+bootstrap draws. Visible-scale intervals remain conditional on the supplied
+pi, and retain their original model-based or bootstrap interpretation.
+The external estimate is assumed independent unless \code{core_pi_cov} is
+supplied. Finite-generation fits whose constraints depend on pi automatically
+include the sensitivity of the fitted core to that input.
+
+The separate \code{\link{ravel_correct_pi}} function remains available for
+sensitivity analyses. It recalculates from the visible core, so it does not
+correct already corrected estimates or count pi uncertainty twice. Changing
+pi requires refitting a finite-generation constrained model with more than
+one mating round; pi-independent fits can be reused at a compatible new pi.
 }

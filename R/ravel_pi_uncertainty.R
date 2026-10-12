@@ -211,15 +211,8 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   }
   cross <- setNames(numeric(6L), labels)
   independent <- is.null(core_pi_cov)
-  if (!independent) {
-    if (!is.numeric(core_pi_cov) || is.complex(core_pi_cov) || length(core_pi_cov) != 6L ||
-        any(!is.finite(core_pi_cov)) || is.null(names(core_pi_cov)) ||
-        anyDuplicated(names(core_pi_cov)) || !setequal(names(core_pi_cov), labels))
-      stop("core_pi_cov must be a finite vector named for all six core parameters, on the raw pi scale")
-    cross <- core_pi_cov[labels]
-  }
-  if (external$variance == 0 && any(cross != 0))
-    stop("A zero-variance pi cannot have nonzero core_pi_cov")
+  .ravel_pi_validate_cross(core_pi_cov, external$variance)
+  if (!independent) cross <- core_pi_cov[labels]
   joint_labels <- c(labels, "pi")
   V <- matrix(0, 7L, 7L, dimnames = list(joint_labels, joint_labels))
   V[labels, labels] <- packet$vcov_core
@@ -331,4 +324,47 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
       covariance = state_covariance, jacobian = state_J))
   }
   out
+}
+
+# Validate the optional external-estimate covariance before expensive fitting.
+.ravel_pi_validate_cross <- function(core_pi_cov, variance) {
+  labels <- .report_core_labels
+  if (is.null(core_pi_cov)) return(invisible(NULL))
+  if (!is.numeric(core_pi_cov) || is.complex(core_pi_cov) || length(core_pi_cov) != 6L ||
+      any(!is.finite(core_pi_cov)) || is.null(names(core_pi_cov)) ||
+      anyDuplicated(names(core_pi_cov)) || !setequal(names(core_pi_cov), labels))
+    stop("core_pi_cov must be a finite vector named for all six core parameters, on the raw pi scale")
+  if (variance == 0 && any(core_pi_cov != 0))
+    stop("A zero-variance pi cannot have nonzero core_pi_cov")
+  invisible(NULL)
+}
+
+# Build display blocks without altering the fixed-pi covariance used for fitting,
+# bootstrap packets, sensitivity refits, or subsequent external-pi corrections.
+.ravel_pi_merge_uncertainty <- function(result, conditional, source) {
+  corrected <- result$pi_correction
+  if (is.null(corrected)) return(conditional)
+  meta <- attr(corrected, "pi_uncertainty")
+  if (!identical(meta$core_uncertainty, source)) {
+    cross <- if (isTRUE(meta$independent_of_core)) NULL else
+      attr(corrected, "joint_input_covariance")[.report_core_labels, "pi"]
+    corrected <- ravel_correct_pi(result, pi = meta$pi, pi_se = meta$raw_scale_se,
+      ci_level = meta$correction_ci_level, uncertainty = source,
+      core_pi_cov = cross, core_pi_sensitivity = meta$core_pi_sensitivity,
+      covariate_mapping_confirmed = TRUE)
+  }
+  block <- function(scale) {
+    rows <- which(corrected$scale == scale)
+    part <- corrected[rows, , drop = FALSE]
+    labels <- c("bD", "bm", "bf", "rhoMF")
+    covariance <- attr(corrected, "covariance")[rows, rows, drop = FALSE]
+    dimnames(covariance) <- list(labels, labels)
+    list(estimate = setNames(part$estimate, labels), se = setNames(part$se, labels),
+      ci = rbind(lower = setNames(part$ci_low, labels), upper = setNames(part$ci_high, labels)),
+      cov = covariance, method = unique(part$inference))
+  }
+  conditional$total_std <- block("corrected_std")
+  conditional$total_raw <- block("corrected_raw")
+  conditional$pi_correction <- corrected
+  conditional
 }

@@ -19,7 +19,9 @@
 Thumbs.db
 
 # Documentation builds
-docs/
+docs/*
+!docs/methods.md
+!docs/reference.md
 inst/doc/*.html
 inst/doc/*.pdf
 vignettes/*.html

@@ -1087,7 +1087,7 @@
     bootstrap$visible$estimate <- c(result$beta_vis, rhoMF = unname(result$rho_vis))
     bootstrap$total_raw$estimate <- c(result$beta_total_assumed, rhoMF = unname(result$cov_total_assumed))
     bootstrap$total_std$estimate <- c(result$beta_total_assumed_std, rhoMF = unname(result$rho_total_assumed))
-    return(bootstrap)
+    return(.ravel_pi_merge_uncertainty(result, bootstrap, uncertainty))
   }
 
   if (uncertainty == "lavaan") {
@@ -1095,7 +1095,7 @@
       warning("lavaan uncertainty requested, but no lavaan-based uncertainty results are available; reporting point estimates only.")
       return(NULL)
     }
-    return(result$lavaan_inference)
+    return(.ravel_pi_merge_uncertainty(result, result$lavaan_inference, uncertainty))
   }
 
   NULL
@@ -1271,6 +1271,20 @@
 #' @param col_pgs1_child Character. Column name for child's PGS1.
 #' @param col_pgs2_child Character. Column name for child's PGS2.
 #' @param col_outcome Character. Column name for the outcome variable.
+#' @param pi Optional preferred name for the external hidden genetic variance
+#'   fraction, in [0, 1). It is the same quantity as \code{h}. If both are
+#'   supplied explicitly, they must agree.
+#' @param pi_se Optional nonnegative standard error of \code{pi} on its raw
+#'   probability scale. When supplied, corrected estimates automatically include
+#'   this uncertainty by the joint delta method; visible estimates retain their
+#'   uncertainty conditional on pi. Omit it to treat pi as fixed. Supply
+#'   \code{pi} or \code{h} explicitly when using this argument.
+#' @param core_pi_cov Optional named six-vector of covariances between the
+#'   conditional core estimates and external pi, on its raw probability scale.
+#'   Requires \code{pi_se}; omitted means independent external estimation.
+#' @param covariate_mapping_confirmed Logical. Set TRUE with \code{pi_se} and
+#'   jointly fitted covariates only after confirming the visible-to-total
+#'   correction remains valid conditional on those covariates.
 #'
 #' @return A list with components (selected):
 #'   \describe{
@@ -1299,7 +1313,11 @@
 #'     \item{within_person_corr}{Within-person Cor(PGS1,PGS2) per role}
 #'     \item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied}
 #'     \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
-#'     \item{bootstrap}{Bootstrap results (if n_boot > 0), including visible-scale and corrected-scale summaries}
+#'     \item{bootstrap}{Bootstrap results (if n_boot > 0), conditional on supplied pi}
+#'     \item{pi_correction}{When pi_se is supplied, the external-pi corrected table
+#'       with full propagation metadata. Print and data-frame methods use its
+#'       corrected uncertainty automatically. Core covariance and the stored
+#'       lavaan/bootstrap summaries remain conditional on pi.}
 #'   }
 #'
 #' @export
@@ -1328,7 +1346,30 @@ ravel_fit <- function(dat,
                       col_pgs1_child  = "PGS1_child",
                       col_pgs2_child  = "PGS2_child",
                       col_outcome     = "Y",
-                      fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state")) {
+                      fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
+                      pi = NULL, pi_se = NULL, core_pi_cov = NULL,
+                      covariate_mapping_confirmed = FALSE) {
+
+  # Resolve the preferred pi name before constructing any fitting constraints.
+  h_supplied <- !missing(h)
+  if (!is.null(pi)) {
+    .ravel_pi_se_variance(pi, 0)
+    if (h_supplied && !isTRUE(all.equal(as.numeric(h), as.numeric(pi), tolerance = 1e-12)))
+      stop("h and pi specify the same hidden fraction; supply only pi or matching values")
+    h <- pi
+  }
+  if (!is.null(pi_se)) {
+    if (is.null(pi) && !h_supplied) stop("Supply pi (or h) explicitly when using pi_se")
+    .ravel_pi_se_variance(h, pi_se)
+    if (!is.logical(covariate_mapping_confirmed) || length(covariate_mapping_confirmed) != 1L ||
+        is.na(covariate_mapping_confirmed))
+      stop("covariate_mapping_confirmed must be TRUE or FALSE")
+    if (length(fixed_effects) > 0L && !covariate_mapping_confirmed)
+      stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
+    .ravel_pi_validate_cross(core_pi_cov, pi_se^2)
+  } else if (!is.null(core_pi_cov)) {
+    stop("core_pi_cov requires pi_se")
+  }
 
   # Input validation
   correction_missing <- missing(am_correction)
@@ -1885,7 +1926,7 @@ ravel_fit <- function(dat,
   # ---------------------------------------------------------------------------
   # Return results
   # ---------------------------------------------------------------------------
-  structure(list(
+  result <- structure(list(
     converged = TRUE,
     N = nrow(dat),
     fit = fit,
@@ -1963,6 +2004,14 @@ ravel_fit <- function(dat,
     # Internals for transparency
     hidden_correction_details = estimates$hidden_correction_details
   ), class = c("ravel_results", "list"))
+  if (!is.null(pi)) result$pi <- h
+  if (!is.null(pi_se)) {
+    result$pi_se <- pi_se
+    result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
+      ci_level = ci_level, core_pi_cov = core_pi_cov,
+      covariate_mapping_confirmed = covariate_mapping_confirmed)
+  }
+  result
 }
 
 # =============================================================================
@@ -1976,6 +2025,12 @@ ravel_fit <- function(dat,
     cat("; generations =", result$am_n_generations)
   if (identical(result$am_correction, "estimated_state")) cat("; generation count not specified")
   cat("\n")
+  if (!is.null(result$pi_correction)) {
+    meta <- attr(result$pi_correction, "pi_uncertainty")
+    cat(sprintf("External pi = %.*f; SE = %.*f; stored corrected inference includes pi uncertainty.\n",
+      digits, meta$pi, digits, meta$raw_scale_se))
+    cat("Stored visible inference is conditional on pi.\n")
+  }
   state <- result$hidden_correction_details$estimated_state
   if (!is.null(state)) {
     cat("Estimated variance state (founder reference):\n")
@@ -2023,17 +2078,17 @@ ravel_fit <- function(dat,
 
 #' Human-readable uncertainty source label
 #' @noRd
-.uncertainty_label <- function(uncertainty) {
-  if (is.null(uncertainty)) {
-    return(NULL)
-  }
-  if (identical(uncertainty$source, "bootstrap")) {
-    return(sprintf("bootstrap (%d reps)", uncertainty$n_successful))
-  }
-  if (identical(uncertainty$source, "lavaan")) {
-    return("lavaan/delta-method")
-  }
-  "uncertainty"
+.uncertainty_label <- function(uncertainty, block = NULL) {
+  if (is.null(uncertainty)) return(NULL)
+  visible <- if (identical(uncertainty$source, "bootstrap")) {
+    sprintf("bootstrap (%d reps)", uncertainty$n_successful)
+  } else if (identical(uncertainty$source, "lavaan")) "lavaan/delta-method" else "uncertainty"
+  if (is.null(uncertainty$pi_correction)) return(visible)
+  corrected <- if (identical(uncertainty$source, "bootstrap"))
+    "bootstrap covariance + pi (delta-Wald)" else "lavaan + pi (delta-Wald)"
+  if (identical(block, "visible")) return(paste0(visible, "; conditional on pi"))
+  if (!is.null(block)) return(corrected)
+  paste0("visible: ", visible, "; corrected: ", corrected)
 }
 
 #' Wald-style two-sided p-values from estimates and SEs
@@ -2235,7 +2290,10 @@ ravel_fit <- function(dat,
 #' normal-approximation p-values based on the lavaan/delta-method SEs. When
 #' \code{uncertainty = "bootstrap"}, the confidence intervals are empirical
 #' bootstrap intervals, while p-values are normal-approximation p-values based
-#' on the bootstrap SEs.
+#' on the bootstrap SEs. When \code{pi_se} was supplied to \code{ravel_fit},
+#' corrected rows instead use joint delta-method Wald intervals, including pi
+#' uncertainty, even when the conditional core covariance comes from bootstrap
+#' draws. Visible rows keep their conditional intervals.
 #'
 #' @param result A fitted RAVEL result object from \code{\link{ravel_fit}}.
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
@@ -2266,12 +2324,16 @@ ravel_to_dataframe <- function(result,
     stop("Requested uncertainty results are not available in this fit object.")
   }
 
-  source_label <- .uncertainty_label(unc)
+  source_label <- .uncertainty_label(unc, "visible")
+  corrected_source_label <- .uncertainty_label(unc, "total_std")
   p_value_method <- if (identical(unc$source, "bootstrap")) {
     "normal_approx_from_bootstrap_se"
   } else {
     "normal_approx_from_lavaan_se"
   }
+
+  corrected_p_value_method <- if (is.null(unc$pi_correction)) p_value_method else
+    "normal_approx_from_joint_pi_delta_se"
 
   out <- .results_block_to_df(
     unc$visible, "visible", "rho_visible", source_label, p_value_method
@@ -2282,7 +2344,7 @@ ravel_to_dataframe <- function(result,
       out,
       .results_block_to_df(
         unc$total_std, "corrected_std", "rho_corrected",
-        source_label, p_value_method
+        corrected_source_label, corrected_p_value_method
       )
     )
   }
@@ -2290,7 +2352,7 @@ ravel_to_dataframe <- function(result,
   if (isTRUE(include_raw)) {
     out <- rbind(
       out,
-      .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", source_label, p_value_method)
+      .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", corrected_source_label, corrected_p_value_method)
     )
   }
 
@@ -2323,6 +2385,21 @@ ravel_to_dataframe <- function(result,
   attr(out, "constraint_spec") <- result$constraint_spec
   attr(out, "estimated_state") <- result$hidden_correction_details$estimated_state
   attr(out, "ci_level") <- unc$ci_level
+  if (!is.null(unc$pi_correction)) {
+    meta <- attr(unc$pi_correction, "pi_uncertainty")
+    out$inference <- ifelse(out$scale %in% c("corrected_std", "corrected_raw"),
+      unique(unc$pi_correction$inference),
+      ifelse(out$scale == "vanilla", "model_summary", if (identical(unc$source, "bootstrap"))
+        "bootstrap_percentile_CI_normal_p" else "lavaan_delta_wald"))
+    out$pi <- result$h
+    out$pi_se <- ifelse(out$scale %in% c("corrected_std", "corrected_raw"), meta$raw_scale_se, NA_real_)
+    attr(out, "settings")$pi <- result$h
+    attr(out, "settings")$pi_se <- meta$raw_scale_se
+    attr(out, "pi_uncertainty") <- meta
+    attr(out, "pi_correction") <- unc$pi_correction
+    attr(out, "estimated_state") <- attr(unc$pi_correction, "estimated_state") %||%
+      result$hidden_correction_details$estimated_state
+  }
   out
 }
 

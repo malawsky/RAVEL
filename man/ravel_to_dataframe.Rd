@@ -46,9 +46,12 @@ correlation.
 
 When \code{uncertainty = "lavaan"}, p-values are standard Wald
 normal-approximation p-values based on the lavaan/delta-method SEs. When
-\code{uncertainty = "bootstrap"}, the confidence intervals are empirical
+\code{uncertainty = "bootstrap"}, fixed-pi confidence intervals are empirical
 bootstrap intervals, while p-values are normal-approximation p-values based
-on the bootstrap SEs.
+on the bootstrap SEs. With \code{pi_se}, corrected intervals instead use the
+joint core bootstrap covariance and external pi variance in the delta method;
+they are Wald intervals. Visible intervals retain their conditional percentile
+interpretation.
 }
 
-\section{Fitting assumptions}{The table retains \code{settings}, \code{constraint_spec}, \code{ci_level}, and (when present) \code{estimated_state} attributes. Raw rows are available even at \code{h = 0}; their founder units can differ from current-generation standardized units. External pi sampling error requires the separate \code{ravel_correct_pi} step.}
+\section{Fitting assumptions}{The table retains \code{settings}, \code{constraint_spec}, \code{ci_level}, and (when present) \code{estimated_state} attributes. Raw rows are available even at \code{h = 0}; their founder units can differ from current-generation standardized units. When the fit was supplied with \code{pi_se}, corrected rows include external pi sampling uncertainty automatically. Their \code{inference} column identifies joint delta-Wald intervals; visible rows remain conditional on the supplied pi. The \code{pi_uncertainty} and \code{pi_correction} attributes preserve the correction metadata and full covariance. Explicitly choosing lavaan or bootstrap changes the conditional SEM covariance source, while retaining external pi uncertainty.}

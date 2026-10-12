@@ -58,14 +58,24 @@ mapping applies conditional on jointly fitted covariates.}
 }
 \description{Adds sampling uncertainty in an externally estimated hidden
 genetic fraction to RAVEL's raw and standardized corrected effects and spouse
-covariance/correlation. Existing fixed-\code{h} entry points are unchanged.}
+covariance/correlation. It can also recompute a correction at a new compatible
+pi value using the fitted visible core.}
 \details{
-The simplest workflow supplies the external estimate and its standard error:
+For a new fit, supply \code{pi} and \code{pi_se} directly to
+\code{\link{ravel_fit}} to obtain corrected uncertainty in one call. This
+function remains available for existing fits and sensitivity analyses:
 \code{ravel_correct_pi(fit, pi = 0.4, pi_se = 0.02)}. The external sampling
 variance is \code{pi_se^2}, with no confidence interval inferred or invented.
 The standard error must be on the raw probability scale, rather than the logit
 scale. A positive standard error at \code{pi = 0} requires a boundary-aware
 analysis and is rejected; \code{pi = 0, pi_se = 0} is allowed.
+
+The correction always starts from the fitted visible core and its conditional
+covariance, including when the input fit already contains a
+\code{pi_correction} table. Previous corrected estimates and external
+uncertainty are not used as inputs or counted twice. The original fit object
+is not modified. Supply the desired uncertainty input for the new correction;
+the function does not implicitly reuse an earlier pi SE.
 
 Confidence intervals remain supported for compatibility. A confidence interval
 alone does not determine a variance, so this input requires a normal-Wald or

@@ -1,5 +1,20 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Supply pi and its standard error during fitting
+
+- `ravel_fit()` now accepts `pi` as the preferred name for the founder hidden
+  fraction and `pi_se` for its external standard error. Existing `h` calls
+  remain supported; conflicting `h` and `pi` values are rejected.
+- A fit supplied with `pi_se` includes external uncertainty in its corrected
+  effect tables and printed results. The stored `pi_correction` table retains
+  the joint covariance and propagation details. Conditional SEM and bootstrap
+  covariance remain separate so later corrections never count pi uncertainty
+  twice.
+- `ravel_correct_pi()` remains available for sensitivity analyses. Changing pi
+  requires refitting when finite-generation constraints depend on its value.
+- The README now focuses on usage; detailed methods and advanced examples are
+  retained in separate documentation.
+
 ## Estimated assortment state
 
 - New opt-in `fit_constraints = "estimated_state"` identifies genetic variance
