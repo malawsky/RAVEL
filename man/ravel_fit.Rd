@@ -177,8 +177,8 @@ the parent and their sibling, and \code{delta_M = bm - bMS} (or
 reading assumes the sibling has no effect on the child and that lineage
 confounding is shared equally by the parent and the sibling. Families
 without the sibling can be included with missing sibling scores (FIML for
-continuous outcomes). Currently requires \code{fit_constraints = "none"}
-and \code{pi = 0}.}
+continuous outcomes). Works with every \code{fit_constraints} mode; with
+\code{pi > 0}, corrected sibling coefficients and contrasts are reported.}
 
 \item{col_pgs1_mat_sib, col_pgs2_mat_sib}{Column names for the maternal
 sibling's PGS1 and PGS2.}

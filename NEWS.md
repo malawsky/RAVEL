@@ -1,6 +1,6 @@
 # RAVEL 0.2.0.9000 (development)
 
-## Parental siblings (visible scale)
+## Parental siblings
 
 - `ravel_fit(..., parental_sibs = "maternal" | "paternal" | "both")` adds a full
   sibling of the mother and/or father, scored with the same two PGS weight sets.
@@ -10,11 +10,21 @@
 - Families without a sibling stay in the fit with missing sibling scores (FIML
   for continuous outcomes). Sibling scores use new `col_pgs*_mat_sib` and
   `col_pgs*_pat_sib` column arguments.
-- For now this requires `fit_constraints = "none"` and `pi = 0`. The default
-  trio model, its outputs and existing simulator seeds are unchanged.
-- `ravel_simulate_trios()` gains `parental_sibs` and maternal/paternal lineage
-  effects, drawing parents and their siblings from a random-mating grandparent
-  generation.
+- With `pi > 0`, the total-liability correction maps the child, parent and
+  sibling coefficients jointly. Its visible-hidden cross-block follows from the
+  parents' assortment state: same-lineage entries equal the within-person
+  covariance, and cross-lineage entries are scaled by k = 1 - 1/(2 V_T) (k^2
+  between the two siblings). Corrected sibling coefficients and contrasts are
+  reported on the raw and standardized total scales.
+- The constrained modes (`"equilibrium"`, `"n_gen"`, `"estimated_state"`) fix
+  sibling residual correlations at 1/2 (own parent), 1/4 (child) and 0, give
+  siblings their parent's reliability, and tie the parent-sibling and
+  child-sibling latent correlations to the variance state.
+- `pi_se`, `ravel_correct_pi()`, bootstrap and pi-sensitivity refits cover the
+  sibling parameters. Trio fits are numerically unchanged.
+- `ravel_simulate_trios()` gains `parental_sibs`, maternal/paternal lineage
+  effects and `grandparent_rho_MF`, drawing parents and their siblings from a
+  grandparent generation that can itself assort.
 
 ## Supply pi and its standard error during fitting
 

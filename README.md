@@ -223,9 +223,19 @@ weights as the trio. Families without a sibling can keep missing values. The fit
 reports each sibling's coefficient (`beta_MS`, `beta_FS`) and the parent-specific
 contrasts `delta_M = bm - bMS` and `delta_F = bf - bFS`. The contrast is causal
 for the parent's genotype if the sibling has no effect on the child and lineage
-confounding is shared equally by the parent and the sibling. Parental siblings
-currently require `fit_constraints = "none"` and `pi = 0`; see
-[Methods](docs/methods.md#parental-siblings).
+confounding is shared equally by the parent and the sibling.
+
+Siblings work with every `fit_constraints` mode and with `pi`/`pi_se`. With
+`pi > 0` the corrected table adds `beta_MS`, `delta_M`, `beta_FS` and `delta_F`
+on the total-liability scales:
+
+```r
+fit <- ravel_fit(dat, pi = 0.40, pi_se = 0.05, parental_sibs = "both",
+                 fit_constraints = "estimated_state")
+as.data.frame(fit)   # visible and corrected_std rows include the sibling contrasts
+```
+
+See [Methods](docs/methods.md#parental-siblings) for the assumptions.
 
 ## Dataframe reports and the bundled example
 

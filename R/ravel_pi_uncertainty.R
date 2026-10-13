@@ -53,6 +53,11 @@
 .ravel_pi_extract <- function(object, uncertainty, covariate_mapping_confirmed) {
   if (is.character(object) && length(object) == 1L) object <- readRDS(object)
   labels <- .report_core_labels
+  sib_roles <- character(0)
+  if (inherits(object, "ravel_results") && !is.null(object$parental_sibs)) {
+    sib_roles <- object$parental_sibs$roles
+    labels <- c(labels, .sib_core_labels(sib_roles))
+  }
   if (inherits(object, "ravel_results")) {
     if (!isTRUE(object$converged) || is.null(object$fit) ||
         !suppressWarnings(isTRUE(lavaan::lavInspect(object$fit, "post.check"))))
@@ -68,11 +73,12 @@
     if (estimated_state_fit && !.ravel_estimated_state_fit_valid(object$fit))
       stop("Estimated-state correction requires a locally identified full SEM fit with valid covariance")
     theta <- c(object$beta_vis[c("bD", "bm", "bf")],
-               object$latent_cov_vis[c("rhoMF", "eta_m", "eta_f")])
+               object$latent_cov_vis[c("rhoMF", "eta_m", "eta_f")],
+               .sib_theta(object$parental_sibs, sib_roles))
     V <- object$vcov_core
     if (is.null(V)) {
       full <- lavaan::vcov(object$fit)
-      V <- matrix(0, 6L, 6L, dimnames = list(labels, labels))
+      V <- matrix(0, length(labels), length(labels), dimnames = list(labels, labels))
       shared <- intersect(labels, rownames(full))
       V[shared, shared] <- full[shared, shared, drop = FALSE]
       # Missing labels may be fixed parameters, but must never silently become
@@ -106,7 +112,8 @@
   if (!is.numeric(packet$theta) || is.complex(packet$theta) ||
       is.null(names(packet$theta)) || anyDuplicated(names(packet$theta)) ||
       !all(labels %in% names(packet$theta)) || any(!is.finite(packet$theta[labels])))
-    stop("The object must contain all six finite, uniquely named core estimates")
+    stop(if (length(labels) == 6L) "The object must contain all six finite, uniquely named core estimates" else
+      "The object must contain all finite, uniquely named core estimates")
   packet$theta <- packet$theta[labels]
   if (uncertainty == "auto") uncertainty <- if (identical(packet$settings$uncertainty, "bootstrap"))
     "bootstrap" else "lavaan"
@@ -116,7 +123,8 @@
     if (!is.matrix(draws) || !is.numeric(draws) || is.complex(draws) ||
         is.null(colnames(draws)) || anyDuplicated(colnames(draws)) ||
         !setequal(colnames(draws), labels))
-      stop("Bootstrap uncertainty requires stored joint six-parameter core_draws; use uncertainty = 'lavaan' explicitly for model-based inference")
+      stop("Bootstrap uncertainty requires stored joint ", if (length(labels) == 6L) "six-parameter" else
+        "core-parameter", " core_draws; use uncertainty = 'lavaan' explicitly for model-based inference")
     draws <- draws[, labels, drop = FALSE]
     complete <- apply(is.finite(draws), 1L, all)
     n_success <- sum(complete)
@@ -130,7 +138,8 @@
   }
   packet$vcov_core <- .ravel_pi_validate_covariance(packet$vcov_core, labels, "Core covariance")
   list(packet = packet, uncertainty = uncertainty, n_success = n_success,
-       live_result = if (inherits(object, "ravel_results")) object else NULL)
+       live_result = if (inherits(object, "ravel_results")) object else NULL,
+       labels = labels, sib_roles = sib_roles)
 }
 
 #' Correct RAVEL Estimates with Uncertainty in an External Hidden Fraction
@@ -149,8 +158,6 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   if (external_source == "se" && (!missing(pi_ci_scale) || !missing(pi_ci_level)))
     stop("pi_ci_scale and pi_ci_level apply only to pi_ci; pi_se is always on the raw probability scale")
   if (is.character(object) && length(object) == 1L) object <- readRDS(object)
-  if (inherits(object, "ravel_results") && !is.null(object$parental_sibs))
-    stop("The total-liability correction is not yet available for fits with parental siblings.")
   if (is.list(object)) {
     history <- if (inherits(object, "ravel_results"))
       list(mode = object$am_correction, n_generations = object$am_n_generations) else
@@ -178,7 +185,9 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
       is.na(covariate_mapping_confirmed)) stop("covariate_mapping_confirmed must be TRUE or FALSE")
   input <- .ravel_pi_extract(object, uncertainty, covariate_mapping_confirmed)
   packet <- input$packet
-  labels <- .report_core_labels
+  labels <- input$labels
+  sib_roles <- input$sib_roles
+  n_core <- length(labels)
   # Finite-generation fits may use pi in their measurement model. The total
   # derivative includes the fitted core's response to changing that input.
   spec <- packet$settings$constraint_spec
@@ -195,7 +204,7 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   if (am_correction == "estimated_state" &&
       abs(packet$theta["eta_m"] - packet$theta["eta_f"]) > 1e-5)
     stop("Estimated-state correction requires equal maternal and paternal latent parent-child correlations")
-  sensitivity <- setNames(numeric(6L), labels)
+  sensitivity <- setNames(numeric(n_core), labels)
   if (depends && external$variance > 0 && is.null(core_pi_sensitivity)) {
     if (is.null(input$live_result))
       stop("This pi-dependent packet requires core_pi_sensitivity from refitting the SEM at perturbed pi")
@@ -203,25 +212,35 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   }
   if (!is.null(core_pi_sensitivity)) {
     if (!is.numeric(core_pi_sensitivity) || is.complex(core_pi_sensitivity) ||
-        length(core_pi_sensitivity) != 6L || any(!is.finite(core_pi_sensitivity)) ||
+        length(core_pi_sensitivity) != n_core || any(!is.finite(core_pi_sensitivity)) ||
         is.null(names(core_pi_sensitivity)) || anyDuplicated(names(core_pi_sensitivity)) ||
         !setequal(names(core_pi_sensitivity), labels))
-      stop("core_pi_sensitivity must be a finite vector named for all six core parameters")
+      stop(if (n_core == 6L) "core_pi_sensitivity must be a finite vector named for all six core parameters" else
+        paste0("core_pi_sensitivity must be a finite vector named for all core parameters: ",
+               paste(labels, collapse = ", ")))
     if (!depends && any(core_pi_sensitivity != 0))
       stop("Nonzero core_pi_sensitivity applies only to a pi-dependent constrained fit")
     sensitivity <- core_pi_sensitivity[labels]
   }
-  cross <- setNames(numeric(6L), labels)
+  cross <- setNames(numeric(n_core), labels)
   independent <- is.null(core_pi_cov)
-  .ravel_pi_validate_cross(core_pi_cov, external$variance)
+  .ravel_pi_validate_cross(core_pi_cov, external$variance, labels)
   if (!independent) cross <- core_pi_cov[labels]
   joint_labels <- c(labels, "pi")
-  V <- matrix(0, 7L, 7L, dimnames = list(joint_labels, joint_labels))
+  V <- matrix(0, n_core + 1L, n_core + 1L, dimnames = list(joint_labels, joint_labels))
   V[labels, labels] <- packet$vcov_core
   V["pi", "pi"] <- external$variance
   V[labels, "pi"] <- V["pi", labels] <- cross
   V <- .ravel_pi_validate_covariance(V, joint_labels, "Joint core/pi covariance")
   x <- c(packet$theta, pi = pi)
+  sib_map <- .parental_sib_coef_map(sib_roles)
+  sib_map_names <- names(sib_map)
+  trio_std <- c("beta_D", "beta_M", "beta_P", "rho_corrected")
+  trio_raw <- c("beta_D", "beta_M", "beta_P", "cov_corrected")
+  row_scale <- c(rep("corrected_std", 4L), rep("corrected_raw", 4L),
+                 rep("corrected_std", length(sib_map)), rep("corrected_raw", length(sib_map)))
+  row_parameter <- c(trio_std, trio_raw, unname(sib_map), unname(sib_map))
+  row_names <- paste0(row_scale, ":", row_parameter)
   evaluate <- function(value) {
     names(value) <- joint_labels
     S <- matrix(c(1, value["eta_m"], value["eta_f"],
@@ -231,21 +250,22 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
       stop("The fitted latent trio covariance must be positive definite")
     result <- .compute_scale_estimates(value[c("bD", "bm", "bf")],
       value["eta_m"], value["eta_f"], value["rhoMF"], value["pi"],
-      am_correction, am_n_generations)
+      am_correction, am_n_generations, sib = .sib_input_from_theta(value, sib_roles))
     answer <- c(result$beta_total_assumed_std, rho_corrected = result$rho_total_assumed,
-                result$beta_total_assumed, cov_corrected = result$cov_total_assumed)
-    names(answer) <- c(paste0("corrected_std:", c("beta_D", "beta_M", "beta_P", "rho_corrected")),
-                       paste0("corrected_raw:", c("beta_D", "beta_M", "beta_P", "cov_corrected")))
+                result$beta_total_assumed, cov_corrected = result$cov_total_assumed,
+                result$sib_total$std[sib_map_names], result$sib_total$raw[sib_map_names])
+    names(answer) <- row_names
     if (any(!is.finite(answer)))
       stop("This pi/AM assumption is incompatible with the fitted moments")
     answer
   }
   estimate <- evaluate(x)
-  J <- matrix(0, 8L, 7L, dimnames = list(names(estimate), joint_labels))
+  J <- matrix(0, length(estimate), n_core + 1L, dimnames = list(names(estimate), joint_labels))
+  pi_index <- n_core + 1L
   for (j in seq_along(x)) {
-    if (j == 7L && external$variance == 0 && all(cross == 0)) next
+    if (j == pi_index && external$variance == 0 && all(cross == 0)) next
     step <- 1e-6 * max(1, abs(x[j]))
-    if (j == 7L && (pi < step || 1 - pi < step)) {
+    if (j == pi_index && (pi < step || 1 - pi < step)) {
       direction <- if (pi < step) 1 else -1
       step <- min(step, if (direction == 1) (1 - pi) / 3 else pi / 3)
       near <- far <- x
@@ -273,8 +293,8 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
     outcome_scale = packet$outcome$scale %||% if (identical(packet$outcome$type, "binary_liability"))
       "SEM_probit_liability" else "prepared_phenotype_SD",
     residual_model = packet$settings$residual_model %||% "unspecified",
-    scale = rep(c("corrected_std", "corrected_raw"), each = 4L),
-    parameter = c("beta_D", "beta_M", "beta_P", "rho_corrected", "beta_D", "beta_M", "beta_P", "cov_corrected"),
+    scale = row_scale,
+    parameter = row_parameter,
     estimate = unname(estimate), se = unname(se), ci_low = unname(estimate - z * se),
     ci_high = unname(estimate + z * se), p_value = unname(2 * stats::pnorm(-statistic)),
     inference = if (input$uncertainty == "bootstrap") "bootstrap_covariance_pi_delta_wald" else "lavaan_pi_delta_wald",
@@ -310,8 +330,10 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
     state <- .hidden_estimated_state(packet$theta["rhoMF"], packet$theta["eta_m"],
       packet$theta["eta_f"], pi)
     if (is.null(state)) stop("The inferred assortment state is incompatible with pi")
-    state_J <- .hidden_estimated_state_jacobian(packet$theta["rhoMF"],
+    state_J6 <- .hidden_estimated_state_jacobian(packet$theta["rhoMF"],
       packet$theta["eta_m"], packet$theta["eta_f"], pi)
+    state_J <- matrix(0, nrow(state_J6), n_core + 1L, dimnames = list(rownames(state_J6), joint_labels))
+    state_J[, colnames(state_J6)] <- state_J6
     state_covariance <- state_J %*% V %*% t(state_J)
     state_covariance <- (state_covariance + t(state_covariance)) / 2
     if (any(!is.finite(state_covariance)) || any(diag(state_covariance) < -1e-12))
@@ -329,13 +351,14 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
 }
 
 # Validate the optional external-estimate covariance before expensive fitting.
-.ravel_pi_validate_cross <- function(core_pi_cov, variance) {
-  labels <- .report_core_labels
+.ravel_pi_validate_cross <- function(core_pi_cov, variance, labels = .report_core_labels) {
   if (is.null(core_pi_cov)) return(invisible(NULL))
-  if (!is.numeric(core_pi_cov) || is.complex(core_pi_cov) || length(core_pi_cov) != 6L ||
+  if (!is.numeric(core_pi_cov) || is.complex(core_pi_cov) || length(core_pi_cov) != length(labels) ||
       any(!is.finite(core_pi_cov)) || is.null(names(core_pi_cov)) ||
       anyDuplicated(names(core_pi_cov)) || !setequal(names(core_pi_cov), labels))
-    stop("core_pi_cov must be a finite vector named for all six core parameters, on the raw pi scale")
+    stop(if (length(labels) == 6L) "core_pi_cov must be a finite vector named for all six core parameters, on the raw pi scale" else
+      paste0("core_pi_cov must be a finite vector named for all core parameters (",
+             paste(labels, collapse = ", "), "), on the raw pi scale"))
   if (variance == 0 && any(core_pi_cov != 0))
     stop("A zero-variance pi cannot have nonzero core_pi_cov")
   invisible(NULL)
@@ -348,25 +371,32 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   if (is.null(corrected)) return(conditional)
   meta <- attr(corrected, "pi_uncertainty")
   if (!identical(meta$core_uncertainty, source)) {
+    joint <- attr(corrected, "joint_input_covariance")
     cross <- if (isTRUE(meta$independent_of_core)) NULL else
-      attr(corrected, "joint_input_covariance")[.report_core_labels, "pi"]
+      joint[setdiff(rownames(joint), "pi"), "pi"]
     corrected <- ravel_correct_pi(result, pi = meta$pi, pi_se = meta$raw_scale_se,
       ci_level = meta$correction_ci_level, uncertainty = source,
       core_pi_cov = cross, core_pi_sensitivity = meta$core_pi_sensitivity,
       covariate_mapping_confirmed = TRUE)
   }
-  block <- function(scale) {
-    rows <- which(corrected$scale == scale)
+  block <- function(scale, parameters, labels) {
+    rows <- which(corrected$scale == scale & corrected$parameter %in% parameters)
     part <- corrected[rows, , drop = FALSE]
-    labels <- c("bD", "bm", "bf", "rhoMF")
+    labels <- labels[match(part$parameter, parameters)]
     covariance <- attr(corrected, "covariance")[rows, rows, drop = FALSE]
     dimnames(covariance) <- list(labels, labels)
     list(estimate = setNames(part$estimate, labels), se = setNames(part$se, labels),
       ci = rbind(lower = setNames(part$ci_low, labels), upper = setNames(part$ci_high, labels)),
       cov = covariance, method = unique(part$inference))
   }
-  conditional$total_std <- block("corrected_std")
-  conditional$total_raw <- block("corrected_raw")
+  trio_labels <- c("bD", "bm", "bf", "rhoMF")
+  conditional$total_std <- block("corrected_std", c("beta_D", "beta_M", "beta_P", "rho_corrected"), trio_labels)
+  conditional$total_raw <- block("corrected_raw", c("beta_D", "beta_M", "beta_P", "cov_corrected"), trio_labels)
+  if (!is.null(result$parental_sibs)) {
+    map <- .parental_sib_coef_map(result$parental_sibs$roles)
+    conditional$sib_total_std <- block("corrected_std", unname(map), names(map))
+    conditional$sib_total_raw <- block("corrected_raw", unname(map), names(map))
+  }
   conditional$pi_correction <- corrected
   conditional
 }

@@ -226,9 +226,13 @@
 #' one coefficient per sibling, and the parent-specific contrasts
 #' \code{delta_m := bm - bms} and \code{delta_f := bf - bfs} are defined.
 #' @noRd
-.build_parental_sibs <- function(parental_sibs = "none") {
+.build_parental_sibs <- function(parental_sibs = "none", constrained = FALSE) {
   roles <- .parental_sib_roles(parental_sibs)
   if (!length(roles)) return("")
+  # Constrained modes fix within-score residual correlations to the relatedness
+  # benchmarks: 1/2 with the sibling's own parent, 1/4 with the child, and 0
+  # with the parent's spouse and between the two parental siblings.
+  benchmark <- function(p, own) if (p == own) 0.5 else if (p == "c") 0.25 else 0
 
   spec <- list(
     ms = list(lv = "Gms", cols = c("PGS1_mat_sib", "PGS2_mat_sib"), own = "m",
@@ -252,15 +256,20 @@
       sprintf("%s ~~ chi_%s*%s", s$lv, r, trio_lv[[s$spouse]]),
       sprintf("%s ~~ eta_%s*Gc", s$lv, r))
     for (j in 1:2) for (p in c(s$own, s$spouse, "c")) {
-      lines <- c(lines, sprintf("%s ~~ e%d_%s_%s*PGS%d_%s",
-        s$cols[j], j, p, r, j, trio_col[[p]]))
+      label <- sprintf("e%d_%s_%s", j, p, r)
+      value <- benchmark(p, s$own)
+      multiplier <- if (constrained && value == 0) "0" else label
+      lines <- c(lines, sprintf("%s ~~ %s*PGS%d_%s", s$cols[j], multiplier, j, trio_col[[p]]))
+      if (constrained && value != 0)
+        lines <- c(lines, sprintf("%s == %s*sqrt(th%d_%s*th%d_%s)", label,
+          .format_lavaan_numeric(value), j, p, j, r))
     }
   }
   if (length(roles) == 2L) {
     lines <- c(lines, "", "# Covariances between the two parental siblings",
       "Gms ~~ zeta*Gfs",
-      "PGS1_mat_sib ~~ e1_ms_fs*PGS1_pat_sib",
-      "PGS2_mat_sib ~~ e2_ms_fs*PGS2_pat_sib")
+      sprintf("PGS1_mat_sib ~~ %s*PGS1_pat_sib", if (constrained) "0" else "e1_ms_fs"),
+      sprintf("PGS2_mat_sib ~~ %s*PGS2_pat_sib", if (constrained) "0" else "e2_ms_fs"))
   }
 
   lines <- c(lines, "", "# Parental-sibling (lineage) coefficients and parent-specific contrasts")
@@ -316,7 +325,8 @@
                          crossperson = "free",
                          fixed_crossperson = NULL,
                          fixed_crossperson_corr = NULL,
-                         parental_sibs = "none") {
+                         parental_sibs = "none",
+                         constrained = FALSE) {
   sib_latents <- c(ms = "Gms", fs = "Gfs")[.parental_sib_roles(parental_sibs)]
   paste0(
     "# =============================================================================",
@@ -331,7 +341,7 @@
     ),
     "\n", .build_outcome(fix_parent_paths, fixed_effects,
       latents = c("Gc", "Gm", "Gf", unname(sib_latents))),
-    if (length(sib_latents)) paste0("\n", .build_parental_sibs(parental_sibs)) else ""
+    if (length(sib_latents)) paste0("\n", .build_parental_sibs(parental_sibs, constrained)) else ""
   )
 }
 
@@ -815,6 +825,133 @@
   )
 }
 
+#' Extend a trio hidden correction to parental siblings
+#'
+#' @details
+#' Uses the assortative-mating state of the trio correction \code{hc} (founder
+#' scale) to build the visible-hidden cross-block for the child, both parents
+#' and the requested parental siblings, then applies the same projection map
+#'   b_vis = [ diag(a) + Sigma_xx^{-1} Sigma_xh diag(b) ] beta_raw.
+#' With parental raw component covariance S, spouse block K and total weights
+#' w (assortment only through T*, A3), the raw person-to-person blocks are
+#'   parent and own sibling:          S - I/2   (Var of the grandparental midparent)
+#'   parent and spouse's sibling:     X = rho_T S w w'(S - I/2) / V_T
+#'   maternal and paternal siblings:  (S - I/2)' S^{-1} X
+#' so the same-lineage visible-hidden entry equals the within-person d, and the
+#' cross-lineage entries are k q and k^2 q with k = 1 - 1/(2 V_T). Child rows
+#' use the fitted visible and hidden transmission coefficients, as in the trio.
+#' Siblings share the parents' generation, variances and loadings a, b.
+#' @noRd
+.hidden_correction_sib_extend <- function(hc, beta_vis, Sigma_xx, h, roles) {
+  all_roles <- c("c", "m", "f", roles)
+  n <- length(all_roles)
+  sib_names <- c(ms = "mat_sib", fs = "pat_sib")[roles]
+  var_names <- c("child", "mother", "father", unname(sib_names))
+  dimnames(Sigma_xx) <- list(paste0("G", all_roles), paste0("G", all_roles))
+  na_result <- list(
+    beta_total = setNames(rep(NA_real_, n), names(beta_vis)),
+    beta_total_std = setNames(rep(NA_real_, n), names(beta_vis)),
+    var_total = setNames(rep(NA_real_, n), var_names),
+    Sigma_xx = Sigma_xx, Sigma_xh = NULL, Sigma_hh = NULL, Sigma_TT = NULL,
+    lineage_factor = NA_real_, M = NULL)
+  state <- c(hc$d, hc$q, hc$v_G, hc$v_H, hc$v_Gc, hc$v_Hc, hc$tm, hc$tf,
+             hc$tH_m, hc$tH_f, hc$rho_T_corr_assumed, hc$var_total_assumed)
+  if (length(state) != 14L || any(!is.finite(state)) || is.null(hc$Sigma_xh) ||
+      any(!is.finite(hc$Sigma_xh)) || any(!is.finite(hc$Sigma_hh)))
+    return(na_result)
+
+  vG <- hc$v_G
+  vH <- hc$v_H
+  w <- c(sqrt(1 - h), sqrt(h))
+  S <- matrix(c(vG, hc$d * sqrt(vG * vH), hc$d * sqrt(vG * vH), vH), 2L, 2L)
+  V_T <- drop(t(w) %*% S %*% w)
+  rho_T <- hc$rho_T_corr_assumed
+  Sw <- drop(S %*% w)
+  K <- rho_T * tcrossprod(Sw) / V_T
+  A <- S - diag(2L) / 2
+  X <- rho_T * tcrossprod(Sw, drop(t(w) %*% A)) / V_T
+  Z <- t(A) %*% .safe_solve(S, X)
+  sc <- sqrt(c(vG, vH))
+  lineage <- c(m = "m", f = "f", ms = "m", fs = "f")
+  is_sib <- c(m = FALSE, f = FALSE, ms = TRUE, fs = TRUE)
+  block <- function(r, s) {
+    B <- if (r == s) S else if (lineage[[r]] == lineage[[s]]) A else
+      if (!is_sib[[r]] && !is_sib[[s]]) K else
+      if (is_sib[[r]] && is_sib[[s]]) (if (r == "ms") Z else t(Z)) else
+      if (!is_sib[[r]]) X else t(X)
+    B / tcrossprod(sc)
+  }
+
+  GH <- HH <- matrix(0, n, n, dimnames = list(all_roles, all_roles))
+  adults <- c("m", "f", roles)
+  for (r in adults) for (s in adults) {
+    B <- block(r, s)
+    GH[r, s] <- B[1L, 2L]
+    HH[r, s] <- B[2L, 2L]
+  }
+  GH[1:3, 1:3] <- hc$Sigma_xh
+  HH[1:3, 1:3] <- hc$Sigma_hh
+  for (s in roles) {
+    GH["c", s] <- hc$tm * GH["m", s] + hc$tf * GH["f", s]
+    GH[s, "c"] <- hc$tH_m * GH[s, "m"] + hc$tH_f * GH[s, "f"]
+    HH["c", s] <- HH[s, "c"] <- hc$tH_m * HH["m", s] + hc$tH_f * HH["f", s]
+  }
+  dimnames(GH) <- list(paste0("G", all_roles), paste0("H", all_roles))
+  dimnames(HH) <- list(paste0("H", all_roles), paste0("H", all_roles))
+
+  a_par <- sqrt(1 - h) * sqrt(vG)
+  b_par <- sqrt(h) * sqrt(vH)
+  a <- c(sqrt(1 - h) * sqrt(hc$v_Gc), rep(a_par, n - 1L))
+  b <- c(sqrt(h) * sqrt(hc$v_Hc), rep(b_par, n - 1L))
+  M <- diag(a, n) + .safe_solve(Sigma_xx, GH) %*% diag(b, n)
+  beta_total <- setNames(as.numeric(.safe_solve(M, beta_vis)), names(beta_vis))
+  var_total <- setNames(c(unname(hc$var_total_assumed[c("child", "mother", "father")]),
+    rep(unname(hc$var_total_assumed["mother"]), length(roles))), var_names)
+  TT <- diag(a, n) %*% Sigma_xx %*% diag(a, n) + diag(a, n) %*% GH %*% diag(b, n) +
+    diag(b, n) %*% t(GH) %*% diag(a, n) + diag(b, n) %*% HH %*% diag(b, n)
+  dimnames(TT) <- list(var_names, var_names)
+  list(beta_total = beta_total,
+    beta_total_std = setNames(sqrt(var_total) * beta_total, names(beta_vis)),
+    var_total = var_total, Sigma_xx = Sigma_xx, Sigma_xh = GH, Sigma_hh = HH,
+    Sigma_TT = TT, lineage_factor = 1 - 1 / (2 * V_T), M = M)
+}
+
+#' Visible latent covariance matrix for the trio and any parental siblings
+#' @noRd
+.sib_latent_matrix <- function(cov_cm, cov_cf, cov_mf, sib) {
+  roles <- c("c", "m", "f", sib$roles)
+  S <- diag(length(roles))
+  dimnames(S) <- list(roles, roles)
+  S["c", "m"] <- S["m", "c"] <- cov_cm
+  S["c", "f"] <- S["f", "c"] <- cov_cf
+  S["m", "f"] <- S["f", "m"] <- cov_mf
+  cv <- sib$cov
+  if ("ms" %in% sib$roles) {
+    S["m", "ms"] <- S["ms", "m"] <- cv[["kap_m"]]
+    S["f", "ms"] <- S["ms", "f"] <- cv[["chi_ms"]]
+    S["c", "ms"] <- S["ms", "c"] <- cv[["eta_ms"]]
+  }
+  if ("fs" %in% sib$roles) {
+    S["f", "fs"] <- S["fs", "f"] <- cv[["kap_f"]]
+    S["m", "fs"] <- S["fs", "m"] <- cv[["chi_fs"]]
+    S["c", "fs"] <- S["fs", "c"] <- cv[["eta_fs"]]
+  }
+  if (all(c("ms", "fs") %in% sib$roles)) S["ms", "fs"] <- S["fs", "ms"] <- cv[["zeta"]]
+  S
+}
+
+#' Quadratic-form variance decomposition for any set of roles
+#' @noRd
+.variance_components_general <- function(beta, Sigma, names) {
+  beta <- unname(as.numeric(beta))
+  n <- length(beta)
+  out <- c()
+  for (i in seq_len(n)) out[[names[i]]] <- beta[i]^2 * Sigma[i, i]
+  for (i in seq_len(n - 1L)) for (j in seq.int(i + 1L, n))
+    out[[paste0("cross_", names[i], "_", names[j])]] <- 2 * beta[i] * beta[j] * Sigma[i, j]
+  unlist(out)
+}
+
 #' Compute genetic variance components given coefficients and latent covariances
 #' @noRd
 .variance_components_trio <- function(beta, cov_cm, cov_cf, cov_mf) {
@@ -939,7 +1076,8 @@
 #' Compute visible and hidden-corrected genetic-scale estimates from core SEM parameters
 #' @noRd
 .compute_scale_estimates <- function(beta_vis, cov_cm, cov_cf, cov_mf,
-                                     h, am_correction, am_n_generations) {
+                                     h, am_correction, am_n_generations,
+                                     sib = NULL) {
   beta_vis <- as.numeric(beta_vis)
   names(beta_vis) <- c("bD", "bm", "bf")
   cov_cm <- unname(cov_cm)
@@ -992,6 +1130,25 @@
     var_total_assumed
   )
 
+  # With parental siblings in the model, bm and bf are conditional on the
+  # siblings' liabilities, so all coefficients are mapped jointly.
+  sib_total <- NULL
+  if (!is.null(sib) && length(sib$roles)) {
+    sib_labels <- c(ms = "bms", fs = "bfs")[sib$roles]
+    ext <- .hidden_correction_sib_extend(hc,
+      c(beta_vis, setNames(unname(sib$b[sib_labels]), sib_labels)),
+      .sib_latent_matrix(cov_cm, cov_cf, cov_mf, sib), h, sib$roles)
+    beta_total_assumed <- ext$beta_total[c("bD", "bm", "bf")]
+    beta_total_assumed_std <- ext$beta_total_std[c("bD", "bm", "bf")]
+    contrast <- function(beta) c(
+      if ("ms" %in% sib$roles) c(bms = unname(beta["bms"]), delta_m = unname(beta["bm"] - beta["bms"])),
+      if ("fs" %in% sib$roles) c(bfs = unname(beta["bfs"]), delta_f = unname(beta["bf"] - beta["bfs"])))
+    sib_total <- list(raw = contrast(ext$beta_total), std = contrast(ext$beta_total_std),
+      var_total = ext$var_total, Sigma_TT = ext$Sigma_TT, Sigma_xx = ext$Sigma_xx,
+      Sigma_xh = ext$Sigma_xh, Sigma_hh = ext$Sigma_hh,
+      lineage_factor = ext$lineage_factor, M = ext$M)
+  }
+
   list(
     beta_vis = beta_vis,
     beta_h_only_assumed = beta_h_only_assumed,
@@ -1004,6 +1161,7 @@
     latent_cov_total_assumed = latent_cov_total_assumed,
     latent_corr_total_assumed = latent_corr_total_assumed,
     var_total_assumed = var_total_assumed,
+    sib_total = sib_total,
     hidden_correction_details = c(
       list(
         am_correction = am_correction,
@@ -1033,6 +1191,7 @@
         Sigma_hh = if (is.null(hc$Sigma_hh)) NULL else hc$Sigma_hh,
         M = hc$M
       ),
+      if (!is.null(sib_total)) list(parental_sibs = sib_total),
       if (!is.null(hc$estimated_state)) list(estimated_state = hc$estimated_state),
       list(d = hc$d, d_child = if (is.null(hc$d_child)) hc$d else hc$d_child, q = hc$q)
     )
@@ -1042,20 +1201,22 @@
 #' Build lavaan-based uncertainty for visible and corrected estimates
 #' @noRd
 .build_lavaan_uncertainty <- function(fit, estimates, h, am_correction, am_n_generations,
-                                      ci_level) {
+                                      ci_level, sib_roles = character(0)) {
   V_full <- tryCatch(lavaan::vcov(fit), error = function(e) NULL)
   if (is.null(V_full)) {
     return(NULL)
   }
 
-  core_labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")
+  sib_labels <- .sib_core_labels(sib_roles)
+  core_labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", sib_labels)
   theta_hat <- c(
     bD = unname(estimates$beta_vis["bD"]),
     bm = unname(estimates$beta_vis["bm"]),
     bf = unname(estimates$beta_vis["bf"]),
     rhoMF = unname(estimates$latent_cov_vis["rhoMF"]),
     eta_m = unname(estimates$latent_cov_vis["eta_m"]),
-    eta_f = unname(estimates$latent_cov_vis["eta_f"])
+    eta_f = unname(estimates$latent_cov_vis["eta_f"]),
+    .sib_theta(estimates$parental_sibs, sib_roles)
   )
 
   V <- matrix(0, nrow = length(core_labels), ncol = length(core_labels),
@@ -1074,10 +1235,11 @@
       cov_mf = theta["rhoMF"],
       h = h,
       am_correction = am_correction,
-      am_n_generations = am_n_generations
+      am_n_generations = am_n_generations,
+      sib = .sib_input_from_theta(theta, sib_roles)
     )
 
-    list(
+    c(list(
       visible = c(
         bD = unname(scale_est$beta_vis["bD"]),
         bm = unname(scale_est$beta_vis["bm"]),
@@ -1096,7 +1258,10 @@
         bf = unname(scale_est$beta_total_assumed_std["bf"]),
         rhoMF = unname(scale_est$rho_total_assumed)
       )
-    )
+    ), if (length(sib_roles)) list(
+      sib_total_raw = scale_est$sib_total$raw,
+      sib_total_std = scale_est$sib_total$std
+    ))
   }
 
   block_estimates <- transform_blocks(theta_hat)
@@ -1131,7 +1296,7 @@
     )
   }
 
-  list(
+  out <- list(
     source = "lavaan",
     method = "lavaan_delta",
     ci_level = ci_level,
@@ -1139,6 +1304,19 @@
     total_raw = summarize_block("total_raw"),
     total_std = summarize_block("total_std")
   )
+  if (length(sib_roles)) {
+    out$sib_total_raw <- summarize_block("sib_total_raw")
+    out$sib_total_std <- summarize_block("sib_total_std")
+  }
+  out
+}
+
+#' Named sibling core parameters from the extracted sibling estimates
+#' @noRd
+.sib_theta <- function(sib_estimates, roles) {
+  if (is.null(sib_estimates) || !length(roles)) return(NULL)
+  vals <- c(sib_estimates$coefficients, sib_estimates$latent_cov)
+  vals[.sib_core_labels(roles)]
 }
 
 #' Choose which uncertainty summary to display
@@ -1165,6 +1343,13 @@
     bootstrap$visible$estimate <- c(result$beta_vis, rhoMF = unname(result$rho_vis))
     bootstrap$total_raw$estimate <- c(result$beta_total_assumed, rhoMF = unname(result$cov_total_assumed))
     bootstrap$total_std$estimate <- c(result$beta_total_assumed_std, rhoMF = unname(result$rho_total_assumed))
+    for (sc in c("std", "raw")) {
+      blk <- bootstrap[[paste0("parental_sibs_total_", sc)]]
+      if (!is.null(blk)) {
+        blk$estimate <- result$parental_sibs$corrected[[sc]][colnames(blk$ci)]
+        bootstrap[[paste0("sib_total_", sc)]] <- blk
+      }
+    }
     return(.ravel_pi_merge_uncertainty(result, bootstrap, uncertainty))
   }
 
@@ -1229,6 +1414,31 @@
   out
 }
 
+#' Sibling inputs to the hidden correction (coefficients and latent covariances)
+#' @noRd
+.sib_correction_input <- function(sib_estimates, roles) {
+  if (is.null(sib_estimates) || !length(roles)) return(NULL)
+  b_labels <- c(ms = "bms", fs = "bfs")[roles]
+  list(roles = roles, b = sib_estimates$coefficients[b_labels], cov = sib_estimates$latent_cov)
+}
+
+#' Labels of the sibling parameters entering the hidden correction
+#' @noRd
+.sib_core_labels <- function(roles) {
+  c(if ("ms" %in% roles) c("bms", "kap_m", "chi_ms", "eta_ms"),
+    if ("fs" %in% roles) c("bfs", "kap_f", "chi_fs", "eta_fs"),
+    if (length(roles) == 2L) "zeta")
+}
+
+#' Rebuild the correction input from a named core vector
+#' @noRd
+.sib_input_from_theta <- function(theta, roles) {
+  if (!length(roles)) return(NULL)
+  b_labels <- c(ms = "bms", fs = "bfs")[roles]
+  cov_labels <- setdiff(.sib_core_labels(roles), b_labels)
+  list(roles = roles, b = theta[b_labels], cov = theta[cov_labels])
+}
+
 #' Labels and reporting names of the parental-sibling coefficients
 #' @noRd
 .parental_sib_coef_map <- function(roles) {
@@ -1264,6 +1474,7 @@
   for (j in 1:2) for (pr in pairs) {
     lab <- sprintf("e%d_%s_%s", j, pr[1], pr[2])
     est <- grab(lab)
+    if (is.na(est)) est <- 0  # fixed at zero in constrained modes
     resid_cov[[lab]] <- est
     resid_corr[[lab]] <- est / sqrt(grab(theta_label(j, pr[1])) * grab(theta_label(j, pr[2])))
   }
@@ -1312,23 +1523,37 @@
   out
 }
 
-#' Parental-sibling inference table for the requested uncertainty source
+#' Parental-sibling inference table for the requested scale and uncertainty source
+#'
+#' Visible rows use lavaan's delta method for the defined contrasts (or the
+#' bootstrap); corrected rows use the matching \code{sib_total_std} /
+#' \code{sib_total_raw} uncertainty blocks.
 #' @noRd
-.parental_sib_table <- function(result, unc) {
+.parental_sib_table <- function(result, unc, scale = c("visible", "corrected_std", "corrected_raw")) {
+  scale <- match.arg(scale)
   sib <- result$parental_sibs
   if (is.null(sib)) return(NULL)
+  map <- .parental_sib_coef_map(sib$roles)
+  make <- function(est, se, lo, hi, source) {
+    out <- data.frame(parameter = unname(map), label = names(map), estimate = unname(est),
+      se = unname(se), ci_low = unname(lo), ci_high = unname(hi), stringsAsFactors = FALSE)
+    out$p_value <- .uncertainty_p(out$estimate, out$se)
+    out$uncertainty_source <- source
+    rownames(out) <- NULL
+    out
+  }
+  none <- rep(NA_real_, length(map))
+  if (scale != "visible") {
+    est <- sib$corrected[[if (scale == "corrected_std") "std" else "raw"]][names(map)]
+    block <- if (is.null(unc)) NULL else unc[[if (scale == "corrected_std") "sib_total_std" else "sib_total_raw"]]
+    if (is.null(block)) return(make(est, none, none, none, "none"))
+    return(make(est, block$se[names(map)], block$ci["lower", names(map)],
+      block$ci["upper", names(map)], .uncertainty_label(unc, "total_std")))
+  }
   if (!is.null(unc) && identical(unc$source, "bootstrap") && !is.null(result$bootstrap$parental_sibs)) {
     block <- result$bootstrap$parental_sibs
-    map <- .parental_sib_coef_map(sib$roles)
-    est <- sib$coefficients[names(map)]
-    se <- block$se[names(map)]
-    out <- data.frame(parameter = unname(map), label = names(map), estimate = unname(est),
-      se = unname(se), ci_low = unname(block$ci["lower", names(map)]),
-      ci_high = unname(block$ci["upper", names(map)]), stringsAsFactors = FALSE)
-    out$p_value <- .uncertainty_p(out$estimate, out$se)
-    out$uncertainty_source <- sprintf("bootstrap (%d reps)", result$bootstrap$n_successful)
-    rownames(out) <- NULL
-    return(out)
+    return(make(sib$coefficients[names(map)], block$se[names(map)], block$ci["lower", names(map)],
+      block$ci["upper", names(map)], sprintf("bootstrap (%d reps)", result$bootstrap$n_successful)))
   }
   if (is.null(unc)) {
     out <- sib$lavaan_table
@@ -1485,8 +1710,8 @@
 #'   reading assumes the sibling has no effect on the child and that lineage
 #'   confounding is shared equally by the parent and the sibling. Families
 #'   without the sibling can be included with missing sibling scores (FIML for
-#'   continuous outcomes). Currently requires \code{fit_constraints = "none"}
-#'   and \code{pi = 0}.
+#'   continuous outcomes). Works with every \code{fit_constraints} mode; with
+#'   \code{pi > 0}, corrected sibling coefficients and contrasts are reported.
 #' @param col_pgs1_mat_sib,col_pgs2_mat_sib Column names for the maternal
 #'   sibling's PGS1 and PGS2.
 #' @param col_pgs1_pat_sib,col_pgs2_pat_sib Column names for the paternal
@@ -1583,7 +1808,8 @@ ravel_fit <- function(dat,
       stop("covariate_mapping_confirmed must be TRUE or FALSE")
     if (length(fixed_effects) > 0L && !covariate_mapping_confirmed)
       stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
-    .ravel_pi_validate_cross(core_pi_cov, pi_se^2)
+    .ravel_pi_validate_cross(core_pi_cov, pi_se^2,
+      c(.report_core_labels, .sib_core_labels(.parental_sib_roles(match.arg(parental_sibs)))))
   } else if (!is.null(core_pi_cov)) {
     stop("core_pi_cov requires pi_se")
   }
@@ -1627,15 +1853,8 @@ ravel_fit <- function(dat,
 
   parental_sibs <- match.arg(parental_sibs)
   sib_roles <- .parental_sib_roles(parental_sibs)
-  if (length(sib_roles)) {
-    if (fit_constraints != "none")
-      stop("parental_sibs currently requires fit_constraints = 'none'; constrained modes are not yet available with parental siblings.")
-    if (h != 0 || !is.null(pi_se))
-      stop("The total-liability correction is not yet available with parental siblings; ",
-           "fit with pi = 0 (the default) for visible-scale estimates.")
-    if (isTRUE(fix_parent_paths))
-      stop("fix_parent_paths cannot be combined with parental_sibs.")
-  }
+  if (length(sib_roles) && isTRUE(fix_parent_paths))
+    stop("fix_parent_paths cannot be combined with parental_sibs.")
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -1721,12 +1940,13 @@ ravel_fit <- function(dat,
     crossperson,
     fixed_crossperson = fixed_crossperson,
     fixed_crossperson_corr = fixed_crossperson_corr,
-    parental_sibs = parental_sibs
+    parental_sibs = parental_sibs,
+    constrained = fit_constraints != "none"
   )
 
   if (fit_constraints != "none") {
-    model <- paste(model, .ravel_constraint_syntax(fit_constraints, h, am_n_generations), sep = "\n")
-    model <- .ravel_constraint_starts(model, dat, fit_constraints, h, am_n_generations)
+    model <- paste(model, .ravel_constraint_syntax(fit_constraints, h, am_n_generations, sib_roles), sep = "\n")
+    model <- .ravel_constraint_starts(model, dat, fit_constraints, h, am_n_generations, sib_roles)
   }
 
   if (verbose) {
@@ -1873,6 +2093,9 @@ ravel_fit <- function(dat,
            "e2_mf", "e2_pc_mother", "e2_pc_father"))
     }
 
+    sib_estimates <- .parental_sib_estimates(PE, sib_roles)
+    sib_input <- .sib_correction_input(sib_estimates, sib_roles)
+
     scale_estimates <- .compute_scale_estimates(
       beta_vis = beta_vis,
       cov_cm = cov_cm,
@@ -1880,7 +2103,8 @@ ravel_fit <- function(dat,
       cov_mf = cov_mf,
       h = h,
       am_correction = am_correction,
-      am_n_generations = am_n_generations
+      am_n_generations = am_n_generations,
+      sib = sib_input
     )
 
     beta_h_only_assumed <- scale_estimates$beta_h_only_assumed
@@ -1898,7 +2122,13 @@ ravel_fit <- function(dat,
     theta_Y <- PE[PE$lhs == "Y" & PE$op == "~~" & PE$rhs == "Y", "est"]
     theta_Y <- if (length(theta_Y) == 0) NA_real_ else theta_Y[1]
 
-    components_vis <- .variance_components_trio(beta_vis, cov_cm, cov_cf, cov_mf)
+    components_vis <- if (is.null(sib_input)) {
+      .variance_components_trio(beta_vis, cov_cm, cov_cf, cov_mf)
+    } else {
+      .variance_components_general(c(beta_vis, sib_input$b),
+        .sib_latent_matrix(cov_cm, cov_cf, cov_mf, sib_input),
+        c("child", "mother", "father", c(ms = "mat_sib", fs = "pat_sib")[sib_roles]))
+    }
     s2_gen_vis <- sum(components_vis)
     varY_model <- if (length(fixed_effects) > 0L) {
       lavaan::lavInspect(fit, "cov.ov")["Y", "Y"]
@@ -1916,6 +2146,11 @@ ravel_fit <- function(dat,
       cov_cf = latent_cov_total_assumed["eta_f"],
       cov_mf = latent_cov_total_assumed["rhoMF"]
     )
+    if (!is.null(sib_input)) {
+      st <- scale_estimates$sib_total
+      components_total_assumed <- .variance_components_general(
+        c(beta_total_assumed, st$raw[names(sib_input$b)]), st$Sigma_TT, rownames(st$Sigma_TT))
+    }
     s2_gen_total_assumed <- sum(components_total_assumed)
 
     # "Total genetic R2" is only directly interpretable if Y is standardized.
@@ -1956,7 +2191,8 @@ ravel_fit <- function(dat,
       R2_total_assumed = R2_total_assumed,
 
       hidden_correction_details = scale_estimates$hidden_correction_details,
-      parental_sibs = .parental_sib_estimates(PE, sib_roles)
+      parental_sibs = sib_estimates,
+      parental_sibs_total = scale_estimates$sib_total
     )
   }
 
@@ -1991,7 +2227,8 @@ ravel_fit <- function(dat,
     h = h,
     am_correction = am_correction,
     am_n_generations = am_n_generations,
-    ci_level = ci_level
+    ci_level = ci_level,
+    sib_roles = sib_roles
   )
 
   # ---------------------------------------------------------------------------
@@ -2012,10 +2249,11 @@ ravel_fit <- function(dat,
     boot_raw_bD <- boot_raw_bM <- boot_raw_bF <- rep(NA_real_, n_boot)
     boot_cov_Tmf <- boot_corr_Tmf <- rep(NA_real_, n_boot)
     boot_std_bD <- boot_std_bM <- boot_std_bF <- rep(NA_real_, n_boot)
-    boot_core <- matrix(NA_real_, n_boot, 6L,
-      dimnames = list(NULL, c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")))
+    core_cols <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", .sib_core_labels(sib_roles))
+    boot_core <- matrix(NA_real_, n_boot, length(core_cols), dimnames = list(NULL, core_cols))
     sib_labels <- names(.parental_sib_coef_map(sib_roles))
-    boot_sib <- matrix(NA_real_, n_boot, length(sib_labels), dimnames = list(NULL, sib_labels))
+    boot_sib <- boot_sib_std <- boot_sib_raw <-
+      matrix(NA_real_, n_boot, length(sib_labels), dimnames = list(NULL, sib_labels))
     n_ok <- 0
 
     for (b in seq_len(n_boot)) {
@@ -2039,8 +2277,13 @@ ravel_fit <- function(dat,
       boot_vis_bM[b] <- ext_b$beta_vis["bm"]
       boot_vis_bF[b] <- ext_b$beta_vis["bf"]
       boot_vis_rho[b] <- ext_b$rho_vis
-      boot_core[b, ] <- c(ext_b$beta_vis, ext_b$latent_cov_vis)[colnames(boot_core)]
-      if (length(sib_labels)) boot_sib[b, ] <- ext_b$parental_sibs$coefficients[sib_labels]
+      boot_core[b, ] <- c(ext_b$beta_vis, ext_b$latent_cov_vis,
+        .sib_theta(ext_b$parental_sibs, sib_roles))[colnames(boot_core)]
+      if (length(sib_labels)) {
+        boot_sib[b, ] <- ext_b$parental_sibs$coefficients[sib_labels]
+        boot_sib_std[b, ] <- ext_b$parental_sibs_total$std[sib_labels]
+        boot_sib_raw[b, ] <- ext_b$parental_sibs_total$raw[sib_labels]
+      }
 
       boot_raw_bD[b] <- ext_b$beta_total_assumed["bD"]
       boot_raw_bM[b] <- ext_b$beta_total_assumed["bm"]
@@ -2095,6 +2338,10 @@ ravel_fit <- function(dat,
         total_std = total_std_block,
         parental_sibs = if (length(sib_labels))
           .summarize_sample_matrix(boot_sib, ci_level = ci_level) else NULL,
+        parental_sibs_total_std = if (length(sib_labels))
+          .summarize_sample_matrix(boot_sib_std, ci_level = ci_level) else NULL,
+        parental_sibs_total_raw = if (length(sib_labels))
+          .summarize_sample_matrix(boot_sib_raw, ci_level = ci_level) else NULL,
         visible_bD_se = visible_block$se["bD"],
         visible_bD_ci = visible_block$ci[, "bD"],
         visible_bM_se = visible_block$se["bm"],
@@ -2261,7 +2508,7 @@ ravel_fit <- function(dat,
       crossperson = crossperson, am_correction = am_correction,
       am_n_generations = am_n_generations, fix_parent_paths = fix_parent_paths,
       fixed_effects = fixed_effects, n_boot = 0, ci_level = ci_level,
-      fit_constraints = fit_constraints) else NULL,
+      fit_constraints = fit_constraints, parental_sibs = parental_sibs) else NULL,
 
     # Settings
     h = h,
@@ -2279,7 +2526,8 @@ ravel_fit <- function(dat,
     parental_sibs = if (is.null(sib_estimates)) NULL else c(
       list(mode = parental_sibs, roles = sib_roles, n_with_sib = n_with_sib),
       sib_estimates,
-      list(lavaan_table = .parental_sib_lavaan_table(fit, sib_roles, ci_level)))
+      list(lavaan_table = .parental_sib_lavaan_table(fit, sib_roles, ci_level),
+           corrected = estimates$parental_sibs_total))
   ), class = c("ravel_results", "list"))
   if (!is.null(pi)) result$pi <- h
   if (!is.null(pi_se)) {
@@ -2626,20 +2874,32 @@ ravel_to_dataframe <- function(result,
       stringsAsFactors = FALSE))
   }
 
+  sib_rows <- function(scale) {
+    tbl <- .parental_sib_table(result, unc, scale)
+    if (is.null(tbl)) return(NULL)
+    data.frame(regression = "RAVEL", family = NA_character_, scale = scale,
+      parameter = tbl$parameter, estimate = tbl$estimate, se = tbl$se,
+      ci_low = tbl$ci_low, ci_high = tbl$ci_high, p_value = tbl$p_value,
+      uncertainty_source = corrected_source_label, p_value_method = corrected_p_value_method,
+      stringsAsFactors = FALSE)
+  }
+
   if (result$h > 0) {
     out <- rbind(
       out,
       .results_block_to_df(
         unc$total_std, "corrected_std", "rho_corrected",
         corrected_source_label, corrected_p_value_method
-      )
+      ),
+      sib_rows("corrected_std")
     )
   }
 
   if (isTRUE(include_raw)) {
     out <- rbind(
       out,
-      .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", corrected_source_label, corrected_p_value_method)
+      .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", corrected_source_label, corrected_p_value_method),
+      sib_rows("corrected_raw")
     )
   }
 
@@ -2727,22 +2987,29 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 
 #' Print the parental-sibling coefficients (and, in full mode, their structure)
 #' @noRd
-.print_parental_sibs <- function(result, unc, digits, compact = TRUE) {
+.print_parental_sibs <- function(result, unc, digits, compact = TRUE,
+                                 scale = c("visible", "corrected_std")) {
+  scale <- match.arg(scale)
   sib <- result$parental_sibs
   if (is.null(sib)) return(invisible(NULL))
-  tbl <- .parental_sib_table(result, unc)
+  tbl <- .parental_sib_table(result, unc, scale)
   desc <- c(beta_MS = "mother's sibling (lineage)", delta_M = "mother-specific (bm - bMS)",
             beta_FS = "father's sibling (lineage)", delta_F = "father-specific (bf - bFS)")
-  cat(if (compact) "\n" else "", "Parental siblings (visible scale; families with sibling: ",
-      paste(sprintf("%s = %d", names(sib$n_with_sib), as.integer(sib$n_with_sib)), collapse = ", "),
-      "):\n", sep = "")
+  if (scale == "visible") {
+    cat(if (compact) "\n" else "", "Parental siblings (visible scale; families with sibling: ",
+        paste(sprintf("%s = %d", names(sib$n_with_sib), as.integer(sib$n_with_sib)), collapse = ", "),
+        "):\n", sep = "")
+  } else {
+    cat("  Parental siblings (standardized total liability):\n")
+  }
+  indent <- if (scale == "visible") "  " else "    "
   for (i in seq_len(nrow(tbl))) {
     ci <- if (is.na(tbl$se[i])) "" else
       sprintf(" [%.*f, %.*f]", digits, tbl$ci_low[i], digits, tbl$ci_high[i])
-    cat(sprintf("  %-8s %.*f%s  %s\n", tbl$parameter[i], digits, tbl$estimate[i], ci,
+    cat(sprintf("%s%-8s %.*f%s  %s\n", indent, tbl$parameter[i], digits, tbl$estimate[i], ci,
                 desc[[tbl$parameter[i]]]))
   }
-  if (compact) return(invisible(NULL))
+  if (compact || scale != "visible") return(invisible(NULL))
   labels <- c(kap_m = "kappa_m (Gm, G_mat_sib)", chi_ms = "chi (Gf, G_mat_sib)",
               eta_ms = "eta (Gc, G_mat_sib)", kap_f = "kappa_f (Gf, G_pat_sib)",
               chi_fs = "chi (Gm, G_pat_sib)", eta_fs = "eta (Gc, G_pat_sib)",
@@ -2867,6 +3134,10 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
                   digits, .uncertainty_ci(unc, "total_std", "bf")[2]))
       cat(sprintf("  Corr(Tm,Tf): [%.*f, %.*f]\n\n", digits, .uncertainty_ci(unc, "total_std", "rhoMF")[1],
                   digits, .uncertainty_ci(unc, "total_std", "rhoMF")[2]))
+      if (!is.null(result$parental_sibs)) {
+        .print_parental_sibs(result, unc, digits, scale = "corrected_std")
+        cat("\n")
+      }
     } else {
       cat("\n")
     }
@@ -3106,6 +3377,7 @@ print_simple <- function(result, digits = 4,
     cat(sprintf("    beta_D_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bD"], .uncertainty_ci(unc, "total_std", "bD"))))
     cat(sprintf("    beta_M_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bm"], .uncertainty_ci(unc, "total_std", "bm"))))
     cat(sprintf("    beta_F_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bf"], .uncertainty_ci(unc, "total_std", "bf"))))
+    if (!is.null(result$parental_sibs)) .print_parental_sibs(result, unc, digits, scale = "corrected_std")
     if (!is.null(result$R2_total_assumed) && !is.na(result$R2_total_assumed)) {
       cat(sprintf("  R2:      %s\n", fmt_est(result$R2_total_assumed)))
     }

@@ -3,7 +3,7 @@
 
 #' Build constraints on reliability and Mendelian variance dynamics
 #' @noRd
-.ravel_constraint_syntax <- function(mode, h, n_generations) {
+.ravel_constraint_syntax <- function(mode, h, n_generations, sib_roles = character(0)) {
   if (identical(mode, "none")) return("")
   out <- c(
     "# Distinct PGS reliabilities; unrestricted observed marginal scales",
@@ -56,12 +56,39 @@
       "am_rho_total > -0.999999", "am_rho_total < 0.999999",
       "am_vG_parent > 0.00000001", "am_vT_parent > 0.00000001")
   }
-  paste(out, collapse = "\n")
+  paste(c(out, .ravel_sib_constraint_syntax(sib_roles)), collapse = "\n")
+}
+
+#' Parental-sibling restrictions shared by all constrained modes
+#'
+#' Siblings belong to the parents' generation, so each score's reliability
+#' equals the parent's. The parent-sibling visible correlation is
+#' 1 - 1/(2 V_G,parent) = (3 + rho - 2 B)/2 with B the growth factor, and the
+#' child-sibling correlation follows from Mendelian transmission,
+#' (kappa + chi)/(2 sqrt(B)). Both hold without the hidden fraction. The
+#' parent-spouse's-sibling correlation chi is pi-dependent, so it is estimated
+#' (equal across lineages), as is the correlation between the two siblings.
+#' @noRd
+.ravel_sib_constraint_syntax <- function(roles) {
+  if (!length(roles)) return(character(0))
+  own <- c(ms = "m", fs = "f")
+  out <- "# Parental-sibling restrictions"
+  for (r in roles) {
+    o <- own[[r]]
+    for (j in 1:2) out <- c(out,
+      sprintf("l%s%d^2*th%d_%s == l%s%d^2*th%d_%s", o, j, j, r, r, j, j, o),
+      sprintf("l%s%d > 0.00000001", r, j), sprintf("th%d_%s > 0.00000001", j, r))
+    out <- c(out,
+      sprintf("kap_%s == (3 + rhoMF - 2*am_growth)/2", o),
+      sprintf("eta_%s == (kap_%s + chi_%s)/(2*sqrt(am_growth))", r, o, r))
+  }
+  if (length(roles) == 2L) out <- c(out, "chi_ms == chi_fs")
+  out
 }
 
 #' Starting values inside the finite-generation constraint manifold
 #' @noRd
-.ravel_constraint_starts <- function(model, dat, mode, h, n_generations) {
+.ravel_constraint_starts <- function(model, dat, mode, h, n_generations, sib_roles = character(0)) {
   # Starts use observed score moments only; no true reliability is supplied.
   score_names <- unlist(lapply(1:2, function(j)
     paste0("PGS", j, "_", c("mother", "father", "child"))))
@@ -128,6 +155,27 @@
     starts[[paste0("e",j,"_",parent,"c")]] <- .5*sqrt(
       starts[[paste0("th",j,"_",parent)]]*starts[[paste0("th",j,"_c")]])
   }
+  if (length(sib_roles)) {
+    kappa <- (3 + rho - 2*growth)/2
+    chi <- rho*kappa
+    own <- c(ms = "m", fs = "f")
+    sib_col <- c(ms = "mat_sib", fs = "pat_sib")
+    for (r in sib_roles) {
+      starts[[paste0("kap_", own[[r]])]] <- kappa
+      starts[[paste0("chi_", r)]] <- chi
+      starts[[paste0("eta_", r)]] <- (kappa + chi)/(2*sqrt(growth))
+      for (j in 1:2) {
+        sd <- stats::sd(dat[[paste0("PGS", j, "_", sib_col[[r]])]], na.rm = TRUE)
+        starts[[paste0("l", r, j)]] <- sqrt(rel_parent[j])*sd
+        starts[[paste0("th", j, "_", r)]] <- (1 - rel_parent[j])*sd^2
+        starts[[paste0("e", j, "_", own[[r]], "_", r)]] <- .5*sqrt(
+          starts[[paste0("th", j, "_", own[[r]])]]*starts[[paste0("th", j, "_", r)]])
+        starts[[paste0("e", j, "_c_", r)]] <- .25*sqrt(
+          starts[[paste0("th", j, "_c")]]*starts[[paste0("th", j, "_", r)]])
+      }
+    }
+    if (length(sib_roles) == 2L) starts[["zeta"]] <- rho*kappa^2
+  }
   for (label in names(starts)) {
     if (is.finite(starts[[label]])) {
       model <- gsub(paste0("\\b", label, "\\*(?=[A-Z])"),
@@ -174,10 +222,11 @@
 #' Total derivative of the constrained visible fit with respect to external pi
 #' @noRd
 .ravel_constraint_core_h_sensitivity <- function(object) {
-  labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")
+  sib_roles <- object$parental_sibs$roles %||% character(0)
+  labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", .sib_core_labels(sib_roles))
   spec <- object$constraint_spec
   if (is.null(spec) || !isTRUE(spec$depends_on_pi))
-    return(setNames(rep(0, 6), labels))
+    return(setNames(rep(0, length(labels)), labels))
   args <- object$constraint_refit
   if (is.null(args)) stop("This finite-generation fit needs retained refit data to propagate pi uncertainty.")
   cache <- new.env(parent=emptyenv())
@@ -187,7 +236,7 @@
     args$h <- h
     fit <- suppressWarnings(do.call(ravel_fit, args))
     if (!isTRUE(fit$converged)) stop("A finite-generation pi-sensitivity refit did not converge.")
-    out <- c(fit$beta_vis, fit$latent_cov_vis)
+    out <- c(fit$beta_vis, fit$latent_cov_vis, .sib_theta(fit$parental_sibs, sib_roles))
     out <- out[labels]
     if (any(!is.finite(out))) stop("A finite-generation pi-sensitivity refit was not finite.")
     assign(key,out,envir=cache)
@@ -205,7 +254,7 @@
       coarse <- (get_core(h+step)-get_core(h-step))/(2*step)
       fine <- (get_core(h+step/2)-get_core(h-step/2))/step
     } else {
-      center <- c(object$beta_vis,object$latent_cov_vis)[labels]
+      center <- c(object$beta_vis,object$latent_cov_vis,.sib_theta(object$parental_sibs,sib_roles))[labels]
       coarse <- (get_core(h+step)-center)/step
       fine <- (get_core(h+step/2)-center)/(step/2)
     }

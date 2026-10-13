@@ -103,6 +103,12 @@
 #'   to check the parent-specific contrasts estimated with
 #'   \code{ravel_fit(..., parental_sibs = ...)}. Nonzero values also draw parents
 #'   from a grandparent generation.
+#' @param grandparent_rho_MF Numeric in (-1, 1). Spouse correlation of total
+#'   liability among the grandparents. The default 0 keeps parents on the
+#'   founder scale (one assortment round, \code{am_n_generations = 1}); setting
+#'   it equal to \code{rho_MF} gives two rounds of constant-strength assortment
+#'   (\code{am_n_generations = 2}). Nonzero values draw parents from a
+#'   grandparent generation.
 #'
 #' @return A data.frame with columns:
 #'   - FID: Family ID
@@ -158,7 +164,8 @@ ravel_simulate_trios <- function(
     return_visible_genotypes = FALSE,
     parental_sibs = c("none", "maternal", "paternal", "both"),
     lineage_effect_mat = 0,
-    lineage_effect_pat = 0
+    lineage_effect_pat = 0,
+    grandparent_rho_MF = 0
 ) {
 
   # Input validation
@@ -172,12 +179,17 @@ ravel_simulate_trios <- function(
   parental_sibs <- match.arg(parental_sibs)
   stopifnot(is.numeric(lineage_effect_mat), length(lineage_effect_mat) == 1L, is.finite(lineage_effect_mat))
   stopifnot(is.numeric(lineage_effect_pat), length(lineage_effect_pat) == 1L, is.finite(lineage_effect_pat))
+  stopifnot(is.numeric(grandparent_rho_MF), length(grandparent_rho_MF) == 1L,
+            grandparent_rho_MF > -1, grandparent_rho_MF < 1)
   sib_sides <- switch(parental_sibs, none = character(0), maternal = "m", paternal = "f",
                       both = c("m", "f"))
-  # Parents are drawn as children of a randomly mating grandparent generation
-  # whenever siblings or lineage effects are requested. Under random mating of
-  # grandparents the parents keep the founder (random-mating) distribution.
-  use_grandparents <- length(sib_sides) > 0L || lineage_effect_mat != 0 || lineage_effect_pat != 0
+  # Parents are drawn as children of a grandparent generation whenever siblings,
+  # lineage effects, or grandparental assortment are requested. Under random
+  # mating of grandparents the parents keep the founder (random-mating)
+  # distribution; with grandparent_rho_MF != 0 the parents have had one round
+  # of assortment, so the child is produced by the second round.
+  use_grandparents <- length(sib_sides) > 0L || lineage_effect_mat != 0 ||
+    lineage_effect_pat != 0 || grandparent_rho_MF != 0
 
   # Default: same number of hidden SNPs as visible
   if (is.null(m_hidden)) m_hidden <- m
@@ -314,22 +326,44 @@ ravel_simulate_trios <- function(
     # Each parent and their full sibling are two children of one grandparental
     # couple. lineage_T is the grandparents' midparent raw total liability.
     make_lineage <- function() {
-      gp1_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
-      gp2_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
-      out <- list(parent_vis = transmit(gp1_vis, gp2_vis), sib_vis = transmit(gp1_vis, gp2_vis))
       gp_T <- function(gv, gh) {
         tv <- centered_genetic_score(gv, gamma_vis, allele_freq)
         if (h > 0) sqrt_1mh * tv + sqrt_h * centered_genetic_score(gh, gamma_hid, allele_freq_hidden) else tv
       }
+      gp1_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
+      gp2_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
       if (h > 0) {
         gp1_hid <- draw_genotypes(allele_freq_hidden, if (pop_structure) af_by_pop_hid)
         gp2_hid <- draw_genotypes(allele_freq_hidden, if (pop_structure) af_by_pop_hid)
+      } else {
+        gp1_hid <- gp2_hid <- NULL
+      }
+      if (abs(grandparent_rho_MF) > 1e-10) {
+        # Pair grandparents by total liability (Gaussian copula, within population).
+        T1 <- gp_T(gp1_vis, gp1_hid)
+        T2 <- gp_T(gp2_vis, gp2_hid)
+        Sigma_gp <- matrix(c(1, grandparent_rho_MF, grandparent_rho_MF, 1), 2, 2)
+        idx1 <- idx2 <- seq_len(N)
+        for (pop in unique(pop_assignment)) {
+          idx <- which(pop_assignment == pop)
+          if (length(idx) <= 1L) next
+          z <- MASS::mvrnorm(length(idx), mu = c(0, 0), Sigma = Sigma_gp)
+          idx1[idx] <- idx[order(T1[idx])][rank(z[, 1], ties.method = "first")]
+          idx2[idx] <- idx[order(T2[idx])][rank(z[, 2], ties.method = "first")]
+        }
+        gp1_vis <- gp1_vis[idx1, , drop = FALSE]
+        gp2_vis <- gp2_vis[idx2, , drop = FALSE]
+        if (h > 0) {
+          gp1_hid <- gp1_hid[idx1, , drop = FALSE]
+          gp2_hid <- gp2_hid[idx2, , drop = FALSE]
+        }
+      }
+      out <- list(parent_vis = transmit(gp1_vis, gp2_vis), sib_vis = transmit(gp1_vis, gp2_vis))
+      if (h > 0) {
         out$parent_hid <- transmit(gp1_hid, gp2_hid)
         out$sib_hid <- transmit(gp1_hid, gp2_hid)
-        out$lineage_T <- (gp_T(gp1_vis, gp1_hid) + gp_T(gp2_vis, gp2_hid)) / 2
-      } else {
-        out$lineage_T <- (gp_T(gp1_vis) + gp_T(gp2_vis)) / 2
       }
+      out$lineage_T <- (gp_T(gp1_vis, gp1_hid) + gp_T(gp2_vis, gp2_hid)) / 2
       out
     }
     lineage_m <- make_lineage()
@@ -692,7 +726,8 @@ ravel_simulate_trios <- function(
     seed = seed,
     parental_sibs = parental_sibs,
     lineage_effect_mat = lineage_effect_mat,
-    lineage_effect_pat = lineage_effect_pat
+    lineage_effect_pat = lineage_effect_pat,
+    grandparent_rho_MF = grandparent_rho_MF
   )
 
   dat

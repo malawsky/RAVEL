@@ -25,7 +25,8 @@ ravel_simulate_trios(
   return_visible_genotypes = FALSE,
   parental_sibs = c("none", "maternal", "paternal", "both"),
   lineage_effect_mat = 0,
-  lineage_effect_pat = 0
+  lineage_effect_pat = 0,
+  grandparent_rho_MF = 0
 )
 }
 \arguments{
@@ -108,6 +109,13 @@ family-of-origin confounding shared by a parent and their sibling; use it
 to check the parent-specific contrasts estimated with
 \code{ravel_fit(..., parental_sibs = ...)}. Nonzero values also draw parents
 from a grandparent generation.}
+
+\item{grandparent_rho_MF}{Numeric in (-1, 1). Spouse correlation of total
+liability among the grandparents. The default 0 keeps parents on the
+founder scale (one assortment round, \code{am_n_generations = 1}); setting
+it equal to \code{rho_MF} gives two rounds of constant-strength assortment
+(\code{am_n_generations = 2}). Nonzero values draw parents from a
+grandparent generation.}
 }
 \value{
 A data.frame with columns:

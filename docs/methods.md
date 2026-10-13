@@ -270,7 +270,8 @@ scores as the trio. In the free model (`fit_constraints = "none"`):
 - Within each score version, residual covariances between each sibling and
   every other family member are free. For outcrossed families with unassorted
   GWAS noise, the expected residual correlations are 1/2 with the sibling's own
-  parent, 1/4 with the child and 0 with unrelated members.
+  parent, 1/4 with the child and 0 with unrelated members. The constrained
+  modes fix them at these values.
 - The outcome model is
   `Y = b_D G_c + b_M G_m + b_P G_p + b_MS G_am + b_FS G_ap + e`.
   Writing the parent and sibling as a lineage mean B = (G_m + G_am)/2 and
@@ -291,15 +292,40 @@ mother's genotype, beyond transmission to the child, under three conditions:
    for example through the father's non-genetic nurture. That pathway is part
    of `delta_M`.
 
-Under assortment on total liability, the sibling covariances follow from the
-parents' variance state. With raw parental total variance V_T and visible
-variance V_G on the founder scale, kappa = 1 - 1/(2 V_G), chi = k rho_G and
-zeta = k^2 rho_G, where k = 1 - 1/(2 V_T). Because k uses the total liability,
-chi differs from rho_G kappa when pi > 0. Under assortative mating with hidden
-variation, the visible-scale contrasts are not simply attenuated, so
-total-liability inference needs a sibling-extended hidden correction. That
-correction is not yet available, and fits with parental siblings currently
-require `pi = 0`.
+### Sibling covariances under assortment
+
+A parental sibling belongs to the parents' generation. Let S be the parents'
+raw covariance of Z = (G*, H*) on the founder scale, w = (sqrt(1 - pi),
+sqrt(pi)), V_T = w'Sw, and K = rho_T S w w' S / V_T the spouse block (A3). With
+segregation variance I/2:
+
+```
+parent and own sibling:          S - I/2           (variance of the grandparental midparent)
+parent and spouse's sibling:     X = rho_T S w w'(S - I/2) / V_T
+maternal and paternal siblings:  (S - I/2)' S^{-1} X
+child and a sibling:             half the sum of the two parents' blocks
+```
+
+This is exact for any number of generations or an estimated state; no
+equilibrium approximation is needed. On the visible scale it gives
+kappa = 1 - 1/(2 V_G), chi = k rho_G and zeta = k^2 rho_G with
+k = 1 - 1/(2 V_T). Because k uses the total liability, chi differs from
+rho_G kappa when pi > 0.
+
+For the hidden correction, the standardized visible-hidden entries are d for a
+parent and their own sibling (the same as within a person), k q between a
+parent and the spouse's sibling, and k^2 q between the two siblings, where d and
+q are the trio's within-person and spouse entries. Child rows use the fitted
+visible and hidden transmission coefficients, as in the trio. An earlier
+equilibrium derivation that used q for every cross-lineage entry overstates
+these terms. Under assortment with hidden variation the visible-scale contrasts
+are not simply attenuated, so use the corrected rows when pi > 0.
+
+The constrained modes add three pi-free restrictions: each sibling score has
+the parent's reliability; kappa = (3 + rho_G - 2B)/2, where B is the visible
+variance growth factor; and the child-sibling correlation is
+(kappa + chi)/(2 sqrt(B)). chi (equal across lineages) and zeta are estimated
+because they depend on pi.
 
 ## Covariate adjustment and binary outcomes
 
