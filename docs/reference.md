@@ -126,6 +126,107 @@ assumptions stored as attributes. Use RDS for further inference. The report's
 `model_status` and `diagnostics` retain identification and fit failure reasons;
 failed cells and missing intervals must be inspected before interpretation.
 
+## Score-specific phenotype association test
+
+Run the diagnostic on a live fitted result and save it separately from the
+scientific effect tables:
+
+```r
+fit <- ravel_fit(dat, fit_constraints = "equilibrium", pi = .4)
+signal_test <- ravel_test_score_signal(fit)
+print(signal_test)
+saveRDS(signal_test, "score_signal_test.rds")
+```
+
+The null retains a free outcome path from every included genetic liability.
+The alternative replaces all those paths with outcome regressions on the six,
+eight or ten observed scores. The joint score measurement model and all its
+constraints stay the same, and nuisance parameters are refitted in both models.
+This tests agreement of the two scores' normalized phenotype associations;
+it does not test whether parental or sibling effects are zero.
+
+The initial scope is a continuous phenotype, complete observations, independent
+families and no covariates. Scores must be observed rather than imputed, with
+both versions oriented to the same genetic target. Repeated or overlapping
+families, sampling weights, multigroup models, binary outcomes, incomplete
+data and covariate extensions are not validated for this diagnostic. Ordinary
+RAVEL fitting remains available under its existing scope. Imputation or
+dependence not recorded in the data cannot be discovered from the scores alone;
+the analyst must establish that the diagnostic's sampling assumptions hold.
+
+The default `fit_constraints = "none"` model with free residual covariances is
+unsupported because the score-only model is unidentified. Merely changing the
+reference degrees of freedom would not repair its alternative fit. Identified
+constrained modes and the fixed-residual benchmark are checked for full local
+rank and numerical regularity. With validated ranks, the reference difference
+is three for trios, four for one parental sibling and five for both. Near-zero
+assortment, weak identification and active boundaries can prevent inference.
+Supplying a fit with fixed parental outcome paths is also unsupported: the
+diagnostic does not silently replace the user's null model.
+The `crossperson = "equal_pc"` residual-covariance option and manually altered
+SEM syntax are also outside the initial diagnostic scope.
+
+The result records status and reason, test statistic, reference degrees of
+freedom, p value, the actual adjustment, both log likelihoods and model degrees
+of freedom, sample size, included roles, fitting constraints, software version,
+and fit/rank diagnostics. Unsupported or invalid comparisons return unavailable
+inference. For MLR fits the comparison uses a robust nested-model difference
+test, not subtraction of separately scaled fit statistics.
+
+Useful fields are `status`, `reason`, `statistic`, `df`, `p_value`,
+`raw_statistic`, `test`, `adjustment`, `log_likelihood`, `model_df`, `N`,
+`roles`, `mode`, `measurement_constraints`, `external_pi`, `history`, `software`, `diagnostics` and
+`fits`. The last two retain the refitted models, constructive nesting check,
+warnings and identification details for review. They are not ordinary
+coefficient tables and can be larger than the compact printed result.
+
+Both diagnostic fits use sample-SD units for the scores and phenotype, with
+fixed covariance values converted consistently. Observed marginal variances
+and unknown score reliabilities remain estimated under the selected fitting
+constraints. Public `log_likelihood` values are restored
+to the original input units; `diagnostics$canonical_log_likelihood` and
+`diagnostics$input_standard_deviations` retain the transformation. The models
+in `fits` are on the diagnostic units. The robust test uses copies with the
+final equality-constraint tangent supplied explicitly; the original fit is
+left unchanged.
+
+Rank checks use naturally scaled parameter and moment coordinates, a relative
+singular-value tolerance of `1e-7`, stability checks at `1e-8` and `1e-6`, and
+a minimum smallest-to-largest singular-value ratio of `1e-5`. The scaled
+projected gradient must be at most `1e-4` and equality residuals at most
+`1e-6`. Covariance correlation matrices must have minimum eigenvalue above
+`1e-8`; standardized loadings must exceed `1e-5` in magnitude and inequality
+margins must exceed `1e-7`. Each observed residual variance must also exceed
+`1e-8` of that variable's total fitted variance. These numerical safeguards do not guarantee good
+finite-sample behavior near a population singularity. The returned diagnostic
+records the values and thresholds, rather than only a pass/fail flag.
+
+Unresolved fitting or test warnings prevent inference. Two specific numerical
+warnings from optimizer trial evaluations can be resolved by one restart from
+the final admissible optimum: both fits must pass every regularity check, the
+restart must emit no warnings, and their log likelihoods must agree within
+`1e-5`. Original warnings, retry warnings, validation results and likelihood
+agreement remain in `diagnostics$refit_retries`. Other warnings are not waived.
+
+Use the original live fit; a CSV effect table or aggregate correction packet
+does not preserve the likelihood and model needed for this test. An explicit
+`data` argument must represent the same observations and preprocessing used in
+the fitted model; it is not an invitation to switch the analysis sample.
+
+The diagnostic leaves the fit and its scientific coefficients unchanged.
+When finite-generation fitting constraints depend on pi, inference is
+conditional on that same fixed pi in both models. `pi_se` propagation into
+corrected coefficients does not propagate pi uncertainty into this test.
+Changing only the post-fit total correction has no effect on the comparison.
+
+Rejection indicates disagreement with the shared-factor outcome restriction
+under the retained measurement assumptions. It does not identify the source:
+different direct/indirect mixtures and other measurement or covariance
+misspecification can also cause rejection. Non-rejection does not establish
+genetic correlation one or unbiased effects. A score-specific outcome signal
+proportional to each score's loading can bias scientific effects while remaining
+invisible to this test; see the [derivation and blind spot](methods.md#score-specific-phenotype-association-test).
+
 ## Parental-sibling workflow
 
 The option is off by default. Supply at most one full sibling per selected

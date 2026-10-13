@@ -360,6 +360,148 @@ draws. The implied full visible/hidden covariance must be positive semidefinite;
 incompatible correction assumptions leave total-scale results unavailable while
 preserving visible-scale estimates.
 
+## Score-specific phenotype association test
+
+This optional diagnostic tests the outcome restriction of the shared genetic
+factor model. It is separate from estimating biological effects and from the
+visible-to-total correction. With n included family roles and two scores per
+role, write
+
+```
+P_kr = lambda_kr G_r + epsilon_kr,   C = Cov(G),
+Y = b'G + u.
+```
+
+Under the null, `Cov(epsilon_kr, Y) = 0` and `Cov(G, u) = 0`, so
+`c_kr = Cov(P_kr, Y) = lambda_kr (C b)_r`. For every role this implies
+
+```
+lambda_2r c_1r - lambda_1r c_2r = 0.
+```
+
+All included latent outcome paths are free under this null. In particular,
+this is not a test that maternal or paternal effects vanish. The alternative
+replaces every latent outcome regression with a regression on all 2n observed
+scores. Both models retain the same joint score model and refit all free
+nuisance parameters, including loadings and outcome residual variance. The
+alternative score slopes are diagnostic quantities, not corrected genetic
+effects. Latent and score outcome paths must not be combined in that model.
+
+### Observable nesting
+
+For an admissible null covariance, let `S = Cov(P)`, `c = Cov(P, Y)` and
+`v = Var(Y)`. The alternative exactly reproduces the covariance using
+
+```
+q = solve(S, c),
+Var(u_alt) = v - c' solve(S, c),
+intercept_alt = E[Y] - q' E[P].
+```
+
+The residual variance is positive when the joint null covariance is positive
+definite. This constructive check uses the full joint score distribution;
+treating the scores as fixed regressors would change the likelihood being
+compared. The implementation preserves unit latent variances, models the
+scores as random, and removes every sibling outcome path and any definition
+that refers to a removed effect label.
+
+### Identification and reference degrees of freedom
+
+When the score-only model is locally identified, C is nonsingular, loadings
+are nonzero and both fits are regular interior points, the null adds n outcome
+associations and one variance; the alternative adds 2n associations and one
+variance. The observable dimension difference is n: three for trios, four
+with one parental sibling and five with both. These values are checked against
+the actual constrained moment-Jacobian ranks, rather than accepted from the
+number of roles alone.
+
+For equality constraints `h(theta) = 0`, let A be their Jacobian and N a basis
+for its null space. With moment Jacobian J, the identifiable tangent dimension
+is `rank(J N)`. Parameter and moment scaling, singular values and conditioning
+matter in addition to rank. The score-only model and both full models must
+pass these checks. Exact zero assortment without variance growth can be a
+singularity even in a constrained model; near-singular fits are unsuitable
+for the regular reference distribution.
+
+Changing score units by positive factors preserves the comparison when the
+measurement constraints are transformed consistently. Scores must retain the
+common trait orientation required by RAVEL. Reversing an individual score's
+sign also requires reversing the associated loading and residual-correlation
+signs; it is not the same model under the positive-loading constraints.
+
+The default free residual model has an additional scale invariance. Let
+`Lambda_k = diag(lambda_kr)`. Its score covariance blocks are
+
+```
+S11 = Lambda_1 C Lambda_1 + Theta_1,
+S12 = Lambda_1 C Lambda_2,
+S22 = Lambda_2 C Lambda_2 + Theta_2.
+```
+
+For positive a near one, replace `Lambda_1` by `a Lambda_1` and `Lambda_2`
+by `Lambda_2 / a`, and add `(1 - a^2) Lambda_1 C Lambda_1` to `Theta_1`
+and `(1 - a^-2) Lambda_2 C Lambda_2` to `Theta_2`. This preserves the score
+covariance and local strict admissibility. Unit latent variances do not remove
+the invariance. Nonzero null outcome associations can identify the scale,
+whereas unrestricted alternative associations do not. With exactly this
+defect, an identified observable formulation would have difference n - 1;
+changing the reported degrees of freedom does not identify a naive fit.
+The current diagnostic therefore returns an unsupported status for this mode.
+
+### Likelihood comparison and interpretation
+
+For regular Gaussian ML, the unadjusted statistic is
+`2 * (logLik(alternative) - logLik(null))`. RAVEL's continuous fits use MLR,
+so the reported inference uses the Satorra (2000) robust nested-model
+difference test with the delta option for covariance nesting. It does not
+subtract separately scaled fit statistics. The software's actual adjustment
+and fit diagnostics are retained; unresolved warnings, a fallback to unscaled inference,
+materially worse alternative likelihood or invalid nesting prevent an ordinary
+success result. See the [lavaan difference-test documentation](https://rdrr.io/cran/lavaan/man/lavTestLRT.html).
+
+Nonlinear equality constraints require the tangent at the fitted parameter
+values. The diagnostic supplies an orthonormal basis for the null space of
+their final Jacobian to copies of the fitted models before calling the public
+robust difference-test function. This makes the delta calculation use the
+actual constrained moment spaces, including when a software version does not
+populate its linear-constraint projection for nonlinear restrictions. The
+stored scientific fits are unchanged. This calculation is checked against an
+independent constrained-information implementation.
+
+For reproducibility across input units, both diagnostic fits first express
+each observed score and the outcome in units of its sample SD. Intercepts and
+population marginal variances remain free; fixed residual covariances are
+converted by the corresponding pair of SDs. This is an invertible change of
+units, not a reliability assumption. It also fixes the metric used by the
+finite-sample delta projection between the two fitted moment spaces. Positive
+rescaling of an input score therefore gives the same diagnostic problem.
+
+Both models use the same data, mean structure and external fitting constraints.
+When a specified finite history makes the measurement model depend on pi,
+the test is conditional on that supplied pi. Adding pi sampling error to
+corrected-effect standard errors does not make the diagnostic unconditional.
+A change confined to post-fit correction does not change its likelihoods.
+
+Rejection shows incompatibility of the score-phenotype associations with the
+shared-factor outcome restriction under the retained measurement assumptions.
+Different direct/indirect mixtures, measurement misspecification and other
+covariance misspecification can all produce it; the test does not distinguish
+these explanations. Non-rejection does not establish genetic correlation one
+or unbiased RAVEL effects. In particular, if
+
+```
+Cov(epsilon_1r, Y) = lambda_1r a_r,
+Cov(epsilon_2r, Y) = lambda_2r a_r,
+```
+
+the extra association cancels in the tested contrast. For nonsingular C it can
+be absorbed by replacing b with `b + solve(C, a)`, potentially biasing the
+scientific effects without rejection. The initial implementation is limited
+to complete, independently observed families with a continuous phenotype and
+no covariates. Imputation, incomplete observations, covariates and complex
+sampling need separate validation. A future null bootstrap must simulate
+under the null and refit both models in every replicate.
+
 ## Covariate adjustment and binary outcomes
 
 Covariates can be included jointly via `fixed_effects`. The SEM allows genetic

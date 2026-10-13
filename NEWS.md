@@ -1,5 +1,19 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Score-specific phenotype association diagnostic
+
+- `ravel_test_score_signal()` compares the shared-factor outcome model with
+  unrestricted observed-score outcome associations, preserving the score
+  measurement and covariance assumptions. It returns a separate result and
+  does not replace scientific coefficients or alter total-liability correction.
+- Continuous, complete-data comparisons use a robust nested-model difference
+  test for MLR fits, with explicit convergence, admissibility, nesting and
+  constrained-Jacobian identification checks. Unsupported inputs and invalid
+  comparisons return a reason and unavailable inference.
+- The fully free residual model is explicitly unsupported because its
+  score-only measurement model has an unidentified scale. Non-rejection does
+  not establish equal genetic targets or unbiased scientific effects.
+
 ## Parental siblings
 
 - `ravel_fit(..., parental_sibs = "maternal" | "paternal" | "both")` adds a full

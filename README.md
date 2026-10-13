@@ -233,6 +233,27 @@ exclude incomplete families. For the dataframe workflow, use the same
 `parental_sibs` option with lowercase score names; see the
 [report example and column mapping](docs/reference.md#parental-sibling-workflow).
 
+## Optional: compare the scores' phenotype associations
+
+For a continuous phenotype with complete, independently observed families and
+no covariates, check the shared-factor outcome restriction:
+
+```r
+fit <- ravel_fit(dat, fit_constraints = "estimated_state")
+signal_test <- ravel_test_score_signal(fit)
+print(signal_test)
+```
+
+This is a separate diagnostic; it does not change the effect estimates or their
+pi correction. It requires an identified score model, such as a supported
+constrained fit. The default fully free measurement model is unsupported.
+Always check the returned status before interpreting a p value.
+
+Rejection means the two scores' phenotype associations disagree with the
+shared-factor restriction under the retained measurement assumptions.
+Non-rejection does not establish genetic correlation one or unbiased effects.
+See the [scope and interpretation](docs/reference.md#score-specific-phenotype-association-test).
+
 ## Dataframe reports and the bundled example
 
 `ravel_dataframe_report()` prepares raw data, compares RAVEL with ordinary PGS
@@ -272,7 +293,7 @@ folder. Keep the aggregate RDS packet for later corrections and inspect
 - [API and workflow reference](docs/reference.md): options, output fields, column
   mapping, reporting, uncertainty and simulation details.
 - `?ravel_fit`, `?ravel_correct_pi`, `?ravel_dataframe_report`,
-  `?ravel_correct_grid`: installed function documentation.
+  `?ravel_correct_grid`, `?ravel_test_score_signal`: installed function documentation.
 
 ## License and citation
 

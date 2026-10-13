@@ -2019,6 +2019,13 @@ ravel_fit <- function(dat,
     }
   }
 
+  # Retain only scope metadata for the optional likelihood diagnostic.
+  score_signal_input <- list(column_map = col_map,
+    incomplete = any(!stats::complete.cases(dat[, names(col_map), drop = FALSE])),
+    dependent_families = any(vapply(intersect(c("FID", cluster_var), names(dat)),
+      function(nm) anyNA(dat[[nm]]) || anyDuplicated(dat[[nm]]) > 0L, logical(1))),
+    imputed = isTRUE(attr(dat, "imputed")))
+
   # Estimation settings
   estimator <- if (outcome == "binary_liability") "WLSMV" else "MLR"
   ordered_Y <- if (outcome == "binary_liability") "Y" else NULL
@@ -2544,6 +2551,7 @@ ravel_fit <- function(dat,
     N = if (length(sib_roles)) as.integer(lavaan::lavInspect(fit, "nobs")) else nrow(dat),
     fit = fit,
     model = model,
+    score_signal_input = score_signal_input,
 
     # Effect estimates
     beta_vis = estimates$beta_vis,
