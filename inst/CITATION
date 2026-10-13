@@ -1,0 +1,20 @@
+bibentry(
+  bibtype = "Article",
+  title = paste(
+    "Phantom genetic nurture: assortative mating accounts for most of the",
+    "apparent association between parental genotypes and childhood cognitive performance"
+  ),
+  author = c(
+    person(given = c("Daniel", "S."), family = "Malawsky"),
+    person(given = "Laura", family = "Hegemann"),
+    person(given = "Olivia", family = "Wootton"),
+    person(given = c("Alexandra", "Karoline"), family = "Havdahl"),
+    person(given = c("Hans", "Fredrik"), family = "Sunde"),
+    person(given = c("Hilary", "C."), family = "Martin")
+  ),
+  journal = "bioRxiv",
+  year = "2026",
+  doi = "10.64898/2026.09.01.748516",
+  url = "https://www.biorxiv.org/content/10.64898/2026.09.01.748516v2",
+  note = "Preprint, version 2"
+)

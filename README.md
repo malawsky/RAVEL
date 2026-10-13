@@ -297,7 +297,12 @@ folder. Keep the aggregate RDS packet for later corrections and inspect
 
 ## License and citation
 
-MIT. Please cite:
+MIT. When using RAVEL, please cite:
 
-> Malawsky D. (2025). RAVEL: Recovering Assortment-Adjusted Variance Explained by
-> Genetic Liabilities. R package. https://github.com/malawsky/RAVEL
+> Malawsky, D. S., Hegemann, L., Wootton, O., Havdahl, A. K., Sunde, H. F., &
+> Martin, H. C. (2026). [Phantom genetic nurture: assortative mating accounts for
+> most of the apparent association between parental genotypes and childhood
+> cognitive performance](https://www.biorxiv.org/content/10.64898/2026.09.01.748516v2).
+> *bioRxiv*, version 2. [doi:10.64898/2026.09.01.748516](https://doi.org/10.64898/2026.09.01.748516).
+
+Run `citation("RAVEL")` for the formatted reference and BibTeX entry.
