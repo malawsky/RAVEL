@@ -1,5 +1,21 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Parental siblings (visible scale)
+
+- `ravel_fit(..., parental_sibs = "maternal" | "paternal" | "both")` adds a full
+  sibling of the mother and/or father, scored with the same two PGS weight sets.
+  The outcome is also regressed on each sibling's visible liability.
+  `delta_M = bm - bMS` and `delta_F = bf - bFS` are the parent-specific
+  coefficients, with lavaan delta-method or bootstrap uncertainty.
+- Families without a sibling stay in the fit with missing sibling scores (FIML
+  for continuous outcomes). Sibling scores use new `col_pgs*_mat_sib` and
+  `col_pgs*_pat_sib` column arguments.
+- For now this requires `fit_constraints = "none"` and `pi = 0`. The default
+  trio model, its outputs and existing simulator seeds are unchanged.
+- `ravel_simulate_trios()` gains `parental_sibs` and maternal/paternal lineage
+  effects, drawing parents and their siblings from a random-mating grandparent
+  generation.
+
 ## Supply pi and its standard error during fitting
 
 - `ravel_fit()` now accepts `pi` as the preferred name for the founder hidden

@@ -149,6 +149,8 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   if (external_source == "se" && (!missing(pi_ci_scale) || !missing(pi_ci_level)))
     stop("pi_ci_scale and pi_ci_level apply only to pi_ci; pi_se is always on the raw probability scale")
   if (is.character(object) && length(object) == 1L) object <- readRDS(object)
+  if (inherits(object, "ravel_results") && !is.null(object$parental_sibs))
+    stop("The total-liability correction is not yet available for fits with parental siblings.")
   if (is.list(object)) {
     history <- if (inherits(object, "ravel_results"))
       list(mode = object$am_correction, n_generations = object$am_n_generations) else

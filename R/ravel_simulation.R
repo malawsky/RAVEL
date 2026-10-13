@@ -91,6 +91,19 @@
 #'   \code{"visible_genotypes"}. This is primarily useful for downstream GRM-
 #'   based analyses such as genetic relationship matrix comparisons.
 #'
+#' @param parental_sibs Character. Also simulate a full sibling of the mother
+#'   (\code{"maternal"}), of the father (\code{"paternal"}), or both. Parents
+#'   and their siblings are then drawn as two children of a randomly mating
+#'   grandparent generation, so parents keep the founder distribution and the
+#'   one-generation assortment history is unchanged. Siblings receive PGS1 and
+#'   PGS2 built with the same noisy weights as the trio.
+#' @param lineage_effect_mat,lineage_effect_pat Numeric. Effect on Y of the
+#'   maternal (paternal) grandparents' midparent total liability, per SD. This is
+#'   family-of-origin confounding shared by a parent and their sibling; use it
+#'   to check the parent-specific contrasts estimated with
+#'   \code{ravel_fit(..., parental_sibs = ...)}. Nonzero values also draw parents
+#'   from a grandparent generation.
+#'
 #' @return A data.frame with columns:
 #'   - FID: Family ID
 #'   - PGS1_mother, PGS2_mother: Mother's polygenic scores
@@ -102,6 +115,10 @@
 #'     \eqn{T_m^*}, \eqn{T_p^*}, and \eqn{T_c^*} (if return_true_G = TRUE)
 #'   - G_mother_vis, G_father_vis, G_child_vis: Role-standardized visible
 #'     liabilities used for oracle comparisons when present
+#'   - PGS1_mat_sib, PGS2_mat_sib, PGS1_pat_sib, PGS2_pat_sib: Parental-sibling
+#'     scores when requested; G_mat_sib / G_pat_sib (and \code{_vis} versions)
+#'     hold their liabilities, and T_mat_lineage / T_pat_lineage the
+#'     grandparents' midparent raw total liabilities, when return_true_G = TRUE
 #'
 #'   Attributes include simulation parameters for reference.
 #'
@@ -138,7 +155,10 @@ ravel_simulate_trios <- function(
     pop_effect_on_Y = 0,
     seed = NULL,
     return_true_G = TRUE,
-    return_visible_genotypes = FALSE
+    return_visible_genotypes = FALSE,
+    parental_sibs = c("none", "maternal", "paternal", "both"),
+    lineage_effect_mat = 0,
+    lineage_effect_pat = 0
 ) {
 
   # Input validation
@@ -149,6 +169,15 @@ ravel_simulate_trios <- function(
   stopifnot(PGS1_reliability > 0 && PGS1_reliability < 1)
   stopifnot(PGS2_reliability > 0 && PGS2_reliability < 1)
   stopifnot(hidden_fraction >= 0 && hidden_fraction < 1)
+  parental_sibs <- match.arg(parental_sibs)
+  stopifnot(is.numeric(lineage_effect_mat), length(lineage_effect_mat) == 1L, is.finite(lineage_effect_mat))
+  stopifnot(is.numeric(lineage_effect_pat), length(lineage_effect_pat) == 1L, is.finite(lineage_effect_pat))
+  sib_sides <- switch(parental_sibs, none = character(0), maternal = "m", paternal = "f",
+                      both = c("m", "f"))
+  # Parents are drawn as children of a randomly mating grandparent generation
+  # whenever siblings or lineage effects are requested. Under random mating of
+  # grandparents the parents keep the founder (random-mating) distribution.
+  use_grandparents <- length(sib_sides) > 0L || lineage_effect_mat != 0 || lineage_effect_pat != 0
 
   # Default: same number of hidden SNPs as visible
   if (is.null(m_hidden)) m_hidden <- m
@@ -262,45 +291,96 @@ ravel_simulate_trios <- function(
   # ---------------------------------------------------------------------------
   # STEP 2: Generate parental genotypes (before assortment)
   # ---------------------------------------------------------------------------
-  if (pop_structure) {
-    # Generate genotypes with population-specific allele frequencies
-    Gm_geno_vis_orig <- matrix(NA, nrow = N, ncol = m)
-    Gf_geno_vis_orig <- matrix(NA, nrow = N, ncol = m)
-
-    for (pop in 1:n_pops) {
-      idx <- which(pop_assignment == pop)
-      n_pop <- length(idx)
-
-      for (j in 1:m) {
-        Gm_geno_vis_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_vis[pop, j])
-        Gf_geno_vis_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_vis[pop, j])
+  draw_genotypes <- function(af, af_by_pop) {
+    mm <- length(af)
+    if (pop_structure) {
+      G <- matrix(NA_real_, nrow = N, ncol = mm)
+      for (pop in seq_len(n_pops)) {
+        idx <- which(pop_assignment == pop)
+        G[idx, ] <- matrix(rbinom(length(idx) * mm, 2, rep(af_by_pop[pop, ], each = length(idx))),
+                           nrow = length(idx))
       }
+      G
+    } else {
+      matrix(rbinom(N * mm, 2, rep(af, each = N)), nrow = N)
     }
+  }
+  transmit <- function(G1, G2) {
+    matrix(rbinom(length(G1), 1, as.vector(G1) / 2), nrow = nrow(G1)) +
+      matrix(rbinom(length(G2), 1, as.vector(G2) / 2), nrow = nrow(G2))
+  }
 
-    # Hidden variant genotypes (if h > 0)
+  if (use_grandparents) {
+    # Each parent and their full sibling are two children of one grandparental
+    # couple. lineage_T is the grandparents' midparent raw total liability.
+    make_lineage <- function() {
+      gp1_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
+      gp2_vis <- draw_genotypes(allele_freq, if (pop_structure) af_by_pop_vis)
+      out <- list(parent_vis = transmit(gp1_vis, gp2_vis), sib_vis = transmit(gp1_vis, gp2_vis))
+      gp_T <- function(gv, gh) {
+        tv <- centered_genetic_score(gv, gamma_vis, allele_freq)
+        if (h > 0) sqrt_1mh * tv + sqrt_h * centered_genetic_score(gh, gamma_hid, allele_freq_hidden) else tv
+      }
+      if (h > 0) {
+        gp1_hid <- draw_genotypes(allele_freq_hidden, if (pop_structure) af_by_pop_hid)
+        gp2_hid <- draw_genotypes(allele_freq_hidden, if (pop_structure) af_by_pop_hid)
+        out$parent_hid <- transmit(gp1_hid, gp2_hid)
+        out$sib_hid <- transmit(gp1_hid, gp2_hid)
+        out$lineage_T <- (gp_T(gp1_vis, gp1_hid) + gp_T(gp2_vis, gp2_hid)) / 2
+      } else {
+        out$lineage_T <- (gp_T(gp1_vis) + gp_T(gp2_vis)) / 2
+      }
+      out
+    }
+    lineage_m <- make_lineage()
+    lineage_f <- make_lineage()
+    Gm_geno_vis_orig <- lineage_m$parent_vis
+    Gf_geno_vis_orig <- lineage_f$parent_vis
     if (h > 0) {
-      Gm_geno_hid_orig <- matrix(NA, nrow = N, ncol = m_hidden)
-      Gf_geno_hid_orig <- matrix(NA, nrow = N, ncol = m_hidden)
+      Gm_geno_hid_orig <- lineage_m$parent_hid
+      Gf_geno_hid_orig <- lineage_f$parent_hid
+    }
+  } else {
+    if (pop_structure) {
+      # Generate genotypes with population-specific allele frequencies
+      Gm_geno_vis_orig <- matrix(NA, nrow = N, ncol = m)
+      Gf_geno_vis_orig <- matrix(NA, nrow = N, ncol = m)
 
       for (pop in 1:n_pops) {
         idx <- which(pop_assignment == pop)
         n_pop <- length(idx)
 
-        for (j in 1:m_hidden) {
-          Gm_geno_hid_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_hid[pop, j])
-          Gf_geno_hid_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_hid[pop, j])
+        for (j in 1:m) {
+          Gm_geno_vis_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_vis[pop, j])
+          Gf_geno_vis_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_vis[pop, j])
         }
       }
-    }
-  } else {
-    # No population structure - original code
-    Gm_geno_vis_orig <- matrix(rbinom(N * m, 2, rep(allele_freq, each = N)), nrow = N)
-    Gf_geno_vis_orig <- matrix(rbinom(N * m, 2, rep(allele_freq, each = N)), nrow = N)
 
-    # Hidden variant genotypes (if h > 0)
-    if (h > 0) {
-      Gm_geno_hid_orig <- matrix(rbinom(N * m_hidden, 2, rep(allele_freq_hidden, each = N)), nrow = N)
-      Gf_geno_hid_orig <- matrix(rbinom(N * m_hidden, 2, rep(allele_freq_hidden, each = N)), nrow = N)
+      # Hidden variant genotypes (if h > 0)
+      if (h > 0) {
+        Gm_geno_hid_orig <- matrix(NA, nrow = N, ncol = m_hidden)
+        Gf_geno_hid_orig <- matrix(NA, nrow = N, ncol = m_hidden)
+
+        for (pop in 1:n_pops) {
+          idx <- which(pop_assignment == pop)
+          n_pop <- length(idx)
+
+          for (j in 1:m_hidden) {
+            Gm_geno_hid_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_hid[pop, j])
+            Gf_geno_hid_orig[idx, j] <- rbinom(n_pop, 2, af_by_pop_hid[pop, j])
+          }
+        }
+      }
+    } else {
+      # No population structure - original code
+      Gm_geno_vis_orig <- matrix(rbinom(N * m, 2, rep(allele_freq, each = N)), nrow = N)
+      Gf_geno_vis_orig <- matrix(rbinom(N * m, 2, rep(allele_freq, each = N)), nrow = N)
+
+      # Hidden variant genotypes (if h > 0)
+      if (h > 0) {
+        Gm_geno_hid_orig <- matrix(rbinom(N * m_hidden, 2, rep(allele_freq_hidden, each = N)), nrow = N)
+        Gf_geno_hid_orig <- matrix(rbinom(N * m_hidden, 2, rep(allele_freq_hidden, each = N)), nrow = N)
+      }
     }
   }
 
@@ -323,6 +403,9 @@ ravel_simulate_trios <- function(
   # ---------------------------------------------------------------------------
   # STEP 3: Assortative mating via Gaussian copula
   # ---------------------------------------------------------------------------
+  # perm_m / perm_f record which original mother/father row ends up in each
+  # couple, so siblings and lineage values follow their parent.
+  perm_m <- perm_f <- seq_len(N)
   if (abs(rho_MF) > 1e-10) {
 
     Sigma_assort <- matrix(c(1, rho_MF, rho_MF, 1), 2, 2)
@@ -354,6 +437,9 @@ ravel_simulate_trios <- function(
         r1 <- rank(z[, 1], ties.method = "first")
         r2 <- rank(z[, 2], ties.method = "first")
 
+        perm_m[idx] <- mom_order[r1]
+        perm_f[idx] <- dad_order[r2]
+
         # Reorder visible genotypes within pop
         Gm_geno_vis[idx, ] <- Gm_geno_vis_orig[mom_order, , drop = FALSE][r1, , drop = FALSE]
         Gf_geno_vis[idx, ] <- Gf_geno_vis_orig[dad_order, , drop = FALSE][r2, , drop = FALSE]
@@ -373,6 +459,9 @@ ravel_simulate_trios <- function(
 
       r1 <- rank(z[, 1], ties.method = "first")
       r2 <- rank(z[, 2], ties.method = "first")
+
+      perm_m <- mom_order[r1]
+      perm_f <- dad_order[r2]
 
       Gm_geno_vis <- Gm_geno_vis_orig[mom_order, , drop = FALSE][r1, , drop = FALSE]
       Gf_geno_vis <- Gf_geno_vis_orig[dad_order, , drop = FALSE][r2, , drop = FALSE]
@@ -467,9 +556,42 @@ ravel_simulate_trios <- function(
   Gc2 <- as.numeric(scale(centered_genetic_score(Gc_geno_vis, gamma2, allele_freq)))
 
   # ---------------------------------------------------------------------------
+  # STEP 6b: Parental siblings (same GWAS weights as the trio)
+  # ---------------------------------------------------------------------------
+  sib_out <- list()
+  for (side in sib_sides) {
+    lin <- if (side == "m") lineage_m else lineage_f
+    perm <- if (side == "m") perm_m else perm_f
+    sib_vis_geno <- lin$sib_vis[perm, , drop = FALSE]
+    sib_vis_raw <- centered_genetic_score(sib_vis_geno, gamma_vis, allele_freq)
+    sib_total <- if (h > 0) {
+      sqrt_1mh * sib_vis_raw +
+        sqrt_h * centered_genetic_score(lin$sib_hid[perm, , drop = FALSE], gamma_hid, allele_freq_hidden)
+    } else {
+      sib_vis_raw
+    }
+    sib_out[[if (side == "m") "mat_sib" else "pat_sib"]] <- list(
+      PGS1 = as.numeric(scale(centered_genetic_score(sib_vis_geno, gamma1, allele_freq))),
+      PGS2 = as.numeric(scale(centered_genetic_score(sib_vis_geno, gamma2, allele_freq))),
+      total = sib_total,
+      vis = as.numeric(scale(sib_vis_raw)),
+      geno = sib_vis_geno
+    )
+  }
+  lineage_T_m <- if (use_grandparents) lineage_m$lineage_T[perm_m] else NULL
+  lineage_T_f <- if (use_grandparents) lineage_f$lineage_T[perm_f] else NULL
+
+  # ---------------------------------------------------------------------------
   # STEP 7: Generate phenotype
   # ---------------------------------------------------------------------------
   genetic_component <- beta_D * Gc + beta_M * Gm + beta_F * Gf
+
+  # Lineage (family-of-origin) effects: per SD of the grandparents' midparent
+  # total liability, shared by each parent and their sibling.
+  if (lineage_effect_mat != 0)
+    genetic_component <- genetic_component + lineage_effect_mat * as.numeric(scale(lineage_T_m))
+  if (lineage_effect_pat != 0)
+    genetic_component <- genetic_component + lineage_effect_pat * as.numeric(scale(lineage_T_f))
 
   # Add population effect if specified (creates confounding)
   if (pop_structure) {
@@ -501,6 +623,11 @@ ravel_simulate_trios <- function(
     stringsAsFactors = FALSE
   )
 
+  for (nm in names(sib_out)) {
+    dat[[paste0("PGS1_", nm)]] <- sib_out[[nm]]$PGS1
+    dat[[paste0("PGS2_", nm)]] <- sib_out[[nm]]$PGS2
+  }
+
   # Add population indicator if pop_structure is enabled
   if (pop_structure) {
     dat$pop <- pop_assignment
@@ -518,14 +645,23 @@ ravel_simulate_trios <- function(
       dat$G_father_vis <- Gf_vis
       dat$G_child_vis <- Gc_vis
     }
+
+    for (nm in names(sib_out)) {
+      dat[[paste0("G_", nm)]] <- sib_out[[nm]]$total
+      if (h > 0) dat[[paste0("G_", nm, "_vis")]] <- sib_out[[nm]]$vis
+    }
+    if (use_grandparents) {
+      dat$T_mat_lineage <- lineage_T_m
+      dat$T_pat_lineage <- lineage_T_f
+    }
   }
 
   if (isTRUE(return_visible_genotypes)) {
-    attr(dat, "visible_genotypes") <- list(
+    attr(dat, "visible_genotypes") <- c(list(
       child = Gc_geno_vis,
       mother = Gm_geno_vis,
       father = Gf_geno_vis
-    )
+    ), lapply(sib_out, `[[`, "geno"))
   }
 
   # Store simulation parameters as attributes
@@ -553,7 +689,10 @@ ravel_simulate_trios <- function(
     Fst = if (pop_structure) Fst else NA,
     pop_effect_on_Y = if (pop_structure) pop_effect_vec else 0,
     var_e = var_e,
-    seed = seed
+    seed = seed,
+    parental_sibs = parental_sibs,
+    lineage_effect_mat = lineage_effect_mat,
+    lineage_effect_pat = lineage_effect_pat
   )
 
   dat

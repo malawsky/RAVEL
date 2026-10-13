@@ -314,6 +314,9 @@ fit <- ravel_fit(
 | `col_pgs1_child` | `"PGS1_child"` | Column name for child's PGS1 |
 | `col_pgs2_child` | `"PGS2_child"` | Column name for child's PGS2 |
 | `col_outcome` | `"Y"` | Column name for outcome variable |
+| `parental_sibs` | `"none"` | Add a full sibling of the mother (`"maternal"`), father (`"paternal"`) or both. Requires `fit_constraints = "none"` and `pi = 0`. |
+| `col_pgs1_mat_sib`, `col_pgs2_mat_sib` | `"PGS1_mat_sib"`, `"PGS2_mat_sib"` | Column names for the maternal sibling's scores; missing values allowed |
+| `col_pgs1_pat_sib`, `col_pgs2_pat_sib` | `"PGS1_pat_sib"`, `"PGS2_pat_sib"` | Column names for the paternal sibling's scores; missing values allowed |
 
 ### Output fields
 
@@ -336,6 +339,7 @@ fit <- ravel_fit(
 | `lavaan_inference` | SEM-based inference conditional on pi. Printing and table conversion use `pi_correction` for corrected rows when external uncertainty was supplied. |
 | `bootstrap` | Fixed-pi CIs and SEs if `n_boot > 0` |
 | `pi_correction` | Corrected estimates with propagated external pi uncertainty when `pi_se` was supplied, including covariance and derivative attributes. |
+| `parental_sibs` | With parental siblings: `coefficients` (`bms`, `delta_m`, `bfs`, `delta_f`), `lavaan_table` (rows `beta_MS`, `delta_M`, `beta_FS`, `delta_F`), `latent_cov`, `resid_cov`, `resid_corr`, `reliability`, `determinacy` and `n_with_sib`. `NULL` otherwise. |
 | `converged` | Logical convergence flag |
 
 ## Analytical expected values
@@ -378,6 +382,8 @@ The corresponding role-standardized target is beta = D_T beta^raw.
 | `seed` | `NULL` | Random seed |
 | `return_true_G` | `FALSE` | Include true genetic values in output |
 | `return_visible_genotypes` | `FALSE` | Attach visible genotype matrices as a `visible_genotypes` attribute for downstream GRM analyses |
+| `parental_sibs` | `"none"` | Also simulate a full sibling of the mother, father or both. Parents and siblings are then children of a random-mating grandparent generation. |
+| `lineage_effect_mat`, `lineage_effect_pat` | `0` | Effect on Y per SD of the maternal (paternal) grandparents' midparent total liability; lineage confounding shared by a parent and their sibling. |
 
 `G_mother`, `G_father`, and `G_child` are legacy variable names for the raw
 total liabilities T_m*, T_p*, and T_c* that enter phenotype generation. When

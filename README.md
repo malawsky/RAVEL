@@ -206,6 +206,27 @@ For binary outcomes, keep `Y` coded 0/1 and use `outcome = "binary_liability"`.
 Results are on the SEM probit-liability scale. Baseline-relative fit indices
 are unavailable for binary fits with covariates; inspect the diagnostic output.
 
+## Parental siblings
+
+A full sibling of a parent shares that parent's family of origin but does not
+transmit genes to the child. Adding one separates the parent's own
+contribution from background shared across the parental lineage:
+
+```r
+fit <- ravel_fit(dat, parental_sibs = "both")   # or "maternal" / "paternal"
+print_simple(fit)
+```
+
+Supply `PGS1_mat_sib`, `PGS2_mat_sib` (sibling of the mother) and/or
+`PGS1_pat_sib`, `PGS2_pat_sib` (sibling of the father), built with the same
+weights as the trio. Families without a sibling can keep missing values. The fit
+reports each sibling's coefficient (`beta_MS`, `beta_FS`) and the parent-specific
+contrasts `delta_M = bm - bMS` and `delta_F = bf - bFS`. The contrast is causal
+for the parent's genotype if the sibling has no effect on the child and lineage
+confounding is shared equally by the parent and the sibling. Parental siblings
+currently require `fit_constraints = "none"` and `pi = 0`; see
+[Methods](docs/methods.md#parental-siblings).
+
 ## Dataframe reports and the bundled example
 
 `ravel_dataframe_report()` prepares raw data, compares RAVEL with ordinary PGS

@@ -32,7 +32,12 @@ ravel_fit(
   pi = NULL,
   pi_se = NULL,
   core_pi_cov = NULL,
-  covariate_mapping_confirmed = FALSE
+  covariate_mapping_confirmed = FALSE,
+  parental_sibs = c("none", "maternal", "paternal", "both"),
+  col_pgs1_mat_sib = "PGS1_mat_sib",
+  col_pgs2_mat_sib = "PGS2_mat_sib",
+  col_pgs1_pat_sib = "PGS1_pat_sib",
+  col_pgs2_pat_sib = "PGS2_pat_sib"
 )
 }
 \arguments{
@@ -160,6 +165,26 @@ external-pi corrected intervals.}
 \item{col_pgs2_child}{Character. Column name for child's PGS2.}
 
 \item{col_outcome}{Character. Column name for the outcome variable.}
+
+\item{parental_sibs}{Character. Add full siblings of the parents:
+\code{"none"} (default), \code{"maternal"} (a sibling of the mother),
+\code{"paternal"} (a sibling of the father), or \code{"both"}. Each
+sibling contributes the same two scores, built with the same weights as
+the trio. The outcome is then also regressed on each sibling's visible
+liability. The sibling coefficient captures lineage background shared by
+the parent and their sibling, and \code{delta_M = bm - bMS} (or
+\code{delta_F = bf - bFS}) is the parent-specific coefficient. Its causal
+reading assumes the sibling has no effect on the child and that lineage
+confounding is shared equally by the parent and the sibling. Families
+without the sibling can be included with missing sibling scores (FIML for
+continuous outcomes). Currently requires \code{fit_constraints = "none"}
+and \code{pi = 0}.}
+
+\item{col_pgs1_mat_sib, col_pgs2_mat_sib}{Column names for the maternal
+sibling's PGS1 and PGS2.}
+
+\item{col_pgs1_pat_sib, col_pgs2_pat_sib}{Column names for the paternal
+sibling's PGS1 and PGS2.}
 }
 \value{
 A list with components (selected):
@@ -195,6 +220,12 @@ external-pi uncertainty and attributes containing the full transformed covarianc
 derivatives, variance contributions, and estimated-state uncertainty. The
 original \code{lavaan_inference} and \code{bootstrap} blocks remain conditional
 on pi; public print and table helpers select the pi-aware corrected inference.}
+\item{parental_sibs}{When \code{parental_sibs} is not \code{"none"}: the
+sibling coefficients (\code{bms}, \code{bfs}) and parent-specific
+contrasts (\code{delta_m}, \code{delta_f}) with a lavaan inference table,
+the sibling latent covariances, within-score residual covariances and
+correlations, reliabilities, determinacy, and the number of families
+with each sibling observed.}
 }
 }
 \description{

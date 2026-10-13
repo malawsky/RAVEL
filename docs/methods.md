@@ -258,6 +258,49 @@ pgs_ev$beta_pgs_expected   # expected standardized trio OLS on observed PGS
 pgs_ev$Sigma_pp            # expected observed-score covariance block
 ```
 
+## Parental siblings
+
+`parental_sibs` adds a full sibling of the mother (a_m) and/or the father (a_p).
+Each sibling has the same one-factor measurement model and shared-weight
+scores as the trio. In the free model (`fit_constraints = "none"`):
+
+- Seven new latent correlations are estimated: kappa (parent with own sibling),
+  eta_a (child with aunt/uncle), chi (parent with the spouse's sibling) and,
+  with both siblings, zeta (between the siblings).
+- Within each score version, residual covariances between each sibling and
+  every other family member are free. For outcrossed families with unassorted
+  GWAS noise, the expected residual correlations are 1/2 with the sibling's own
+  parent, 1/4 with the child and 0 with unrelated members.
+- The outcome model is
+  `Y = b_D G_c + b_M G_m + b_P G_p + b_MS G_am + b_FS G_ap + e`.
+  Writing the parent and sibling as a lineage mean B = (G_m + G_am)/2 and
+  deviation D = (G_m - G_am)/2 gives `delta_M = b_M - b_MS` as the coefficient
+  on D. The same applies on the paternal side.
+
+`delta_M` is the parent-specific coefficient. It is a causal effect of the
+mother's genotype, beyond transmission to the child, under three conditions:
+
+1. The sibling has no causal effect on the child (for example, through
+   co-rearing). Otherwise the contrast estimates `beta_M - beta_MS`.
+2. Lineage confounding acts through the grandparental generation, so it is
+   shared equally by the parent and the sibling. A confounder linear in the
+   grandparents' midparent liability satisfies this exactly under
+   assortment on total liability. Parent-specific influences, such as birth
+   order or the parent's own environment, are not removed.
+3. The mother's genotype can affect the child through her choice of partner,
+   for example through the father's non-genetic nurture. That pathway is part
+   of `delta_M`.
+
+Under assortment on total liability, the sibling covariances follow from the
+parents' variance state. With raw parental total variance V_T and visible
+variance V_G on the founder scale, kappa = 1 - 1/(2 V_G), chi = k rho_G and
+zeta = k^2 rho_G, where k = 1 - 1/(2 V_T). Because k uses the total liability,
+chi differs from rho_G kappa when pi > 0. Under assortative mating with hidden
+variation, the visible-scale contrasts are not simply attenuated, so
+total-liability inference needs a sibling-extended hidden correction. That
+correction is not yet available, and fits with parental siblings currently
+require `pi = 0`.
+
 ## Covariate adjustment and binary outcomes
 
 Covariates can be included jointly via `fixed_effects`. The SEM allows genetic

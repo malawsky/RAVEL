@@ -196,9 +196,83 @@
   out
 }
 
+#' Parental-sibling roles included in the model
+#'
+#' Role codes: "ms" is a full sibling of the mother, "fs" a full sibling of the
+#' father. Relative to the child these are avuncular relatives.
+#' @noRd
+.parental_sib_roles <- function(parental_sibs = c("none", "maternal", "paternal", "both")) {
+  parental_sibs <- match.arg(parental_sibs)
+  switch(parental_sibs, none = character(0), maternal = "ms", paternal = "fs",
+    both = c("ms", "fs"))
+}
+
+#' Internal names of the parental-sibling score columns
+#' @noRd
+.parental_sib_columns <- function(roles) {
+  cols <- list(ms = c("PGS1_mat_sib", "PGS2_mat_sib"), fs = c("PGS1_pat_sib", "PGS2_pat_sib"))
+  unlist(cols[roles], use.names = FALSE)
+}
+
+#' Build the parental-sibling extension of the SEM
+#'
+#' @details
+#' Each parental sibling has the same one-factor measurement model as the trio
+#' members. Its visible liability correlates freely with every other family
+#' member: \code{kap_*} with the sibling's own parent, \code{chi_*} with that
+#' parent's spouse, \code{eta_*} with the child, and \code{zeta} between the two
+#' parental siblings. Within each score version, residual covariances with all
+#' other family members are free, as for the trio. The outcome regression gains
+#' one coefficient per sibling, and the parent-specific contrasts
+#' \code{delta_m := bm - bms} and \code{delta_f := bf - bfs} are defined.
+#' @noRd
+.build_parental_sibs <- function(parental_sibs = "none") {
+  roles <- .parental_sib_roles(parental_sibs)
+  if (!length(roles)) return("")
+
+  spec <- list(
+    ms = list(lv = "Gms", cols = c("PGS1_mat_sib", "PGS2_mat_sib"), own = "m",
+      spouse = "f", label = "maternal sibling (full sibling of the mother)"),
+    fs = list(lv = "Gfs", cols = c("PGS1_pat_sib", "PGS2_pat_sib"), own = "f",
+      spouse = "m", label = "paternal sibling (full sibling of the father)")
+  )
+  trio_lv <- c(m = "Gm", f = "Gf", c = "Gc")
+  trio_col <- c(m = "mother", f = "father", c = "child")
+
+  lines <- character(0)
+  for (r in roles) {
+    s <- spec[[r]]
+    lines <- c(lines,
+      "",
+      sprintf("# Parental sibling: %s", s$label),
+      sprintf("%s =~ l%s1*%s + l%s2*%s", s$lv, r, s$cols[1], r, s$cols[2]),
+      sprintf("%s ~~ th1_%s*%s", s$cols[1], r, s$cols[1]),
+      sprintf("%s ~~ th2_%s*%s", s$cols[2], r, s$cols[2]),
+      sprintf("%s ~~ kap_%s*%s", s$lv, s$own, trio_lv[[s$own]]),
+      sprintf("%s ~~ chi_%s*%s", s$lv, r, trio_lv[[s$spouse]]),
+      sprintf("%s ~~ eta_%s*Gc", s$lv, r))
+    for (j in 1:2) for (p in c(s$own, s$spouse, "c")) {
+      lines <- c(lines, sprintf("%s ~~ e%d_%s_%s*PGS%d_%s",
+        s$cols[j], j, p, r, j, trio_col[[p]]))
+    }
+  }
+  if (length(roles) == 2L) {
+    lines <- c(lines, "", "# Covariances between the two parental siblings",
+      "Gms ~~ zeta*Gfs",
+      "PGS1_mat_sib ~~ e1_ms_fs*PGS1_pat_sib",
+      "PGS2_mat_sib ~~ e2_ms_fs*PGS2_pat_sib")
+  }
+
+  lines <- c(lines, "", "# Parental-sibling (lineage) coefficients and parent-specific contrasts")
+  if ("ms" %in% roles) lines <- c(lines, "Y ~ bms*Gms", "delta_m := bm - bms")
+  if ("fs" %in% roles) lines <- c(lines, "Y ~ bfs*Gfs", "delta_f := bf - bfs")
+  paste0("    ", lines, collapse = "\n")
+}
+
 #' Build outcome regression
 #' @noRd
-.build_outcome <- function(fix_parent_paths = FALSE, fixed_effects = NULL) {
+.build_outcome <- function(fix_parent_paths = FALSE, fixed_effects = NULL,
+                           latents = c("Gc", "Gm", "Gf")) {
 
   if (fix_parent_paths) {
     y_syntax <- "
@@ -220,7 +294,7 @@
     fe_lines <- paste(sprintf("Y ~ c_%d*%s", seq_along(fixed_effects), fixed_effects),
                       collapse = "\n    ")
     y_syntax <- paste0(y_syntax, "\n    # Fixed effects (covariates)\n    ", fe_lines)
-    for (g in c("Gc", "Gm", "Gf")) {
+    for (g in latents) {
       y_syntax <- paste(y_syntax, paste(g, "~~", paste(fixed_effects, collapse = " + ")),
                         sep = "\n    ")
     }
@@ -241,7 +315,9 @@
                          fixed_effects = NULL,
                          crossperson = "free",
                          fixed_crossperson = NULL,
-                         fixed_crossperson_corr = NULL) {
+                         fixed_crossperson_corr = NULL,
+                         parental_sibs = "none") {
+  sib_latents <- c(ms = "Gms", fs = "Gfs")[.parental_sib_roles(parental_sibs)]
   paste0(
     "# =============================================================================",
     "\n# RAVEL Structural Equation Model",
@@ -253,7 +329,9 @@
       fixed_crossperson = fixed_crossperson,
       fixed_crossperson_corr = fixed_crossperson_corr
     ),
-    "\n", .build_outcome(fix_parent_paths, fixed_effects)
+    "\n", .build_outcome(fix_parent_paths, fixed_effects,
+      latents = c("Gc", "Gm", "Gf", unname(sib_latents))),
+    if (length(sib_latents)) paste0("\n", .build_parental_sibs(parental_sibs)) else ""
   )
 }
 
@@ -1151,6 +1229,116 @@
   out
 }
 
+#' Labels and reporting names of the parental-sibling coefficients
+#' @noRd
+.parental_sib_coef_map <- function(roles) {
+  map <- c(bms = "beta_MS", delta_m = "delta_M", bfs = "beta_FS", delta_f = "delta_F")
+  keep <- c(if ("ms" %in% roles) c("bms", "delta_m"), if ("fs" %in% roles) c("bfs", "delta_f"))
+  map[keep]
+}
+
+#' Point estimates for the parental-sibling extension
+#' @noRd
+.parental_sib_estimates <- function(PE, roles) {
+  if (!length(roles)) return(NULL)
+  grab <- function(lab) {
+    x <- PE[!is.na(PE$label) & PE$label == lab, "est"]
+    if (length(x) == 0) NA_real_ else x[1]
+  }
+  coef_labels <- names(.parental_sib_coef_map(roles))
+  coefficients <- vapply(coef_labels, grab, numeric(1))
+
+  own <- c(ms = "m", fs = "f")
+  cov_labels <- c(
+    if ("ms" %in% roles) c("kap_m", "chi_ms", "eta_ms"),
+    if ("fs" %in% roles) c("kap_f", "chi_fs", "eta_fs"),
+    if (length(roles) == 2L) "zeta")
+  latent_cov <- vapply(cov_labels, grab, numeric(1))
+
+  theta_label <- function(j, p) paste0("th", j, "_", p)
+  pairs <- list()
+  for (r in roles) for (p in c(own[[r]], setdiff(c("m", "f"), own[[r]]), "c"))
+    pairs[[length(pairs) + 1L]] <- c(p, r)
+  if (length(roles) == 2L) pairs[[length(pairs) + 1L]] <- c("ms", "fs")
+  resid_cov <- resid_corr <- numeric(0)
+  for (j in 1:2) for (pr in pairs) {
+    lab <- sprintf("e%d_%s_%s", j, pr[1], pr[2])
+    est <- grab(lab)
+    resid_cov[[lab]] <- est
+    resid_corr[[lab]] <- est / sqrt(grab(theta_label(j, pr[1])) * grab(theta_label(j, pr[2])))
+  }
+
+  role_names <- c(ms = "mat_sib", fs = "pat_sib")
+  reliability <- do.call(rbind, lapply(roles, function(r) data.frame(
+    role = role_names[[r]], PGS = c("PGS1", "PGS2"),
+    reliability = vapply(1:2, function(j) {
+      l <- grab(sprintf("l%s%d", r, j))
+      l^2 / (l^2 + grab(theta_label(j, r)))
+    }, numeric(1)),
+    stringsAsFactors = FALSE)))
+
+  determinacy <- vapply(roles, function(r) {
+    lam <- c(grab(sprintf("l%s1", r)), grab(sprintf("l%s2", r)))
+    th <- c(grab(theta_label(1, r)), grab(theta_label(2, r)))
+    if (anyNA(c(lam, th))) return(NA_real_)
+    Sigma <- tcrossprod(lam) + diag(th)
+    det2 <- as.numeric(t(lam) %*% .safe_solve(Sigma, lam))
+    if (is.finite(det2) && det2 >= 0) sqrt(det2) else NA_real_
+  }, numeric(1))
+  names(determinacy) <- role_names[roles]
+
+  list(coefficients = coefficients, latent_cov = latent_cov,
+    resid_cov = resid_cov, resid_corr = resid_corr,
+    reliability = reliability, determinacy = determinacy)
+}
+
+#' lavaan (delta-method) inference for the parental-sibling coefficients
+#' @noRd
+.parental_sib_lavaan_table <- function(fit, roles, ci_level) {
+  map <- .parental_sib_coef_map(roles)
+  PE <- tryCatch(lavaan::parameterEstimates(fit, level = ci_level),
+    error = function(e) NULL)
+  if (is.null(PE)) return(NULL)
+  rows <- lapply(names(map), function(lab) {
+    i <- which(!is.na(PE$label) & PE$label == lab & PE$op %in% c("~", ":="))[1]
+    data.frame(parameter = map[[lab]], label = lab,
+      estimate = PE$est[i], se = PE$se[i], ci_low = PE$ci.lower[i], ci_high = PE$ci.upper[i],
+      stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, rows)
+  out$p_value <- .uncertainty_p(out$estimate, out$se)
+  out$uncertainty_source <- "lavaan/delta-method"
+  rownames(out) <- NULL
+  out
+}
+
+#' Parental-sibling inference table for the requested uncertainty source
+#' @noRd
+.parental_sib_table <- function(result, unc) {
+  sib <- result$parental_sibs
+  if (is.null(sib)) return(NULL)
+  if (!is.null(unc) && identical(unc$source, "bootstrap") && !is.null(result$bootstrap$parental_sibs)) {
+    block <- result$bootstrap$parental_sibs
+    map <- .parental_sib_coef_map(sib$roles)
+    est <- sib$coefficients[names(map)]
+    se <- block$se[names(map)]
+    out <- data.frame(parameter = unname(map), label = names(map), estimate = unname(est),
+      se = unname(se), ci_low = unname(block$ci["lower", names(map)]),
+      ci_high = unname(block$ci["upper", names(map)]), stringsAsFactors = FALSE)
+    out$p_value <- .uncertainty_p(out$estimate, out$se)
+    out$uncertainty_source <- sprintf("bootstrap (%d reps)", result$bootstrap$n_successful)
+    rownames(out) <- NULL
+    return(out)
+  }
+  if (is.null(unc)) {
+    out <- sib$lavaan_table
+    out[c("se", "ci_low", "ci_high", "p_value")] <- NA_real_
+    out$uncertainty_source <- "none"
+    return(out)
+  }
+  sib$lavaan_table
+}
+
 # =============================================================================
 # MAIN FITTING FUNCTION
 # =============================================================================
@@ -1285,6 +1473,24 @@
 #' @param covariate_mapping_confirmed Logical. Set TRUE with \code{pi_se} and
 #'   jointly fitted covariates only after confirming the visible-to-total
 #'   correction remains valid conditional on those covariates.
+
+#' @param parental_sibs Character. Add full siblings of the parents:
+#'   \code{"none"} (default), \code{"maternal"} (a sibling of the mother),
+#'   \code{"paternal"} (a sibling of the father), or \code{"both"}. Each
+#'   sibling contributes the same two scores, built with the same weights as
+#'   the trio. The outcome is then also regressed on each sibling's visible
+#'   liability. The sibling coefficient captures lineage background shared by
+#'   the parent and their sibling, and \code{delta_M = bm - bMS} (or
+#'   \code{delta_F = bf - bFS}) is the parent-specific coefficient. Its causal
+#'   reading assumes the sibling has no effect on the child and that lineage
+#'   confounding is shared equally by the parent and the sibling. Families
+#'   without the sibling can be included with missing sibling scores (FIML for
+#'   continuous outcomes). Currently requires \code{fit_constraints = "none"}
+#'   and \code{pi = 0}.
+#' @param col_pgs1_mat_sib,col_pgs2_mat_sib Column names for the maternal
+#'   sibling's PGS1 and PGS2.
+#' @param col_pgs1_pat_sib,col_pgs2_pat_sib Column names for the paternal
+#'   sibling's PGS1 and PGS2.
 #'
 #' @return A list with components (selected):
 #'   \describe{
@@ -1318,6 +1524,12 @@
 #'       with full propagation metadata. Print and data-frame methods use its
 #'       corrected uncertainty automatically. Core covariance and the stored
 #'       lavaan/bootstrap summaries remain conditional on pi.}
+#'     \item{parental_sibs}{When \code{parental_sibs} is not \code{"none"}: the
+#'       sibling coefficients (\code{bms}, \code{bfs}) and parent-specific
+#'       contrasts (\code{delta_m}, \code{delta_f}) with a lavaan inference table,
+#'       the sibling latent covariances, within-score residual covariances and
+#'       correlations, reliabilities, determinacy, and the number of families
+#'       with each sibling observed.}
 #'   }
 #'
 #' @export
@@ -1348,7 +1560,12 @@ ravel_fit <- function(dat,
                       col_outcome     = "Y",
                       fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
                       pi = NULL, pi_se = NULL, core_pi_cov = NULL,
-                      covariate_mapping_confirmed = FALSE) {
+                      covariate_mapping_confirmed = FALSE,
+                      parental_sibs = c("none", "maternal", "paternal", "both"),
+                      col_pgs1_mat_sib = "PGS1_mat_sib",
+                      col_pgs2_mat_sib = "PGS2_mat_sib",
+                      col_pgs1_pat_sib = "PGS1_pat_sib",
+                      col_pgs2_pat_sib = "PGS2_pat_sib") {
 
   # Resolve the preferred pi name before constructing any fitting constraints.
   h_supplied <- !missing(h)
@@ -1408,6 +1625,18 @@ ravel_fit <- function(dat,
 
   stopifnot(h >= 0 && h < 1)
 
+  parental_sibs <- match.arg(parental_sibs)
+  sib_roles <- .parental_sib_roles(parental_sibs)
+  if (length(sib_roles)) {
+    if (fit_constraints != "none")
+      stop("parental_sibs currently requires fit_constraints = 'none'; constrained modes are not yet available with parental siblings.")
+    if (h != 0 || !is.null(pi_se))
+      stop("The total-liability correction is not yet available with parental siblings; ",
+           "fit with pi = 0 (the default) for visible-scale estimates.")
+    if (isTRUE(fix_parent_paths))
+      stop("fix_parent_paths cannot be combined with parental_sibs.")
+  }
+
   if (!is.null(seed)) set.seed(seed)
 
   # Some R installations report NA from parallel::detectCores(), which breaks
@@ -1427,6 +1656,13 @@ ravel_fit <- function(dat,
     PGS2_child  = col_pgs2_child,
     Y           = col_outcome
   )
+  sib_col_map <- c(
+    PGS1_mat_sib = col_pgs1_mat_sib,
+    PGS2_mat_sib = col_pgs2_mat_sib,
+    PGS1_pat_sib = col_pgs1_pat_sib,
+    PGS2_pat_sib = col_pgs2_pat_sib
+  )
+  col_map <- c(col_map, sib_col_map[.parental_sib_columns(sib_roles)])
 
   # Check that user-specified columns exist
   missing_user <- col_map[!col_map %in% names(dat)]
@@ -1444,6 +1680,24 @@ ravel_fit <- function(dat,
         dat[[internal_name]] <- dat[[user_name]]
       }
     }
+  }
+
+  # Parental-sibling scores may be missing for families without that sibling.
+  n_with_sib <- NULL
+  if (length(sib_roles)) {
+    sib_cols <- .parental_sib_columns(sib_roles)
+    if (!all(vapply(dat[sib_cols], is.numeric, logical(1))))
+      stop("Parental-sibling score columns must be numeric.")
+    role_cols <- list(mat_sib = c("PGS1_mat_sib", "PGS2_mat_sib"),
+                      pat_sib = c("PGS1_pat_sib", "PGS2_pat_sib"))[c(ms = "mat_sib", fs = "pat_sib")[sib_roles]]
+    n_with_sib <- vapply(role_cols, function(cols)
+      as.numeric(sum(stats::complete.cases(dat[cols]))), numeric(1))
+    if (any(n_with_sib < 50))
+      stop("Each requested parental sibling needs both scores observed in at least 50 families (observed: ",
+           paste(sprintf("%s = %d", names(n_with_sib), n_with_sib), collapse = ", "), ").")
+    if (outcome == "binary_liability" && any(n_with_sib < nrow(dat)))
+      warning("Binary outcomes are fitted with listwise deletion, so families without the requested ",
+              "parental sibling(s) are dropped.")
   }
 
   # Validate fixed effects
@@ -1466,7 +1720,8 @@ ravel_fit <- function(dat,
     fixed_effects,
     crossperson,
     fixed_crossperson = fixed_crossperson,
-    fixed_crossperson_corr = fixed_crossperson_corr
+    fixed_crossperson_corr = fixed_crossperson_corr,
+    parental_sibs = parental_sibs
   )
 
   if (fit_constraints != "none") {
@@ -1700,7 +1955,8 @@ ravel_fit <- function(dat,
       s2_genetic_total_assumed = s2_gen_total_assumed,
       R2_total_assumed = R2_total_assumed,
 
-      hidden_correction_details = scale_estimates$hidden_correction_details
+      hidden_correction_details = scale_estimates$hidden_correction_details,
+      parental_sibs = .parental_sib_estimates(PE, sib_roles)
     )
   }
 
@@ -1758,6 +2014,8 @@ ravel_fit <- function(dat,
     boot_std_bD <- boot_std_bM <- boot_std_bF <- rep(NA_real_, n_boot)
     boot_core <- matrix(NA_real_, n_boot, 6L,
       dimnames = list(NULL, c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")))
+    sib_labels <- names(.parental_sib_coef_map(sib_roles))
+    boot_sib <- matrix(NA_real_, n_boot, length(sib_labels), dimnames = list(NULL, sib_labels))
     n_ok <- 0
 
     for (b in seq_len(n_boot)) {
@@ -1782,6 +2040,7 @@ ravel_fit <- function(dat,
       boot_vis_bF[b] <- ext_b$beta_vis["bf"]
       boot_vis_rho[b] <- ext_b$rho_vis
       boot_core[b, ] <- c(ext_b$beta_vis, ext_b$latent_cov_vis)[colnames(boot_core)]
+      if (length(sib_labels)) boot_sib[b, ] <- ext_b$parental_sibs$coefficients[sib_labels]
 
       boot_raw_bD[b] <- ext_b$beta_total_assumed["bD"]
       boot_raw_bM[b] <- ext_b$beta_total_assumed["bm"]
@@ -1834,6 +2093,8 @@ ravel_fit <- function(dat,
         visible = visible_block,
         total_raw = total_raw_block,
         total_std = total_std_block,
+        parental_sibs = if (length(sib_labels))
+          .summarize_sample_matrix(boot_sib, ci_level = ci_level) else NULL,
         visible_bD_se = visible_block$se["bD"],
         visible_bD_ci = visible_block$ci[, "bD"],
         visible_bM_se = visible_block$se["bm"],
@@ -1905,6 +2166,16 @@ ravel_fit <- function(dat,
     father = cor(dat$PGS1_father, dat$PGS2_father, use = "pairwise.complete.obs"),
     child  = cor(dat$PGS1_child,  dat$PGS2_child,  use = "pairwise.complete.obs")
   )
+
+  sib_estimates <- estimates$parental_sibs
+  if (!is.null(sib_estimates)) {
+    reliability <- rbind(reliability, sib_estimates$reliability)
+    determinacy <- c(determinacy, sib_estimates$determinacy)
+    sib_name <- c(ms = "mat_sib", fs = "pat_sib")[sib_roles]
+    within_person_corr <- c(within_person_corr, setNames(vapply(sib_name, function(nm)
+      cor(dat[[paste0("PGS1_", nm)]], dat[[paste0("PGS2_", nm)]], use = "pairwise.complete.obs"),
+      numeric(1)), sib_name))
+  }
 
   vanilla_regression <- .fit_vanilla_pgs_regression(
     dat = dat,
@@ -2002,7 +2273,13 @@ ravel_fit <- function(dat,
     am_correction = am_correction,
 
     # Internals for transparency
-    hidden_correction_details = estimates$hidden_correction_details
+    hidden_correction_details = estimates$hidden_correction_details,
+
+    # Parental-sibling extension (NULL when parental_sibs = "none")
+    parental_sibs = if (is.null(sib_estimates)) NULL else c(
+      list(mode = parental_sibs, roles = sib_roles, n_with_sib = n_with_sib),
+      sib_estimates,
+      list(lavaan_table = .parental_sib_lavaan_table(fit, sib_roles, ci_level)))
   ), class = c("ravel_results", "list"))
   if (!is.null(pi)) result$pi <- h
   if (!is.null(pi_se)) {
@@ -2339,6 +2616,16 @@ ravel_to_dataframe <- function(result,
     unc$visible, "visible", "rho_visible", source_label, p_value_method
   )
 
+  sib_tbl <- .parental_sib_table(result, unc)
+  if (!is.null(sib_tbl)) {
+    out <- rbind(out, data.frame(
+      regression = "RAVEL", family = NA_character_, scale = "visible",
+      parameter = sib_tbl$parameter, estimate = sib_tbl$estimate, se = sib_tbl$se,
+      ci_low = sib_tbl$ci_low, ci_high = sib_tbl$ci_high, p_value = sib_tbl$p_value,
+      uncertainty_source = source_label, p_value_method = p_value_method,
+      stringsAsFactors = FALSE))
+  }
+
   if (result$h > 0) {
     out <- rbind(
       out,
@@ -2381,7 +2668,8 @@ ravel_to_dataframe <- function(result,
 
   attr(out, "settings") <- list(fit_constraints = result$constraint_spec$mode %||% "none",
     am_correction = result$am_correction, am_n_generations = result$am_n_generations,
-    h = result$h, ci_level = unc$ci_level, outcome_type = result$outcome)
+    h = result$h, ci_level = unc$ci_level, outcome_type = result$outcome,
+    parental_sibs = result$parental_sibs$mode %||% "none")
   attr(out, "constraint_spec") <- result$constraint_spec
   attr(out, "estimated_state") <- result$hidden_correction_details$estimated_state
   attr(out, "ci_level") <- unc$ci_level
@@ -2435,6 +2723,38 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
   }
 
   out
+}
+
+#' Print the parental-sibling coefficients (and, in full mode, their structure)
+#' @noRd
+.print_parental_sibs <- function(result, unc, digits, compact = TRUE) {
+  sib <- result$parental_sibs
+  if (is.null(sib)) return(invisible(NULL))
+  tbl <- .parental_sib_table(result, unc)
+  desc <- c(beta_MS = "mother's sibling (lineage)", delta_M = "mother-specific (bm - bMS)",
+            beta_FS = "father's sibling (lineage)", delta_F = "father-specific (bf - bFS)")
+  cat(if (compact) "\n" else "", "Parental siblings (visible scale; families with sibling: ",
+      paste(sprintf("%s = %d", names(sib$n_with_sib), as.integer(sib$n_with_sib)), collapse = ", "),
+      "):\n", sep = "")
+  for (i in seq_len(nrow(tbl))) {
+    ci <- if (is.na(tbl$se[i])) "" else
+      sprintf(" [%.*f, %.*f]", digits, tbl$ci_low[i], digits, tbl$ci_high[i])
+    cat(sprintf("  %-8s %.*f%s  %s\n", tbl$parameter[i], digits, tbl$estimate[i], ci,
+                desc[[tbl$parameter[i]]]))
+  }
+  if (compact) return(invisible(NULL))
+  labels <- c(kap_m = "kappa_m (Gm, G_mat_sib)", chi_ms = "chi (Gf, G_mat_sib)",
+              eta_ms = "eta (Gc, G_mat_sib)", kap_f = "kappa_f (Gf, G_pat_sib)",
+              chi_fs = "chi (Gm, G_pat_sib)", eta_fs = "eta (Gc, G_pat_sib)",
+              zeta = "zeta (G_mat_sib, G_pat_sib)")
+  cat("  Latent covariances (visible):\n")
+  for (nm in names(sib$latent_cov))
+    cat(sprintf("    %-28s %.*f\n", labels[[nm]], digits, sib$latent_cov[[nm]]))
+  cat("  Within-score residual correlations (benchmarks: own parent 1/2, child 1/4, others 0):\n")
+  for (nm in names(sib$resid_corr))
+    cat(sprintf("    %-10s %.*f\n", nm, digits, sib$resid_corr[[nm]]))
+  cat("\n")
+  invisible(NULL)
 }
 
 #' Print RAVEL Results
@@ -2493,7 +2813,11 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat("Effect estimates (visible latent genetics):\n")
   cat(sprintf("  bD (direct):   %.*f\n", digits, result$beta_vis["bD"]))
   cat(sprintf("  bm (maternal): %.*f\n", digits, result$beta_vis["bm"]))
-  cat(sprintf("  bf (paternal): %.*f\n\n", digits, result$beta_vis["bf"]))
+  cat(sprintf("  bf (paternal): %.*f\n", digits, result$beta_vis["bf"]))
+  if (!is.null(result$parental_sibs))
+    cat("  (bm and bf are conditional on the parental siblings' liabilities)\n")
+  cat("\n")
+  .print_parental_sibs(result, unc, digits, compact = FALSE)
 
   if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Assumption-based post-estimation corrections:\n")
@@ -2640,7 +2964,10 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
 cat("Within-person Cor(PGS1,PGS2):\n")
   cat(sprintf("  mother: %.*f\n", digits, result$within_person_corr["mother"]))
   cat(sprintf("  father: %.*f\n", digits, result$within_person_corr["father"]))
-  cat(sprintf("  child:  %.*f\n\n", digits, result$within_person_corr["child"]))
+  cat(sprintf("  child:  %.*f\n", digits, result$within_person_corr["child"]))
+  for (nm in setdiff(names(result$within_person_corr), c("mother", "father", "child")))
+    cat(sprintf("  %s: %.*f\n", nm, digits, result$within_person_corr[[nm]]))
+  cat("\n")
 
   # Reliability and determinacy
   cat("PGS indicator reliability (Var explained by latent factor):\n")
@@ -2652,6 +2979,8 @@ cat("Within-person Cor(PGS1,PGS2):\n")
   cat(sprintf("  mother: %.*f\n", digits, result$determinacy["mother"]))
   cat(sprintf("  father: %.*f\n", digits, result$determinacy["father"]))
   cat(sprintf("  child:  %.*f\n", digits, result$determinacy["child"]))
+  for (nm in setdiff(names(result$determinacy), c("mother", "father", "child")))
+    cat(sprintf("  %s: %.*f\n", nm, digits, result$determinacy[[nm]]))
 
   # Gold standard comparison (optional)
   if (!is.null(gold)) {
@@ -2761,6 +3090,7 @@ print_simple <- function(result, digits = 4,
   cat(sprintf("  beta_F:  %s\n", fmt_ci(result$beta_vis["bf"], .uncertainty_ci(unc, "visible", "bf"))))
   cat(sprintf("  rho_MF:  %s\n", fmt_ci(result$latent_cov_vis["rhoMF"], .uncertainty_ci(unc, "visible", "rhoMF"))))
   cat(sprintf("  R2:      %s\n", fmt_est(result$R2_model)))
+  .print_parental_sibs(result, unc, digits, compact = TRUE)
 
   # Hidden-corrected
   if (has_h) {

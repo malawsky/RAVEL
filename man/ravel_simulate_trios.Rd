@@ -22,7 +22,10 @@ ravel_simulate_trios(
   pop_effect_on_Y = 0,
   seed = NULL,
   return_true_G = TRUE,
-  return_visible_genotypes = FALSE
+  return_visible_genotypes = FALSE,
+  parental_sibs = c("none", "maternal", "paternal", "both"),
+  lineage_effect_mat = 0,
+  lineage_effect_pat = 0
 )
 }
 \arguments{
@@ -91,6 +94,20 @@ to population 1 (reference = 0).
 child, mother, and father genotype matrices as an attribute named
 \code{"visible_genotypes"}. This is primarily useful for downstream GRM-
 based analyses such as genetic relationship matrix comparisons.}
+
+\item{parental_sibs}{Character. Also simulate a full sibling of the mother
+(\code{"maternal"}), of the father (\code{"paternal"}), or both. Parents
+and their siblings are then drawn as two children of a randomly mating
+grandparent generation, so parents keep the founder distribution and the
+one-generation assortment history is unchanged. Siblings receive PGS1 and
+PGS2 built with the same noisy weights as the trio.}
+
+\item{lineage_effect_mat, lineage_effect_pat}{Numeric. Effect on Y of the
+maternal (paternal) grandparents' midparent total liability, per SD. This is
+family-of-origin confounding shared by a parent and their sibling; use it
+to check the parent-specific contrasts estimated with
+\code{ravel_fit(..., parental_sibs = ...)}. Nonzero values also draw parents
+from a grandparent generation.}
 }
 \value{
 A data.frame with columns:
@@ -105,6 +122,10 @@ A data.frame with columns:
 \eqn{T_m^*}, \eqn{T_p^*}, and \eqn{T_c^*} (if return_true_G = TRUE)
 \item G_mother_vis, G_father_vis, G_child_vis: Role-standardized visible
 liabilities used for oracle comparisons when present
+\item PGS1_mat_sib, PGS2_mat_sib, PGS1_pat_sib, PGS2_pat_sib: Parental-sibling
+scores when requested; G_mat_sib / G_pat_sib (and \code{_vis} versions)
+hold their liabilities, and T_mat_lineage / T_pat_lineage the
+grandparents' midparent raw total liabilities, when return_true_G = TRUE
 }
 
 Attributes include simulation parameters for reference.
