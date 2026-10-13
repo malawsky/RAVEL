@@ -92,6 +92,7 @@
       settings = list(uncertainty = if (is.null(object$bootstrap)) "lavaan" else "bootstrap",
         requires_covariate_mapping_review = length(object$fixed_effects) > 0L,
         residual_model = object$crossperson_structure,
+        parental_sibs = object$parental_sibs$mode %||% "none",
         constraint_spec = object$constraint_spec),
       outcome = list(name = object$outcome_variable, type = object$outcome,
         scale = if (identical(object$outcome, "binary_liability")) "SEM_probit_liability" else "input_phenotype_units"),
@@ -106,6 +107,8 @@
         !identical(object$diagnostics$estimated_state_identified, TRUE))
       stop("Estimated-state packets require a successful full-fit identification check; regenerate the packet from a validated fit")
     packet <- object
+    sib_roles <- .parental_sib_roles(packet$settings$parental_sibs %||% "none")
+    labels <- c(.report_core_labels, .sib_core_labels(sib_roles))
   }
   if (isTRUE(packet$settings$requires_covariate_mapping_review) && !covariate_mapping_confirmed)
     stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
@@ -367,6 +370,17 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
 # Build display blocks without altering the fixed-pi covariance used for fitting,
 # bootstrap packets, sensitivity refits, or subsequent external-pi corrections.
 .ravel_pi_merge_uncertainty <- function(result, conditional, source) {
+  if (!is.null(result$pi_correction_error)) {
+    # A failed requested external-pi correction must not fall back to fixed-pi
+    # inference. The visible model's uncertainty remains available.
+    for (name in c("total_std", "total_raw", "sib_total_std", "sib_total_raw")) {
+      if (!is.null(conditional[[name]])) for (field in c("se", "ci", "cov"))
+        if (!is.null(conditional[[name]][[field]])) conditional[[name]][[field]][] <- NA_real_
+    }
+    conditional["pi_correction"] <- list(NULL)
+    conditional$pi_correction_error <- result$pi_correction_error
+    return(conditional)
+  }
   corrected <- result$pi_correction
   if (is.null(corrected)) return(conditional)
   meta <- attr(corrected, "pi_uncertainty")

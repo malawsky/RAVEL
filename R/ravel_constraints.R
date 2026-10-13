@@ -189,7 +189,7 @@
 #' @noRd
 .ravel_prepare_constraints <- function(mode, h, am_correction, n_generations,
                                       correction_missing, crossperson,
-                                      fixed_cov, fixed_corr) {
+                                      fixed_cov, fixed_corr, sib_roles = character(0)) {
   if (mode == "none") return(list(mode=mode, am_correction=am_correction,
     crossperson=crossperson, fixed_cov=fixed_cov, fixed_corr=fixed_corr))
   if (!is.numeric(h) || length(h) != 1L || !is.finite(h) || h < 0 || h >= 1)
@@ -204,7 +204,9 @@
   if (crossperson != "free")
     stop("Constrained fitting requires crossperson = 'free'; its residual correlations are fixed internally.")
   intended_cov <- c(e1_mf=0, e2_mf=0)
-  intended_corr <- c(e1_mc=.5, e1_fc=.5, e2_mc=.5, e2_fc=.5)
+  sibling_corr <- .parental_sib_residual_benchmarks(sib_roles)
+  intended_cov <- c(intended_cov, sibling_corr[sibling_corr == 0])
+  intended_corr <- c(e1_mc=.5, e1_fc=.5, e2_mc=.5, e2_fc=.5, sibling_corr[sibling_corr != 0])
   cov_used <- fixed_cov[!is.na(fixed_cov)]
   corr_used <- fixed_corr[!is.na(fixed_corr)]
   # Allow matching explicit settings, but never silently override a conflicting
@@ -213,10 +215,10 @@
       any(cov_used != intended_cov[names(cov_used)]) ||
       any(!names(corr_used) %in% c(names(intended_corr), names(intended_cov))) ||
       any(corr_used != c(intended_corr,intended_cov)[names(corr_used)]))
-    stop("fixed_crossperson/fixed_crossperson_corr conflict with constrained fitting (spouse 0; parent-child correlation 0.5).")
+    stop("fixed_crossperson/fixed_crossperson_corr conflict with constrained fitting (spouse 0; parent-child 0.5; parent-sibling 0.5; child-sibling 0.25; opposite-lineage sibling pairs 0).")
   list(mode=mode, am_correction=mode, crossperson="free",
-    fixed_cov=.normalize_fixed_crossperson("free", intended_cov),
-    fixed_corr=.normalize_fixed_crossperson("free", intended_corr))
+    fixed_cov=.normalize_fixed_crossperson("free", intended_cov, sib_roles = sib_roles),
+    fixed_corr=.normalize_fixed_crossperson("free", intended_corr, sib_roles = sib_roles))
 }
 
 #' Total derivative of the constrained visible fit with respect to external pi

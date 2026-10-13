@@ -50,10 +50,15 @@ ravel_correct_grid <- function(out, hidden_fraction, n_generations = 15L,
         stop("For multiple residual models, supply core_pi_sensitivity as a named list")
       sensitivities[[1L]] <- core_pi_sensitivity
     }
-    for (s in sensitivities) if (!is.null(s) &&
-        (!is.numeric(s) || is.complex(s) || length(s) != 6L || any(!is.finite(s)) ||
-         is.null(names(s)) || anyDuplicated(names(s)) || !setequal(names(s), .report_core_labels)))
-      stop("Each core_pi_sensitivity must be a finite vector named for all six core parameters")
+    for (model in names(sensitivities)) {
+      s <- sensitivities[[model]]
+      labels <- .report_packet_labels(packets[[model]])
+      if (!is.null(s) && (!is.numeric(s) || is.complex(s) || any(!is.finite(s)) ||
+          is.null(names(s)) || anyDuplicated(names(s)) || !setequal(names(s), labels)))
+        stop(if (length(labels) == 6L)
+          "Each core_pi_sensitivity must be a finite vector named for all six core parameters" else
+          "Each core_pi_sensitivity must be a finite vector named for all core parameters in its packet")
+    }
   }
   usable <- packets[!vapply(packets, is.null, logical(1))]
   if (is.null(ci_level)) {
@@ -144,10 +149,10 @@ ravel_correct_grid <- function(out, hidden_fraction, n_generations = 15L,
           })
       if (is.null(result)) {
         if (is.null(packet)) error <- "No usable original SEM fit for this residual model"
-        result <- data.frame(scale = rep(scales, each = 4L),
-          parameter = unlist(lapply(scales, function(scale)
-            c("beta_D", "beta_M", "beta_P", if (scale == "corrected_std") "rho_corrected" else "cov_corrected"))),
-          stringsAsFactors = FALSE)
+        roles <- .parental_sib_roles(packet$settings$parental_sibs %||% out$settings$parental_sibs %||% "none")
+        parameters <- lapply(scales, function(scale) .report_parameters(roles, scale))
+        result <- data.frame(scale = rep(scales, lengths(parameters)),
+          parameter = unlist(parameters, use.names = FALSE), stringsAsFactors = FALSE)
         for (column in values) result[[column]] <- NA_real_
         result$inference <- "unavailable"
         result$n_boot_success <- NA_integer_

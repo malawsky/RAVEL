@@ -13,7 +13,9 @@ ravel_plot_report(out, scale = NULL)
 \item{...}{Reserved for S3 compatibility.}
 }
 \description{Constructs a diagnostic comparison of offspring, maternal and
-paternal coefficients with the selected confidence intervals. Print to display.}
+paternal coefficients with the selected confidence intervals. When present,
+sibling coefficients and parent-specific contrasts receive additional panels.
+Print to display.}
 \details{PGS regressions use own-role score SDs; visible RAVEL uses standardized
 latent factors. Corrected tables use either current-role total-liability SDs or
 founder-scale raw total liabilities, selected one scale at a time. Scenario

@@ -264,9 +264,10 @@ pgs_ev$Sigma_pp            # expected observed-score covariance block
 Each sibling has the same one-factor measurement model and shared-weight
 scores as the trio. In the free model (`fit_constraints = "none"`):
 
-- Seven new latent correlations are estimated: kappa (parent with own sibling),
-  eta_a (child with aunt/uncle), chi (parent with the spouse's sibling) and,
-  with both siblings, zeta (between the siblings).
+- Each sibling adds three latent correlations: kappa (parent with own sibling),
+  eta_a (child with aunt/uncle) and chi (parent with the spouse's sibling).
+  With both siblings, zeta (between the siblings) is also estimated: seven
+  additional correlations in total.
 - Within each score version, residual covariances between each sibling and
   every other family member are free. For outcrossed families with unassorted
   GWAS noise, the expected residual correlations are 1/2 with the sibling's own
@@ -274,23 +275,43 @@ scores as the trio. In the free model (`fit_constraints = "none"`):
   modes fix them at these values.
 - The outcome model is
   `Y = b_D G_c + b_M G_m + b_P G_p + b_MS G_am + b_FS G_ap + e`.
-  Writing the parent and sibling as a lineage mean B = (G_m + G_am)/2 and
+  Writing the parent and sibling as a pair mean B = (G_m + G_am)/2 and
   deviation D = (G_m - G_am)/2 gives `delta_M = b_M - b_MS` as the coefficient
-  on D. The same applies on the paternal side.
+  on D while holding B fixed. The same applies on the paternal side. B is a
+  pair mean, not an observed grandparental lineage mean.
 
-`delta_M` is the parent-specific coefficient. It is a causal effect of the
-mother's genotype, beyond transmission to the child, under three conditions:
+The contrast is a conditional association: the child's, the other parent's
+and any included sibling's liabilities remain in the outcome model. A causal
+interpretation as the parent-specific genetic effect beyond transmission
+requires all of the following:
 
 1. The sibling has no causal effect on the child (for example, through
-   co-rearing). Otherwise the contrast estimates `beta_M - beta_MS`.
-2. Lineage confounding acts through the grandparental generation, so it is
-   shared equally by the parent and the sibling. A confounder linear in the
-   grandparents' midparent liability satisfies this exactly under
-   assortment on total liability. Parent-specific influences, such as birth
-   order or the parent's own environment, are not removed.
-3. The mother's genotype can affect the child through her choice of partner,
-   for example through the father's non-genetic nurture. That pathway is part
-   of `delta_M`.
+   co-rearing). Otherwise the contrast also subtracts that sibling effect.
+2. Lineage confounding is exchangeable between the parent and sibling. A
+   confounder linear in the grandparents' midparent liability satisfies this
+   under the inheritance and total-liability assortment model below.
+3. There is no remaining parent-specific genotype-outcome confounding or
+   selection bias. Conditioning on the child and spouse's liabilities also
+   conditions out pathways through those liabilities; the contrast does not
+   automatically identify a total effect of partner choice or spouse nurture.
+
+For example, let P and S be founder-scaled total liabilities of a parent and
+sibling, L the grandparents' midparent liability, V = Var(P) = Var(S), and
+A = Var(L) = Cov(P,S) = V - 1/2. Under the linear Gaussian inheritance model,
+`E[L | P,S] = a(P + S)`, where `a = A/(V + A)`. If
+`Y = gamma P + ell L + ...`, the parent and sibling coefficients are
+`gamma + ell a` and `ell a`; their difference is gamma. This also shows why
+the sibling coefficient alone is not the effect per unit of the true lineage
+mean. Additional conditioned family liabilities preserve this argument under
+the specified assortment mechanism, which pairs parents through their total
+liabilities without selecting siblings separately.
+
+The visible contrast uses unit-variance visible liabilities. `corrected_std`
+uses a unit of parental total-liability SD, assuming equal parent/sibling
+marginal variances in their shared generation. Neither is rescaled to one SD
+of D. `corrected_raw` uses founder units. With hidden variation, the joint
+correction must precede taking the contrast; the visible difference is not
+in general a simple attenuation of the total-liability difference.
 
 ### Sibling covariances under assortment
 
@@ -316,16 +337,28 @@ For the hidden correction, the standardized visible-hidden entries are d for a
 parent and their own sibling (the same as within a person), k q between a
 parent and the spouse's sibling, and k^2 q between the two siblings, where d and
 q are the trio's within-person and spouse entries. Child rows use the fitted
-visible and hidden transmission coefficients, as in the trio. An earlier
-equilibrium derivation that used q for every cross-lineage entry overstates
-these terms. Under assortment with hidden variation the visible-scale contrasts
-are not simply attenuated, so use the corrected rows when pi > 0.
+visible and hidden transmission coefficients, as in the trio. Using the spouse
+entry q unchanged for a parent and the spouse's sibling would overstate the
+magnitude of that cross-lineage term.
 
 The constrained modes add three pi-free restrictions: each sibling score has
 the parent's reliability; kappa = (3 + rho_G - 2B)/2, where B is the visible
 variance growth factor; and the child-sibling correlation is
 (kappa + chi)/(2 sqrt(B)). chi (equal across lineages) and zeta are estimated
-because they depend on pi.
+because they depend on pi. The two PGS versions retain distinct, unknown
+reliabilities; the equality is between each sibling and their own parent
+within a score version.
+
+For uncertainty, the core vector includes all fitted outcome coefficients and
+latent correlations (ten parameters with one sibling, fifteen with both).
+The same joint transformation produces raw and standardized total coefficients
+and parent-minus-sibling contrasts. Its Jacobian propagates the full covariance,
+including parent/sibling covariance and external pi uncertainty when supplied.
+Fixed-pi bootstrap intervals use each replicate's joint correction and contrast.
+Correction packets retain the enlarged vector, covariance and joint bootstrap
+draws. The implied full visible/hidden covariance must be positive semidefinite;
+incompatible correction assumptions leave total-scale results unavailable while
+preserving visible-scale estimates.
 
 ## Covariate adjustment and binary outcomes
 
@@ -334,8 +367,8 @@ factors to correlate with these covariates. Residualizing only Y before fitting
 is not equivalent when covariates and genetic predictors correlate; binary Y
 must remain coded 0/1 rather than residualized.
 
-With a binary outcome and covariates, a joint probit regression on all six
-scores and the encoded covariates supplies marginal variance-one liability
+With a binary outcome and covariates, a joint probit regression on all requested
+PGS indicators (including parental siblings) and the encoded covariates supplies marginal variance-one liability
 moments. RAVEL fits the same SEM to those moments with positive working
 weights and a full joint sandwich covariance for robust SEs. This avoids
 singular first-stage information from dummy covariates. It assumes a linear,

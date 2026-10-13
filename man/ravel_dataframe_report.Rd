@@ -13,7 +13,8 @@ ravel_dataframe_report(df, outcome = "Y", covariates = character(),
   uncertainty = c("auto", "lavaan", "bootstrap"), n_boot = 0L,
   seed = NULL, make_plot = TRUE, report_name = NULL,
   fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"), h = 0,
-  am_n_generations = 1L)
+  am_n_generations = 1L,
+  parental_sibs = c("none", "maternal", "paternal", "both"))
 }
 \arguments{
 \item{df}{Data frame with one independent trio per row. Not modified.}
@@ -24,7 +25,10 @@ Factors, characters, logicals and numeric 0/1 columns are detected automatically
 \item{outcome_type}{Continuous outcome or binary probit liability.}
 \item{continuous_adjustment}{Joint adjustment by default. Residualizing only Y
 is an optional, different estimand when covariates and scores correlate.}
-\item{pgs_columns}{Named mapping from the six model score names to input names.}
+\item{pgs_columns}{Named mapping from the six trio model score names to input
+names, plus \code{PGS1_mat_sib}/\code{PGS2_mat_sib} and/or
+\code{PGS1_pat_sib}/\code{PGS2_pat_sib} when requested. Omitted mappings use
+lowercase input names, for example \code{pgs1_mat_sib}.}
 \item{ci_level}{Confidence level.}
 \item{out_dir}{Optional new output directory, or existing parent directory when
 \code{report_name} is supplied. Existing report directories are never overwritten.}
@@ -45,12 +49,22 @@ when \code{fit_constraints = "none"}. Finite fits after the first generation
 depend on this value. Summary rows remain on the visible scale.}
 \item{am_n_generations}{Number of mating rounds for constrained \code{n_gen}
 fitting. Generation one has founder parents. Ignored for equilibrium and estimated-state fits.}
+\item{parental_sibs}{Optional full siblings of the parents: \code{none},
+\code{maternal}, \code{paternal} or \code{both}. Each relative contributes the
+same two scores. Reports include sibling coefficients and parent-specific
+contrasts; ordinary PGS comparisons remain trio regressions.}
 }
 \description{A complete-case, covariate-adjusted workflow for two score versions
 in trios. Fits visible-scale RAVEL and conventional trio PGS regressions and
 retains aggregate quantities for later hidden-variant corrections.}
 \details{
-Rows with any missing or nonfinite PGS, outcome or covariate are excluded.
+Rows with any missing or nonfinite trio PGS, outcome or covariate are excluded.
+For continuous outcomes, missing sibling scores are retained and fitted by FIML;
+no sibling values are imputed. Descriptive covariance matrices use pairwise
+observations and are not the FIML sufficient statistics. Each requested sibling
+needs both scores observed in at least 50 families. Binary reports exclude
+families with missing requested sibling scores from all compared models and
+record that exclusion.
 Repeated recorded family/individual identifiers are rejected. Categorical
 covariates use K-1 treatment dummies; a full-rank design is required.
 
@@ -62,7 +76,11 @@ liability coefficients have different outcome scales and are plotted separately.
 
 Both residual models are fitted by default. The fixed model uses within-version
 parent-child residual correlations of 0.5 and spouse residual correlations of 0;
-the free model estimates them. Cross-version residual covariances remain zero.
+the free model estimates them. With parental siblings, the fixed model also
+uses residual correlations of 0.5 with the sibling's own parent, 0.25 with the
+child, and zero with the other parent or the other parent's sibling. The free
+model estimates these sibling residual covariances. Cross-version residual
+covariances remain zero.
 Invalid fits and violations of requested fixed constraints are flagged, not used.
 
 Opt-in \code{fit_constraints} adds equilibrium, finite-generation or estimated-state restrictions
@@ -78,7 +96,8 @@ depend on \code{h}; their packets can be corrected at a physically compatible
 external pi without supplying refit sensitivity. This smooth model relaxes an
 exact constant-strength integer-generation history; see \code{\link{ravel_fit}}.
 
-Bootstrap draws resample entire complete-case trios jointly across models.
+Bootstrap draws resample entire families jointly across models, retaining
+continuous-outcome sibling missingness.
 Scaling and fitting are repeated, with the original dummy-column design retained.
 Point estimates are always from the original sample. Bootstrap SEs are empirical
 SDs; intervals are percentile intervals. P-values are normal approximations using
@@ -93,7 +112,7 @@ Fixed correlations are assumptions, not estimated quantities. Model-based
 inference is retained separately even when bootstrap is selected.
 
 For binary outcomes with covariates, a conditional probit regression on all
-six scores and the encoded covariates supplies marginal variance-one liability
+requested scores and the encoded covariates supplies marginal variance-one liability
 moments. The SEM uses positive working weights and their full joint sandwich
 covariance. This assumes a linear, homoscedastic conditional-probit liability
 model, not normally distributed covariates. Separation, rank deficiency and
@@ -115,7 +134,8 @@ mapping is appropriate conditional on the chosen covariates.
 \code{diagnostics}, \code{model_status}, \code{vanilla}, \code{packets},
 \code{packet}, \code{bootstrap}, \code{settings}, \code{plot} and \code{files}.
 \code{packet} is the fixed-model compatibility alias, NULL if unavailable.
-Packets retain all six core estimates and their joint covariance; bootstrap
+Packets retain all core estimates and their joint covariance, including sibling
+coefficients and latent covariances when requested; bootstrap
 packets also retain joint draws including transmission covariance parameters.
 \code{vanilla} retains raw, child-reference and own-role coefficient tables,
 covariance matrices, model-based inference and optional bootstrap tables.

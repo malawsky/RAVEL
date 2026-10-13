@@ -23,7 +23,8 @@ select \code{"fixed"}, \code{"free"}, or both, when present in the report.}
 \code{lavaan} propagates its joint covariance; \code{bootstrap} transforms
 its stored joint draws. With \code{pi_se}, bootstrap inference instead uses
 their joint covariance in the delta method, as in \code{ravel_correct_pi()}.
-No new bootstrap fits are run.}
+No new bootstrap fits are run. Parental-sibling coefficients and contrasts
+use the full enlarged parameter covariance or joint draws.}
 \item{ci_level}{Confidence level; defaults to the report's level, or 0.95 for
 older reports without that setting.}
 \item{covariate_mapping_confirmed}{Explicit confirmation that the correction
@@ -37,10 +38,12 @@ cell. \code{NULL} retains conditional fixed-fraction inference. Supplying it
 uses \code{ravel_correct_pi()} and assumes the external estimate is independent
 of the fitted core estimates. Use that scalar function with \code{core_pi_cov}
 when the estimates are dependent. Zero includes no external uncertainty.}
-\item{core_pi_sensitivity}{Optional derivative of the six fitted core estimates
+\item{core_pi_sensitivity}{Optional derivative of all fitted core estimates
 with respect to the hidden fraction supplied during fitting. With one selected
 residual model, supply a numeric vector named \code{bD}, \code{bm}, \code{bf},
-\code{rhoMF}, \code{eta_m}, \code{eta_f}; alternatively supply a list of such
+\code{rhoMF}, \code{eta_m}, \code{eta_f}, plus all sibling core parameters when
+present (the exact names are in \code{names(out$packets[[model]]$theta)});
+alternatively supply a list of such
 vectors named by selected residual model. Required with positive \code{pi_se}
 for transferred finite-generation constrained fits beyond generation one.
 These validated derivatives must come from perturbed refitting; the grid does

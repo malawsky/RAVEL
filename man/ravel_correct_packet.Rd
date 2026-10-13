@@ -24,9 +24,9 @@ or transform stored joint bootstrap draws.}
 \description{Returns raw and standardized total-liability coefficients and
 spouse covariance/correlation, conditional on the specified hidden fraction
 and mating history. Verifies compatibility of the correction implementation.}
-\details{Model-based SEs propagate the full six-parameter covariance. Bootstrap
-inference transforms each stored six-parameter draw, retaining dependence between
-coefficients and all trio covariances. Inadmissible transformations count as failed
+\details{Model-based SEs propagate the full core-parameter covariance, including sibling parameters when present. Bootstrap
+inference transforms each stored joint core-parameter draw, retaining dependence between
+coefficients and all family covariances. Inadmissible transformations count as failed
 draws; at least 80 percent of requested draws and at least 10 draws must be usable.
 Intervals are percentile intervals and p-values normal approximations using the
 bootstrap SE. Uncertainty in the externally assumed hidden fraction or AM history
@@ -37,7 +37,9 @@ the fitting assumptions. For finite-generation fits after generation one,
 \code{h} must also match the fitted value; changing it requires refitting.
 Estimated-state packets infer the variance state without a generation count and require matching correction mode. Their fitted core is independent of \code{h}, which is checked for physical compatibility during correction.
 Use \code{\link{ravel_correct_pi}} to include external hidden-fraction uncertainty.}
-\value{Eight-row data frame of coefficients and spouse covariance/correlation
+\value{Data frame of coefficients and spouse covariance/correlation on two
+scales (eight rows without parental siblings), including requested sibling
+coefficients and parent-specific contrasts
 with estimates, SEs, confidence limits, p-values, inference labels and usable-draw counts.}
 
 \section{Reporting}{The output includes its outcome units, a \code{ci_level} attribute, and a \code{constraint_spec} attribute. It can be passed directly to \code{print_simple}, \code{print_ravel_results}, or \code{ravel_plot_report}. Save as RDS to preserve attributes for further inference.}

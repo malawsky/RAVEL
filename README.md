@@ -206,36 +206,32 @@ For binary outcomes, keep `Y` coded 0/1 and use `outcome = "binary_liability"`.
 Results are on the SEM probit-liability scale. Baseline-relative fit indices
 are unavailable for binary fits with covariates; inspect the diagnostic output.
 
-## Parental siblings
+## Optional: parental siblings
 
-A full sibling of a parent shares that parent's family of origin but does not
-transmit genes to the child. Adding one separates the parent's own
-contribution from background shared across the parental lineage:
+If you have a full sibling of the mother and/or father, add their two scores
+using the same PGS weights as the trio:
 
 ```r
-fit <- ravel_fit(dat, parental_sibs = "both")   # or "maternal" / "paternal"
+fit <- ravel_fit(dat, parental_sibs = "both",  # or "maternal" / "paternal"
+                 pi = .4, pi_se = .05, fit_constraints = "estimated_state")
 print_simple(fit)
+tab <- as.data.frame(fit)
+subset(tab, parameter %in% c("delta_M", "delta_F"))
 ```
 
-Supply `PGS1_mat_sib`, `PGS2_mat_sib` (sibling of the mother) and/or
-`PGS1_pat_sib`, `PGS2_pat_sib` (sibling of the father), built with the same
-weights as the trio. Families without a sibling can keep missing values. The fit
-reports each sibling's coefficient (`beta_MS`, `beta_FS`) and the parent-specific
-contrasts `delta_M = bm - bMS` and `delta_F = bf - bFS`. The contrast is causal
-for the parent's genotype if the sibling has no effect on the child and lineage
-confounding is shared equally by the parent and the sibling.
+Supply `PGS1_mat_sib`, `PGS2_mat_sib` and/or `PGS1_pat_sib`, `PGS2_pat_sib`.
+`delta_M` and `delta_F` subtract the sibling's coefficient from their own
+parent's coefficient. This addresses shared lineage background under an
+exchangeable full-sibling model; a causal interpretation also requires no
+sibling effect on the child and no remaining parent-specific confounding.
+The usual parent coefficients are now conditional on the included siblings.
+See the [assumptions and scales](docs/methods.md#parental-siblings).
 
-Siblings work with every `fit_constraints` mode and with `pi`/`pi_se`. With
-`pi > 0` the corrected table adds `beta_MS`, `delta_M`, `beta_FS` and `delta_F`
-on the total-liability scales:
-
-```r
-fit <- ravel_fit(dat, pi = 0.40, pi_se = 0.05, parental_sibs = "both",
-                 fit_constraints = "estimated_state")
-as.data.frame(fit)   # visible and corrected_std rows include the sibling contrasts
-```
-
-See [Methods](docs/methods.md#parental-siblings) for the assumptions.
+All constraint modes, tables, plots, bootstrap and pi uncertainty support this
+option. Continuous fits retain missing sibling scores using FIML; binary fits
+exclude incomplete families. For the dataframe workflow, use the same
+`parental_sibs` option with lowercase score names; see the
+[report example and column mapping](docs/reference.md#parental-sibling-workflow).
 
 ## Dataframe reports and the bundled example
 

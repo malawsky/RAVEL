@@ -126,6 +126,62 @@ assumptions stored as attributes. Use RDS for further inference. The report's
 `model_status` and `diagnostics` retain identification and fit failure reasons;
 failed cells and missing intervals must be inspected before interpretation.
 
+## Parental-sibling workflow
+
+The option is off by default. Supply at most one full sibling per selected
+parent, scored with the same two weight sets. The report workflow assumes
+independent extended families; relatives shared across rows require a sampling
+model that accounts for that dependence. `ravel_fit()` expects
+`PGS1_mat_sib`, `PGS2_mat_sib`, `PGS1_pat_sib`, `PGS2_pat_sib` as appropriate;
+its `col_pgs1_mat_sib` / `col_pgs2_mat_sib` and paternal equivalents map custom
+column names. The dataframe report uses lowercase defaults:
+
+```r
+out <- ravel_dataframe_report(df, outcome = "Y", parental_sibs = "both",
+                              fit_constraints = "estimated_state", h = .4)
+out$summary
+print(out$plot)  # adds sibling coefficients and parent-specific contrasts
+corrected <- ravel_correct_pi(out$packet, pi = .4, pi_se = .05)
+subset(corrected, parameter %in% c("delta_M", "delta_F"))
+print(ravel_plot_report(corrected))
+```
+
+For custom report names, include the requested sibling entries in the named
+`pgs_columns` vector, alongside the six usual trio entries. For example, add
+`PGS1_mat_sib = "aunt_score_1"` and `PGS2_mat_sib = "aunt_score_2"` for a
+maternal sibling. Only the selected side(s) are required. Use
+`covariate_mapping_confirmed = TRUE` in the correction when covariates are
+present and the mapping has been justified conditional on them.
+
+Continuous reports require complete core trio/outcome/covariate data and retain
+missing sibling scores for FIML, assuming ignorable missingness conditional on
+the modeled variables. Binary reports exclude families with missing
+requested sibling scores before fitting every comparison model, warn, and
+record the exclusion count. `ravel_fit()` also uses complete families for binary
+outcomes. At least 50 families with both sibling scores are required per selected
+side; this is an input check, not a guarantee of identification or precision.
+
+Tables, print methods, correction packets and grids include `beta_MS`, `delta_M`
+and/or `beta_FS`, `delta_F`. The ordinary parent coefficients are conditional on
+the included sibling liabilities. The deltas subtract parent and sibling
+coefficients jointly, with their covariance, on each reported liability scale;
+they are not standardized by the SD of the parent-minus-sibling difference.
+The paternal contrast is named `delta_F` in both live-fit and report tables.
+The report's `residual_models = "fixed"` fixes all included within-score
+residual correlations: 1/2 for parent-child and full-sibling pairs, 1/4 for
+child-aunt/uncle pairs, and zero for unrelated pairs. `"free"` estimates these
+covariances. Ordinary PGS comparator rows remain trio regressions and therefore estimate a
+different conditional association when siblings enter RAVEL. See the
+[methods](methods.md#parental-siblings) before giving a causal interpretation.
+
+Packets preserve ten core parameters for one sibling and fifteen for both,
+rather than the usual six. All fitting/correction modes and uncertainty sources
+use that full covariance. Save the RDS packet for later inference; CSV retains
+results but not their joint covariance. An incompatible hidden covariance makes
+the total correction unavailable and leaves visible estimates available. If
+`pi_se` was requested, `fit$pi_correction_error` and the exported table's matching
+attribute retain the reason; corrected intervals remain unavailable.
+
 ## Choosing an uncertainty source
 
 The fit retains two uncertainty summaries conditional on the supplied pi:
@@ -152,8 +208,8 @@ factors to correlate with these covariates. Residualizing only Y before fitting
 is not equivalent when covariates and genetic predictors correlate; binary Y
 must remain coded 0/1 rather than residualized.
 
-With a binary outcome and covariates, a joint probit regression on all six
-scores and the encoded covariates supplies marginal variance-one liability
+With a binary outcome and covariates, a joint probit regression on all requested
+PGS indicators (including parental siblings) and the encoded covariates supplies marginal variance-one liability
 moments. RAVEL fits the same SEM to those moments with positive working
 weights and a full joint sandwich covariance for robust SEs. This avoids
 singular first-stage information from dummy covariates. It assumes a linear,
@@ -283,15 +339,25 @@ fit <- ravel_fit(
 )
 ```
 
+With parental siblings, the same arguments accept `e1_m_ms`, `e1_f_ms`,
+`e1_c_ms` for a maternal sibling; `e1_f_fs`, `e1_m_fs`, `e1_c_fs` for a paternal
+sibling; and `e1_ms_fs` between the siblings. Replace `e1` with `e2` for PGS2.
+Only labels for included relatives are allowed. For example,
+`fixed_crossperson_corr = c(e1_m_ms = .5, e2_m_ms = .5)` fixes the maternal
+parent-sibling correlations. Omitted pairs remain free unless a constrained
+fitting mode fixes them. A residual cannot be fixed on both the covariance
+and correlation scales, and settings that conflict with the chosen constrained
+mode are rejected.
+
 ## `ravel_fit` options
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `dat` | — | Data frame with 6 PGS columns + `Y` |
+| `dat` | — | Data frame with 6 trio PGS columns + `Y`, and optional sibling scores |
 | `pi` | `NULL` | Preferred name for the founder hidden additive-variance fraction; must be in `[0, 1)`. |
 | `h` | `0` | Legacy name for `pi`. If both are supplied explicitly they must agree. With neither supplied, the hidden fraction is zero. |
 | `pi_se` | `NULL` | External SE on the raw pi scale. Omit to treat pi as fixed; supply to propagate its uncertainty in the same call. |
-| `core_pi_cov` | `NULL` | Optional covariance between the six SEM core-parameter estimation errors at fixed pi and external pi. The default assumes independence. |
+| `core_pi_cov` | `NULL` | Optional covariance between the SEM core-parameter estimation errors at fixed pi and external pi. The default assumes independence. |
 | `covariate_mapping_confirmed` | `FALSE` | Confirm that the visible-to-total mapping applies conditional on jointly fitted covariates before adding pi uncertainty. |
 | `fit_constraints` | `"none"` | `"none"`, `"equilibrium"`, `"n_gen"`, or `"estimated_state"`; see the README mode table. |
 | `outcome` | `"continuous"` | `"continuous"` or `"binary_liability"` (probit/WLSMV) |
@@ -315,8 +381,8 @@ fit <- ravel_fit(
 | `col_pgs2_child` | `"PGS2_child"` | Column name for child's PGS2 |
 | `col_outcome` | `"Y"` | Column name for outcome variable |
 | `parental_sibs` | `"none"` | Add a full sibling of the mother (`"maternal"`), father (`"paternal"`) or both. Works with every constraint mode and with `pi`/`pi_se`. |
-| `col_pgs1_mat_sib`, `col_pgs2_mat_sib` | `"PGS1_mat_sib"`, `"PGS2_mat_sib"` | Column names for the maternal sibling's scores; missing values allowed |
-| `col_pgs1_pat_sib`, `col_pgs2_pat_sib` | `"PGS1_pat_sib"`, `"PGS2_pat_sib"` | Column names for the paternal sibling's scores; missing values allowed |
+| `col_pgs1_mat_sib`, `col_pgs2_mat_sib` | `"PGS1_mat_sib"`, `"PGS2_mat_sib"` | Column names for the maternal sibling's scores; continuous fits use FIML for missing values |
+| `col_pgs1_pat_sib`, `col_pgs2_pat_sib` | `"PGS1_pat_sib"`, `"PGS2_pat_sib"` | Column names for the paternal sibling's scores; continuous fits use FIML for missing values |
 
 ### Output fields
 
@@ -339,7 +405,7 @@ fit <- ravel_fit(
 | `lavaan_inference` | SEM-based inference conditional on pi. Printing and table conversion use `pi_correction` for corrected rows when external uncertainty was supplied. |
 | `bootstrap` | Fixed-pi CIs and SEs if `n_boot > 0` |
 | `pi_correction` | Corrected estimates with propagated external pi uncertainty when `pi_se` was supplied, including covariance and derivative attributes. |
-| `parental_sibs` | With parental siblings: `coefficients` (`bms`, `delta_m`, `bfs`, `delta_f`), `lavaan_table` (rows `beta_MS`, `delta_M`, `beta_FS`, `delta_F`), `corrected` (`raw` and `std` total-scale coefficients and contrasts, plus the five-role covariance blocks), `latent_cov`, `resid_cov`, `resid_corr`, `reliability`, `determinacy` and `n_with_sib`. `NULL` otherwise. |
+| `parental_sibs` | With parental siblings: `coefficients` (`bms`, `delta_m`, `bfs`, `delta_f`), `lavaan_table` (rows `beta_MS`, `delta_M`, `beta_FS`, `delta_F`), `corrected` (`raw` and `std` total-scale coefficients and contrasts, plus the four- or five-role covariance blocks), `latent_cov`, `resid_cov`, `resid_corr`, `reliability`, `determinacy` and `n_with_sib`. `NULL` otherwise. |
 | `converged` | Logical convergence flag |
 
 ## Analytical expected values

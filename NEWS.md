@@ -25,6 +25,21 @@
 - `ravel_simulate_trios()` gains `parental_sibs`, maternal/paternal lineage
   effects and `grandparent_rho_MF`, drawing parents and their siblings from a
   grandparent generation that can itself assort.
+- Dataframe reports now accept the same sibling option and custom column
+  mappings. Tables, plots, saved packets and assumption grids include the
+  sibling coefficients and parent-specific contrasts, with the full enlarged
+  core covariance and bootstrap draws retained for total corrections.
+- A report's fixed residual model now fixes sibling correlations to the pedigree
+  values as well. Explicit sibling residual covariance or correlation settings
+  are also supported by `ravel_fit()` without imposing the other constraints.
+- Binary sibling fits use their retained analysis sample for sample-size
+  reporting; dataframe comparisons use a common complete sample. Continuous
+  reports retain partially missing sibling data under FIML. `ravel_fit()`
+  rejects infinite sibling scores explicitly.
+- Total corrections reject incompatible implied visible/hidden covariance
+  matrices while retaining visible estimates. Documentation distinguishes the
+  conditional parent-minus-sibling contrast from a causal effect and records
+  the additional assumptions required for the latter.
 
 ## Supply pi and its standard error during fitting
 

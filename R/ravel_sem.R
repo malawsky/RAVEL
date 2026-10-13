@@ -54,21 +54,24 @@
 #' @noRd
 .normalize_fixed_crossperson <- function(crossperson,
                                          values = NULL,
-                                         arg_name = "fixed_crossperson") {
+                                         arg_name = "fixed_crossperson",
+                                         sib_roles = character(0)) {
   allowed <- if (crossperson == "free") {
     c("e1_mf", "e1_mc", "e1_fc", "e2_mf", "e2_mc", "e2_fc")
   } else {
     c("e1_mf", "e1_pc", "e2_mf", "e2_pc")
   }
 
+  allowed <- c(allowed, names(.parental_sib_residual_benchmarks(sib_roles)))
   out <- setNames(rep(NA_real_, length(allowed)), allowed)
 
   if (is.null(values)) {
     return(out)
   }
 
-  if (!is.numeric(values) || is.null(names(values))) {
-    stop(arg_name, " must be a named numeric vector.")
+  if (!is.numeric(values) || is.complex(values) || is.null(names(values)) ||
+      anyNA(names(values)) || any(!nzchar(names(values))) || anyDuplicated(names(values))) {
+    stop(arg_name, " must be a numeric vector with unique parameter names.")
   }
 
   bad_names <- setdiff(names(values), allowed)
@@ -83,6 +86,8 @@
     stop(arg_name, " values must be finite numerics.")
   }
 
+  if (arg_name == "fixed_crossperson_corr" && any(abs(values) > 1, na.rm = TRUE))
+    stop("fixed_crossperson_corr values must lie in [-1, 1].")
   out[names(values)] <- unname(values)
   out
 }
@@ -214,6 +219,17 @@
   unlist(cols[roles], use.names = FALSE)
 }
 
+#' Pedigree residual correlations for included parental siblings
+#' @noRd
+.parental_sib_residual_benchmarks <- function(roles) {
+  out <- numeric(0)
+  own <- c(ms = "m", fs = "f")
+  for (r in roles) for (j in 1:2) for (p in c(own[[r]], setdiff(c("m", "f"), own[[r]]), "c"))
+    out[[sprintf("e%d_%s_%s", j, p, r)]] <- if (p == own[[r]]) .5 else if (p == "c") .25 else 0
+  if (length(roles) == 2L) for (j in 1:2) out[[paste0("e", j, "_ms_fs")]] <- 0
+  out
+}
+
 #' Build the parental-sibling extension of the SEM
 #'
 #' @details
@@ -226,13 +242,32 @@
 #' one coefficient per sibling, and the parent-specific contrasts
 #' \code{delta_m := bm - bms} and \code{delta_f := bf - bfs} are defined.
 #' @noRd
-.build_parental_sibs <- function(parental_sibs = "none", constrained = FALSE) {
+.build_parental_sibs <- function(parental_sibs = "none", constrained = FALSE,
+                                fixed_crossperson = NULL, fixed_crossperson_corr = NULL) {
   roles <- .parental_sib_roles(parental_sibs)
   if (!length(roles)) return("")
   # Constrained modes fix within-score residual correlations to the relatedness
   # benchmarks: 1/2 with the sibling's own parent, 1/4 with the child, and 0
   # with the parent's spouse and between the two parental siblings.
-  benchmark <- function(p, own) if (p == own) 0.5 else if (p == "c") 0.25 else 0
+  benchmarks <- .parental_sib_residual_benchmarks(roles)
+  sibling_residual <- function(lhs, rhs, label, variance_labels) {
+    covariance <- fixed_crossperson[label]
+    correlation <- if (constrained) benchmarks[[label]] else fixed_crossperson_corr[label]
+    has_cov <- length(covariance) && !is.na(covariance)
+    has_cor <- length(correlation) && !is.na(correlation)
+    if (has_cov && has_cor && !constrained)
+      stop("The same cross-person residual cannot be fixed on both the covariance and correlation scales: ", label)
+    # Label every nonzero fixed covariance as well, so extraction and all
+    # downstream covariance calculations retain the specified value.
+    zero <- (has_cov && covariance == 0) || (has_cor && correlation == 0)
+    out <- sprintf("%s ~~ %s*%s", lhs, if (zero) "0" else label, rhs)
+    if (!zero && has_cov)
+      out <- c(out, sprintf("%s == %s", label, .format_lavaan_numeric(covariance)))
+    if (!zero && has_cor)
+      out <- c(out, sprintf("%s == %s*sqrt(%s*%s)", label,
+        .format_lavaan_numeric(correlation), variance_labels[1], variance_labels[2]))
+    out
+  }
 
   spec <- list(
     ms = list(lv = "Gms", cols = c("PGS1_mat_sib", "PGS2_mat_sib"), own = "m",
@@ -257,19 +292,15 @@
       sprintf("%s ~~ eta_%s*Gc", s$lv, r))
     for (j in 1:2) for (p in c(s$own, s$spouse, "c")) {
       label <- sprintf("e%d_%s_%s", j, p, r)
-      value <- benchmark(p, s$own)
-      multiplier <- if (constrained && value == 0) "0" else label
-      lines <- c(lines, sprintf("%s ~~ %s*PGS%d_%s", s$cols[j], multiplier, j, trio_col[[p]]))
-      if (constrained && value != 0)
-        lines <- c(lines, sprintf("%s == %s*sqrt(th%d_%s*th%d_%s)", label,
-          .format_lavaan_numeric(value), j, p, j, r))
+      lines <- c(lines, sibling_residual(s$cols[j], sprintf("PGS%d_%s", j, trio_col[[p]]),
+        label, c(sprintf("th%d_%s", j, p), sprintf("th%d_%s", j, r))))
     }
   }
   if (length(roles) == 2L) {
-    lines <- c(lines, "", "# Covariances between the two parental siblings",
-      "Gms ~~ zeta*Gfs",
-      sprintf("PGS1_mat_sib ~~ %s*PGS1_pat_sib", if (constrained) "0" else "e1_ms_fs"),
-      sprintf("PGS2_mat_sib ~~ %s*PGS2_pat_sib", if (constrained) "0" else "e2_ms_fs"))
+    lines <- c(lines, "", "# Covariances between the two parental siblings", "Gms ~~ zeta*Gfs")
+    for (j in 1:2) lines <- c(lines, sibling_residual(paste0("PGS", j, "_mat_sib"),
+      paste0("PGS", j, "_pat_sib"), paste0("e", j, "_ms_fs"),
+      c(paste0("th", j, "_ms"), paste0("th", j, "_fs"))))
   }
 
   lines <- c(lines, "", "# Parental-sibling (lineage) coefficients and parent-specific contrasts")
@@ -327,7 +358,19 @@
                          fixed_crossperson_corr = NULL,
                          parental_sibs = "none",
                          constrained = FALSE) {
-  sib_latents <- c(ms = "Gms", fs = "Gfs")[.parental_sib_roles(parental_sibs)]
+  roles <- .parental_sib_roles(parental_sibs)
+  sib_latents <- c(ms = "Gms", fs = "Gfs")[roles]
+  fixed_crossperson <- .normalize_fixed_crossperson(crossperson, fixed_crossperson,
+    sib_roles = roles)
+  fixed_crossperson_corr <- .normalize_fixed_crossperson(crossperson, fixed_crossperson_corr,
+    arg_name = "fixed_crossperson_corr", sib_roles = roles)
+  if (crossperson != "free" && any(!is.na(fixed_crossperson_corr)))
+    stop("fixed_crossperson_corr is only supported when crossperson = 'free'.")
+  overlap <- names(fixed_crossperson)[!is.na(fixed_crossperson) & !is.na(fixed_crossperson_corr)]
+  if (length(overlap)) stop("The same cross-person residual cannot be fixed on both the covariance and correlation scales: ",
+    paste(overlap, collapse = ", "))
+  trio_labels <- names(.normalize_fixed_crossperson(crossperson))
+  trio_only <- function(x) if (is.null(x)) NULL else x[intersect(names(x), trio_labels)]
   paste0(
     "# =============================================================================",
     "\n# RAVEL Structural Equation Model",
@@ -336,12 +379,13 @@
     "\n", .build_genetic_structure(),
     "\n", .build_crossperson(
       crossperson,
-      fixed_crossperson = fixed_crossperson,
-      fixed_crossperson_corr = fixed_crossperson_corr
+      fixed_crossperson = trio_only(fixed_crossperson),
+      fixed_crossperson_corr = trio_only(fixed_crossperson_corr)
     ),
     "\n", .build_outcome(fix_parent_paths, fixed_effects,
       latents = c("Gc", "Gm", "Gf", unname(sib_latents))),
-    if (length(sib_latents)) paste0("\n", .build_parental_sibs(parental_sibs, constrained)) else ""
+    if (length(sib_latents)) paste0("\n", .build_parental_sibs(parental_sibs, constrained,
+      fixed_crossperson, fixed_crossperson_corr)) else ""
   )
 }
 
@@ -853,11 +897,12 @@
     beta_total_std = setNames(rep(NA_real_, n), names(beta_vis)),
     var_total = setNames(rep(NA_real_, n), var_names),
     Sigma_xx = Sigma_xx, Sigma_xh = NULL, Sigma_hh = NULL, Sigma_TT = NULL,
-    lineage_factor = NA_real_, M = NULL)
+    lineage_factor = NA_real_, M = NULL, invalid_reason = NULL)
   state <- c(hc$d, hc$q, hc$v_G, hc$v_H, hc$v_Gc, hc$v_Hc, hc$tm, hc$tf,
              hc$tH_m, hc$tH_f, hc$rho_T_corr_assumed, hc$var_total_assumed)
   if (length(state) != 14L || any(!is.finite(state)) || is.null(hc$Sigma_xh) ||
-      any(!is.finite(hc$Sigma_xh)) || any(!is.finite(hc$Sigma_hh)))
+      any(!is.finite(hc$Sigma_xh)) || any(!is.finite(hc$Sigma_hh)) ||
+      any(!is.finite(Sigma_xx)))
     return(na_result)
 
   vG <- hc$v_G
@@ -898,6 +943,19 @@
   }
   dimnames(GH) <- list(paste0("G", all_roles), paste0("H", all_roles))
   dimnames(HH) <- list(paste0("H", all_roles), paste0("H", all_roles))
+
+  # A valid visible SEM alone does not guarantee that its fitted sibling
+  # covariances can coexist with the hidden blocks implied by pi and history.
+  # Do not turn an impossible joint covariance into finite corrected effects.
+  joint <- rbind(cbind(Sigma_xx, GH), cbind(t(GH), HH))
+  visible_eigen <- eigen(Sigma_xx, symmetric = TRUE, only.values = TRUE)$values
+  joint_eigen <- eigen(joint, symmetric = TRUE, only.values = TRUE)$values
+  if (min(visible_eigen) <= 1e-10 * max(1, max(visible_eigen)) ||
+      (h > 0 && min(joint_eigen) < -1e-8 * max(1, max(joint_eigen)))) {
+    warning("Hidden correction: parental-sibling moments are incompatible with the supplied pi/assortment state; returning NAs.")
+    na_result$invalid_reason <- "incompatible_parental_sibling_covariance"
+    return(na_result)
+  }
 
   a_par <- sqrt(1 - h) * sqrt(vG)
   b_par <- sqrt(h) * sqrt(vH)
@@ -1146,7 +1204,7 @@
     sib_total <- list(raw = contrast(ext$beta_total), std = contrast(ext$beta_total_std),
       var_total = ext$var_total, Sigma_TT = ext$Sigma_TT, Sigma_xx = ext$Sigma_xx,
       Sigma_xh = ext$Sigma_xh, Sigma_hh = ext$Sigma_hh,
-      lineage_factor = ext$lineage_factor, M = ext$M)
+      lineage_factor = ext$lineage_factor, M = ext$M, invalid_reason = ext$invalid_reason)
   }
 
   list(
@@ -1631,6 +1689,12 @@
 #'   covariances are then constrained as
 #'   \code{cov = corr * sqrt(var_1 * var_2)} using the estimated indicator
 #'   residual variances.
+#'   With parental siblings, both residual arguments also accept labels
+#'   \code{e1_m_ms}, \code{e1_f_ms}, \code{e1_c_ms} for the maternal
+#'   sibling, \code{e1_f_fs}, \code{e1_m_fs}, \code{e1_c_fs} for the
+#'   paternal sibling, and \code{e1_ms_fs} when both are included, plus the
+#'   corresponding \code{e2_*} labels. Unspecified sibling residuals are free
+#'   unless a constrained fitting mode supplies the pedigree restrictions.
 #' @param am_correction Character. Raw assortative-mating state used for the
 #'   total-liability mapping:
 #'   \code{"n_gen"} (default) assumes a finite user-specified number of generations of
@@ -1651,13 +1715,13 @@
 #' @param fixed_effects Character vector of numeric covariate column names to
 #'   include jointly. Encode categorical covariates as treatment dummies, or use
 #'   \code{ravel_dataframe_report}. With a binary outcome, conditional-probit
-#'   moments from all six scores and these covariates are mapped to a marginal
+#'   moments from all included scores and these covariates are mapped to a marginal
 #'   variance-one liability before SEM fitting. Positive working weights and a
 #'   full joint sandwich covariance are used for robust SEs. This assumes a
 #'   linear, homoscedastic conditional-probit liability model.
 #' @param fit_constraints Character. Optional strong measurement/inheritance
 #'   restrictions: \code{"none"} (default), \code{"equilibrium"},
-#'   \code{"n_gen"}, or \code{"estimated_state"}. Scores retain separate unknown reliabilities, six free
+#'   \code{"n_gen"}, or \code{"estimated_state"}. Scores retain separate unknown reliabilities and free
 #'   marginal scales, independent cross-score residuals, zero spouse residual
 #'   correlation and parent-child residual correlation 0.5. At equilibrium,
 #'   each score's reliability is shared across roles and latent parent-child
@@ -1692,7 +1756,7 @@
 #'   this uncertainty by the joint delta method; visible estimates retain their
 #'   uncertainty conditional on pi. Omit it to treat pi as fixed. Supply
 #'   \code{pi} or \code{h} explicitly when using this argument.
-#' @param core_pi_cov Optional named six-vector of covariances between the
+#' @param core_pi_cov Optional named vector of covariances between all
 #'   conditional core estimates and external pi, on its raw probability scale.
 #'   Requires \code{pi_se}; omitted means independent external estimation.
 #' @param covariate_mapping_confirmed Logical. Set TRUE with \code{pi_se} and
@@ -1704,14 +1768,20 @@
 #'   \code{"paternal"} (a sibling of the father), or \code{"both"}. Each
 #'   sibling contributes the same two scores, built with the same weights as
 #'   the trio. The outcome is then also regressed on each sibling's visible
-#'   liability. The sibling coefficient captures lineage background shared by
-#'   the parent and their sibling, and \code{delta_M = bm - bMS} (or
-#'   \code{delta_F = bf - bFS}) is the parent-specific coefficient. Its causal
-#'   reading assumes the sibling has no effect on the child and that lineage
-#'   confounding is shared equally by the parent and the sibling. Families
-#'   without the sibling can be included with missing sibling scores (FIML for
-#'   continuous outcomes). Works with every \code{fit_constraints} mode; with
-#'   \code{pi > 0}, corrected sibling coefficients and contrasts are reported.
+#'   liability. The sibling coefficient can absorb shared lineage background;
+#'   \code{delta_M = bm - bMS} (or \code{delta_F = bf - bFS}) is the
+#'   parent-specific contrast conditional on the child's and other parent's
+#'   genetic liabilities. Its causal interpretation requires equal parent/sibling
+#'   liability distributions, equal conditional lineage contributions, no
+#'   effect of the sibling on the child, and no remaining parent-specific
+#'   confounding or selection bias. Continuous outcomes retain families
+#'   with missing sibling scores through FIML; binary outcomes use complete
+#'   cases, and the reported sample size counts retained families. Works with
+#'   every \code{fit_constraints} mode; with \code{pi > 0}, corrected sibling
+#'   coefficients and contrasts are reported. Incompatible joint visible/hidden
+#'   covariances produce unavailable corrected estimates with a warning. If
+#'   \code{pi_se} was requested, the visible fit is retained, corrected
+#'   uncertainty is unavailable, and \code{pi_correction_error} records why.
 #' @param col_pgs1_mat_sib,col_pgs2_mat_sib Column names for the maternal
 #'   sibling's PGS1 and PGS2.
 #' @param col_pgs1_pat_sib,col_pgs2_pat_sib Column names for the paternal
@@ -1735,7 +1805,7 @@
 #'     \item{var_total_assumed}{Role-specific variances \eqn{\operatorname{Var}(T_r^*)}}
 #'     \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 #'     \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
-#'     \item{components_vis}{6-term variance decomposition on visible scale}
+#'     \item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale}
 #'     \item{components_total_assumed}{Variance decomposition on assumed total scale}
 #'     \item{R2_model}{Variance explained by the visible latent linear predictor}
 #'     \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}
@@ -1819,21 +1889,27 @@ ravel_fit <- function(dat,
   fit_constraints <- match.arg(fit_constraints)
   outcome <- match.arg(outcome)
   measurement <- match.arg(measurement)
+  parental_sibs <- match.arg(parental_sibs)
+  sib_roles <- .parental_sib_roles(parental_sibs)
   crossperson <- match.arg(crossperson)
   fixed_crossperson <- .normalize_fixed_crossperson(
     crossperson,
     fixed_crossperson,
-    arg_name = "fixed_crossperson"
+    arg_name = "fixed_crossperson", sib_roles = sib_roles
   )
   fixed_crossperson_corr <- .normalize_fixed_crossperson(
     crossperson,
     fixed_crossperson_corr,
-    arg_name = "fixed_crossperson_corr"
+    arg_name = "fixed_crossperson_corr", sib_roles = sib_roles
   )
+  residual_overlap <- names(fixed_crossperson)[!is.na(fixed_crossperson) & !is.na(fixed_crossperson_corr)]
+  if (length(residual_overlap))
+    stop("The same cross-person residual cannot be fixed on both the covariance and correlation scales: ",
+      paste(residual_overlap, collapse = ", "))
   am_correction <- match.arg(am_correction)
   constraint_options <- .ravel_prepare_constraints(
     fit_constraints, h, am_correction, am_n_generations, correction_missing,
-    crossperson, fixed_crossperson, fixed_crossperson_corr)
+    crossperson, fixed_crossperson, fixed_crossperson_corr, sib_roles = sib_roles)
   am_correction <- constraint_options$am_correction
   if (am_correction == "estimated_state" && fit_constraints != "estimated_state")
     stop("am_correction = 'estimated_state' requires fit_constraints = 'estimated_state'.")
@@ -1907,6 +1983,8 @@ ravel_fit <- function(dat,
     sib_cols <- .parental_sib_columns(sib_roles)
     if (!all(vapply(dat[sib_cols], is.numeric, logical(1))))
       stop("Parental-sibling score columns must be numeric.")
+    if (any(vapply(dat[sib_cols], function(x) any(!is.na(x) & !is.finite(x)), logical(1))))
+      stop("Parental-sibling score columns must be finite or missing (NA).")
     role_cols <- list(mat_sib = c("PGS1_mat_sib", "PGS2_mat_sib"),
                       pat_sib = c("PGS1_pat_sib", "PGS2_pat_sib"))[c(ms = "mat_sib", fs = "pat_sib")[sib_roles]]
     n_with_sib <- vapply(role_cols, function(cols)
@@ -1914,9 +1992,6 @@ ravel_fit <- function(dat,
     if (any(n_with_sib < 50))
       stop("Each requested parental sibling needs both scores observed in at least 50 families (observed: ",
            paste(sprintf("%s = %d", names(n_with_sib), n_with_sib), collapse = ", "), ").")
-    if (outcome == "binary_liability" && any(n_with_sib < nrow(dat)))
-      warning("Binary outcomes are fitted with listwise deletion, so families without the requested ",
-              "parental sibling(s) are dropped.")
   }
 
   # Validate fixed effects
@@ -1927,6 +2002,21 @@ ravel_fit <- function(dat,
     }
   } else {
     fixed_effects <- character(0)
+  }
+
+  # Use the same retained sample for binary sibling fitting, diagnostics and
+  # comparators. Continuous fits keep partially observed families through FIML.
+  if (length(sib_roles) && outcome == "binary_liability") {
+    analysis_columns <- unique(c(names(col_map), fixed_effects))
+    complete <- stats::complete.cases(dat[analysis_columns])
+    if (any(!complete)) {
+      warning("Binary outcomes are fitted with listwise deletion; dropping ",
+        sum(!complete), " families with missing model variables, including parental-sibling scores.")
+      dat <- dat[complete, , drop = FALSE]
+      n_with_sib[] <- nrow(dat)
+      if (nrow(dat) < 50L)
+        stop("Binary parental-sibling fitting requires at least 50 complete families after listwise deletion.")
+    }
   }
 
   # Estimation settings
@@ -1947,6 +2037,11 @@ ravel_fit <- function(dat,
   if (fit_constraints != "none") {
     model <- paste(model, .ravel_constraint_syntax(fit_constraints, h, am_n_generations, sib_roles), sep = "\n")
     model <- .ravel_constraint_starts(model, dat, fit_constraints, h, am_n_generations, sib_roles)
+  } else if (length(sib_roles) && any(!is.na(
+      fixed_crossperson_corr[names(.parental_sib_residual_benchmarks(sib_roles))]))) {
+    # Starting values only: explicit residual correlations do not impose a
+    # variance history or reliability constraints on an unconstrained fit.
+    model <- .ravel_constraint_starts(model, dat, "n_gen", h, 1L, sib_roles)
   }
 
   if (verbose) {
@@ -2446,7 +2541,7 @@ ravel_fit <- function(dat,
   # ---------------------------------------------------------------------------
   result <- structure(list(
     converged = TRUE,
-    N = nrow(dat),
+    N = if (length(sib_roles)) as.integer(lavaan::lavInspect(fit, "nobs")) else nrow(dat),
     fit = fit,
     model = model,
 
@@ -2532,9 +2627,27 @@ ravel_fit <- function(dat,
   if (!is.null(pi)) result$pi <- h
   if (!is.null(pi_se)) {
     result$pi_se <- pi_se
-    result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
-      ci_level = ci_level, core_pi_cov = core_pi_cov,
-      covariate_mapping_confirmed = covariate_mapping_confirmed)
+    if (identical(result$parental_sibs$corrected$invalid_reason,
+        "incompatible_parental_sibling_covariance")) {
+      # Preserve the fitted visible model when only the requested hidden state
+      # is impossible. Invalid user covariance inputs still fail explicitly.
+      input <- .ravel_pi_extract(result, "auto", covariate_mapping_confirmed)
+      joint <- matrix(0, length(input$labels) + 1L, length(input$labels) + 1L,
+        dimnames = list(c(input$labels, "pi"), c(input$labels, "pi")))
+      joint[input$labels, input$labels] <- input$packet$vcov_core
+      joint["pi", "pi"] <- pi_se^2
+      if (!is.null(core_pi_cov))
+        joint[input$labels, "pi"] <- joint["pi", input$labels] <- core_pi_cov[input$labels]
+      .ravel_pi_validate_covariance(joint, c(input$labels, "pi"), "Joint core/pi covariance")
+      result["pi_correction"] <- list(NULL)
+      result$pi_correction_error <- paste("External-pi corrected inference is unavailable because",
+        "the parental-sibling moments are incompatible with the supplied pi/assortment state.")
+      warning(result$pi_correction_error, " The visible fit is retained.")
+    } else {
+      result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
+        ci_level = ci_level, core_pi_cov = core_pi_cov,
+        covariate_mapping_confirmed = covariate_mapping_confirmed)
+    }
   }
   result
 }
@@ -2556,6 +2669,8 @@ ravel_fit <- function(dat,
       digits, meta$pi, digits, meta$raw_scale_se))
     cat("Stored visible inference is conditional on pi.\n")
   }
+  if (!is.null(result$pi_correction_error))
+    cat("Corrected inference unavailable:", result$pi_correction_error, "\n")
   state <- result$hidden_correction_details$estimated_state
   if (!is.null(state)) {
     cat("Estimated variance state (founder reference):\n")
@@ -2608,6 +2723,11 @@ ravel_fit <- function(dat,
   visible <- if (identical(uncertainty$source, "bootstrap")) {
     sprintf("bootstrap (%d reps)", uncertainty$n_successful)
   } else if (identical(uncertainty$source, "lavaan")) "lavaan/delta-method" else "uncertainty"
+  if (!is.null(uncertainty$pi_correction_error)) {
+    if (identical(block, "visible")) return(visible)
+    if (!is.null(block)) return("unavailable (incompatible pi/assortment state)")
+    return(paste0(visible, "; corrected inference unavailable"))
+  }
   if (is.null(uncertainty$pi_correction)) return(visible)
   corrected <- if (identical(uncertainty$source, "bootstrap"))
     "bootstrap covariance + pi (delta-Wald)" else "lavaan + pi (delta-Wald)"
@@ -2811,6 +2931,12 @@ ravel_fit <- function(dat,
 #' total-liability rows with \code{cov_corrected} in place of the spouse
 #' correlation.
 #'
+#' Parental-sibling fits also include \code{beta_MS}/\code{delta_M} for a
+#' maternal sibling and \code{beta_FS}/\code{delta_F} for a paternal sibling
+#' on each requested scale. Each contrast subtracts the sibling coefficient
+#' from the corresponding parent coefficient on the same liability scale;
+#' it is not an effect per standard deviation of the parent-sibling difference.
+#'
 #' When \code{uncertainty = "lavaan"}, p-values are standard Wald
 #' normal-approximation p-values based on the lavaan/delta-method SEs. When
 #' \code{uncertainty = "bootstrap"}, the confidence intervals are empirical
@@ -2933,6 +3059,14 @@ ravel_to_dataframe <- function(result,
   attr(out, "constraint_spec") <- result$constraint_spec
   attr(out, "estimated_state") <- result$hidden_correction_details$estimated_state
   attr(out, "ci_level") <- unc$ci_level
+  if (!is.null(result$pi_correction_error)) {
+    attr(out, "pi_correction_error") <- result$pi_correction_error
+    attr(out, "settings")$pi <- result$h
+    attr(out, "settings")$pi_se <- result$pi_se
+    unavailable <- out$scale %in% c("corrected_std", "corrected_raw")
+    out$uncertainty_source[unavailable] <- "unavailable (incompatible pi/assortment state)"
+    out$p_value_method[unavailable] <- "unavailable"
+  }
   if (!is.null(unc$pi_correction)) {
     meta <- attr(unc$pi_correction, "pi_uncertainty")
     out$inference <- ifelse(out$scale %in% c("corrected_std", "corrected_raw"),

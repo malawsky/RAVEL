@@ -61,7 +61,7 @@ print and table helpers include this sampling uncertainty using
 \code{\link{ravel_correct_pi}}. Omit for the existing fixed-pi inference;
 zero contributes no external variance. A positive SE at pi zero is rejected.}
 
-\item{core_pi_cov}{Optional named length-six conditional sampling covariance
+\item{core_pi_cov}{Optional named conditional sampling covariance vector for all core parameters
 between the visible core estimates and the external pi estimator. Requires
 \code{pi_se}. Defaults to independence. See \code{\link{ravel_correct_pi}}
 for the required names and the distinction between conditional and marginal
@@ -97,7 +97,12 @@ must be drawn from \code{e1_mf}, \code{e1_mc}, \code{e1_fc},
 \code{e2_mf}, \code{e2_mc}, \code{e2_fc}. The underlying residual
 covariances are then constrained as
 \code{cov = corr * sqrt(var_1 * var_2)} using the estimated indicator
-residual variances.}
+residual variances. With parental siblings, both residual arguments also
+accept \code{e1_m_ms}, \code{e1_f_ms}, \code{e1_c_ms} for the maternal
+sibling, \code{e1_f_fs}, \code{e1_m_fs}, \code{e1_c_fs} for the paternal
+sibling, and \code{e1_ms_fs} when both are included, plus the corresponding
+\code{e2_*} labels. Unspecified sibling residuals are free unless a
+constrained fitting mode supplies the pedigree restrictions.}
 
 \item{am_correction}{Character. Raw assortative-mating state used for the
 total-liability mapping:
@@ -120,7 +125,7 @@ produced by the first mating round. Ignored otherwise.}
 \item{fixed_effects}{Character vector of numeric covariate column names to
 include jointly. Encode categorical covariates as treatment dummies, or use
 \code{ravel_dataframe_report}. With a binary outcome, conditional-probit
-moments from all six scores and these covariates are mapped to a marginal
+moments from all included scores and these covariates are mapped to a marginal
 variance-one liability before SEM fitting. Positive working weights and a
 full joint sandwich covariance are used for robust SEs. This assumes a
 linear, homoscedastic conditional-probit liability model.}
@@ -171,14 +176,20 @@ external-pi corrected intervals.}
 \code{"paternal"} (a sibling of the father), or \code{"both"}. Each
 sibling contributes the same two scores, built with the same weights as
 the trio. The outcome is then also regressed on each sibling's visible
-liability. The sibling coefficient captures lineage background shared by
-the parent and their sibling, and \code{delta_M = bm - bMS} (or
-\code{delta_F = bf - bFS}) is the parent-specific coefficient. Its causal
-reading assumes the sibling has no effect on the child and that lineage
-confounding is shared equally by the parent and the sibling. Families
-without the sibling can be included with missing sibling scores (FIML for
-continuous outcomes). Works with every \code{fit_constraints} mode; with
-\code{pi > 0}, corrected sibling coefficients and contrasts are reported.}
+liability. The sibling coefficient can absorb shared lineage background;
+\code{delta_M = bm - bMS} (or \code{delta_F = bf - bFS}) is the
+parent-specific contrast conditional on the child's and other parent's
+liabilities. Its causal interpretation requires equal parent/sibling
+liability distributions, equal conditional lineage contributions, no
+sibling effect on the child, and no remaining parent-specific confounding
+or selection bias. Continuous outcomes retain families with
+missing sibling scores through FIML; binary outcomes use complete cases,
+and reported sample sizes count retained families. Works with every
+\code{fit_constraints} mode; with \code{pi > 0}, corrected sibling
+coefficients and contrasts are reported. Incompatible joint visible/hidden
+covariances produce unavailable corrected estimates with a warning. If
+\code{pi_se} was requested, the visible fit is retained, corrected
+uncertainty is unavailable, and \code{pi_correction_error} records why.}
 
 \item{col_pgs1_mat_sib, col_pgs2_mat_sib}{Column names for the maternal
 sibling's PGS1 and PGS2.}
@@ -205,7 +216,7 @@ A list with components (selected):
 \item{var_total_assumed}{Role-specific variances \eqn{\operatorname{Var}(T_r^*)}}
 \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
-\item{components_vis}{6-term variance decomposition on visible scale}
+\item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale}
 \item{components_total_assumed}{Variance decomposition on assumed total scale}
 \item{R2_model}{Variance explained by the visible latent linear predictor}
 \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}

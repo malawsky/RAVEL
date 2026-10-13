@@ -44,6 +44,12 @@ rows \code{beta_D}, \code{beta_M}, \code{beta_F}, and
 total-liability rows with \code{cov_corrected} in place of the spouse
 correlation.
 
+Parental-sibling fits also include \code{beta_MS}/\code{delta_M} for a
+maternal sibling and \code{beta_FS}/\code{delta_F} for a paternal sibling
+on each requested scale. Each contrast subtracts the sibling coefficient
+from the corresponding parent coefficient on the same liability scale;
+it is not an effect per standard deviation of the parent-sibling difference.
+
 When \code{uncertainty = "lavaan"}, p-values are standard Wald
 normal-approximation p-values based on the lavaan/delta-method SEs. When
 \code{uncertainty = "bootstrap"}, fixed-pi confidence intervals are empirical

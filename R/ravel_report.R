@@ -1,9 +1,23 @@
 .report_core_labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f")
 
+.report_packet_roles <- function(packet) {
+  .parental_sib_roles(packet$settings$parental_sibs %||% "none")
+}
+
+.report_packet_labels <- function(packet) {
+  c(.report_core_labels, .sib_core_labels(.report_packet_roles(packet)))
+}
+
+.report_parameters <- function(roles, scale) {
+  c("beta_D", "beta_M", "beta_P",
+    if (scale == "visible") "rho_visible" else if (scale == "corrected_std") "rho_corrected" else "cov_corrected",
+    unname(.parental_sib_coef_map(roles)))
+}
+
 .report_transform_fingerprint <- function() {
   ns <- asNamespace("RAVEL")
   funs <- sort(ls(ns, all.names = TRUE))
-  funs <- funs[grepl("^\\.(hidden|compute_scale|standardize_total|latent_corr|finite_difference|build_lavaan|ravel_estimated_state)", funs)]
+  funs <- funs[grepl("^\\.(hidden|compute_scale|standardize_total|latent_corr|finite_difference|build_lavaan|ravel_estimated_state|sib_|parental_sib_(coef_map|roles)|report_packet|report_parameters)", funs)]
   path <- tempfile()
   on.exit(unlink(path))
   writeLines(unlist(lapply(funs, function(nm) c(nm, deparse(get(nm, ns))))), path)
@@ -17,6 +31,8 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
                                   uncertainty = c("auto", "lavaan", "bootstrap")) {
   if (is.character(packet)) packet <- readRDS(packet)
   history <- packet$settings$constraint_spec
+  roles <- .report_packet_roles(packet)
+  labels <- .report_packet_labels(packet)
   if (!is.null(history$mode) && history$mode %in% c("equilibrium", "n_gen", "estimated_state")) {
     if (missing(am_correction)) am_correction <- history$mode
     if (missing(am_n_generations) && history$mode == "n_gen")
@@ -43,10 +59,10 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
         nrow(core_draws) == 0L ||
         is.null(colnames(core_draws)) || anyNA(colnames(core_draws)) ||
         anyDuplicated(colnames(core_draws)) ||
-        !setequal(colnames(core_draws), .report_core_labels))
+        !setequal(colnames(core_draws), labels))
       stop("Bootstrap core_draws must be a numeric matrix with at least one row and exactly these unique column names: ",
-           paste(.report_core_labels, collapse = ", "))
-    core_draws <- core_draws[, .report_core_labels, drop = FALSE]
+           paste(labels, collapse = ", "))
+    core_draws <- core_draws[, labels, drop = FALSE]
   }
   stopifnot(identical(packet$schema, "ravel_visible_transfer_v1"),
             isTRUE(packet$diagnostics$admissible), h >= 0, h < 1,
@@ -59,17 +75,22 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
   }
   transform <- utils::getFromNamespace(".compute_scale_estimates", "RAVEL")
   jacobian <- utils::getFromNamespace(".finite_difference_jacobian", "RAVEL")
-  theta <- packet$theta[.report_core_labels]
-  V <- packet$vcov_core[.report_core_labels, .report_core_labels, drop = FALSE]
+  theta <- packet$theta[labels]
+  if (!is.numeric(packet$theta) || is.complex(packet$theta) ||
+      is.null(names(packet$theta)) || anyDuplicated(names(packet$theta)) ||
+      !setequal(names(packet$theta), labels) || any(!is.finite(theta)))
+    stop("Packet core estimates must include exactly the parameters required by its parental_sibs setting")
+  V <- .ravel_pi_validate_covariance(packet$vcov_core, labels, "Core covariance")
   evaluate <- function(x, block) {
-    x <- setNames(as.numeric(x), .report_core_labels)
+    x <- setNames(as.numeric(x), labels)
     result <- transform(beta_vis = x[c("bD", "bm", "bf")], cov_cm = x["eta_m"],
       cov_cf = x["eta_f"], cov_mf = x["rhoMF"], h = h,
-      am_correction = am_correction, am_n_generations = am_n_generations)
+      am_correction = am_correction, am_n_generations = am_n_generations,
+      sib = .sib_input_from_theta(x, roles))
     if (block == "corrected_std") {
-      c(result$beta_total_assumed_std, rhoMF = result$rho_total_assumed)
+      c(result$beta_total_assumed_std, rhoMF = result$rho_total_assumed, result$sib_total$std)
     } else {
-      c(result$beta_total_assumed, rhoMF = result$cov_total_assumed)
+      c(result$beta_total_assumed, rhoMF = result$cov_total_assumed, result$sib_total$raw)
     }
   }
   out <- lapply(c("corrected_std", "corrected_raw"), function(block) {
@@ -78,8 +99,8 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
     if (any(!is.finite(est))) stop("This hidden-fraction/AM assumption is incompatible with the fitted moments")
     if (uncertainty == "bootstrap") {
       draws <- t(apply(core_draws, 1, function(x)
-        tryCatch(if (all(is.finite(x))) fun(x) else rep(NA_real_, 4L),
-                 error = function(e) rep(NA_real_, 4L))))
+        tryCatch(if (all(is.finite(x))) fun(x) else rep(NA_real_, length(est)),
+                 error = function(e) rep(NA_real_, length(est)))))
       draws[!apply(is.finite(draws), 1, all), ] <- NA_real_
       interval <- .ravel_report_boot_interval(est, draws, ci_level, packet$bootstrap$minimum_success)
     } else {
@@ -98,7 +119,7 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
         "SEM_probit_liability" else "prepared_phenotype_SD",
       residual_model = if (is.null(packet$settings$residual_model)) "unspecified" else packet$settings$residual_model,
       scale = block,
-      parameter = c("beta_D", "beta_M", "beta_P", if (block == "corrected_std") "rho_corrected" else "cov_corrected"),
+      parameter = .report_parameters(roles, block),
       estimate = unname(est),
       inference = if (uncertainty == "bootstrap") "bootstrap_percentile_CI_normal_p" else "lavaan_delta_wald",
       h = h, am_correction = am_correction,
@@ -255,6 +276,7 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
     q95 = numeric(), maximum = numeric()))
   do.call(rbind, lapply(columns, function(nm) {
     x <- dat[[nm]]
+    x <- x[is.finite(x)]
     data.frame(variable = nm, n = length(x), mean = mean(x), sd = stats::sd(x), variance = stats::var(x),
       minimum = min(x), q05 = unname(stats::quantile(x, .05)), median = stats::median(x),
       q95 = unname(stats::quantile(x, .95)), maximum = max(x))
@@ -275,8 +297,11 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
                                     n_boot = 0L, seed = NULL, make_plot = TRUE,
                                     report_name = NULL,
                                     fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
-                                    h = 0, am_n_generations = 1L) {
+                                    h = 0, am_n_generations = 1L,
+                                    parental_sibs = c("none", "maternal", "paternal", "both")) {
   fit_constraints <- match.arg(fit_constraints)
+  parental_sibs <- match.arg(parental_sibs)
+  sib_roles <- .parental_sib_roles(parental_sibs)
   if (fit_constraints != "none") {
     if (missing(residual_models)) residual_models <- "fixed"
     if (!identical(residual_models, "fixed"))
@@ -314,14 +339,18 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   if (!is.character(residual_models) || !length(residual_models) || anyNA(residual_models) ||
       anyDuplicated(residual_models) || !all(residual_models %in% c("fixed", "free")))
     stop("residual_models must select 'fixed', 'free', or both without duplicates")
-  expected <- c("PGS1_child", "PGS1_mother", "PGS1_father", "PGS2_child", "PGS2_mother", "PGS2_father")
+  trio_columns <- c("PGS1_child", "PGS1_mother", "PGS1_father", "PGS2_child", "PGS2_mother", "PGS2_father")
+  sib_columns <- .parental_sib_columns(sib_roles)
+  expected <- c(trio_columns, sib_columns)
+  if (missing(pgs_columns) && length(sib_columns))
+    pgs_columns <- c(pgs_columns, stats::setNames(tolower(sib_columns), sib_columns))
   if (!is.data.frame(df) || anyDuplicated(names(df))) stop("df must have unique column names")
   if (!setequal(names(pgs_columns), expected) || anyDuplicated(unname(pgs_columns)))
-    stop("pgs_columns must uniquely map the six expected score columns")
+    stop("pgs_columns must uniquely map the expected score columns: ", paste(expected, collapse = ", "))
   pgs_columns <- pgs_columns[expected]
   required <- c(unname(pgs_columns), outcome, covariates)
   if (length(outcome) != 1L || anyDuplicated(required) || !all(required %in% names(df)))
-    stop("Check the outcome, six PGS column mappings and covariate names")
+    stop("Check the outcome, PGS column mappings and covariate names")
   if (!is.numeric(ci_level) || length(ci_level) != 1L || !is.finite(ci_level) || ci_level <= 0 || ci_level >= 1)
     stop("ci_level must lie between zero and one")
   if (!is.null(out_dir) && (!is.character(out_dir) || length(out_dir) != 1L || is.na(out_dir) ||
@@ -335,7 +364,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     is.na(value) | if (is.numeric(value)) !is.finite(value) else rep(FALSE, length(value))
   })
   names(missing_field) <- required
-  missing_pgs <- Reduce(`|`, missing_field[unname(pgs_columns)])
+  missing_pgs <- Reduce(`|`, missing_field[unname(pgs_columns[trio_columns])])
   missing_y <- missing_field[[outcome]]
   missing_covariates <- if (length(covariates)) Reduce(`|`, missing_field[covariates]) else rep(FALSE, nrow(df))
   keep <- !missing_pgs & !missing_y & !missing_covariates
@@ -344,11 +373,22 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     n_any = c(sum(missing_pgs), sum(missing_y), sum(missing_covariates)),
     n_excluded_sequential = c(sum(missing_pgs), sum(!missing_pgs & missing_y),
                               sum(!missing_pgs & !missing_y & missing_covariates)))
+  if (outcome_type == "binary_liability" && length(sib_columns)) {
+    missing_sib <- Reduce(`|`, missing_field[unname(pgs_columns[sib_columns])])
+    excluded_sib <- sum(keep & missing_sib)
+    exclusion_counts <- rbind(exclusion_counts, data.frame(reason = "missing_or_nonfinite_sibling_PGS",
+      n_any = sum(missing_sib), n_excluded_sequential = excluded_sib))
+    keep <- keep & !missing_sib
+    if (excluded_sib) warning("Binary reports exclude families with missing requested sibling scores from all models.")
+  }
   exclusion_counts$n_remaining <- nrow(df) - cumsum(exclusion_counts$n_excluded_sequential)
   missingness <- data.frame(variable = required, n_input = nrow(df),
     n_missing_or_nonfinite = vapply(missing_field, sum, numeric(1)), stringsAsFactors = FALSE)
   source <- droplevels(df[keep, , drop = FALSE])
   n <- nrow(source)
+  if (length(sib_columns)) {
+    for (nm in unname(pgs_columns[sib_columns])) source[[nm]][!is.finite(source[[nm]])] <- NA_real_
+  }
   if (n < 100L) stop("Fewer than 100 complete trios")
   for (id in intersect(c("FID", "child_id", "mother_id", "father_id"), names(source))) {
     values <- source[[id]][!is.na(source[[id]])]
@@ -368,16 +408,16 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     center <- mean(ref)
     divisor <- stats::sd(ref)
     if (!is.finite(divisor) || divisor <= 0) stop("Child PGS", k, " has no variance")
-    for (role in c("child", "mother", "father")) {
+    for (role in c("child", "mother", "father", unname(c(ms = "mat_sib", fs = "pat_sib")[sib_roles]))) {
       nm <- paste0("PGS", k, "_", role)
       raw <- source[[pgs_columns[[nm]]]]
-      if (stats::var(raw) <= 0) stop(nm, " has no variance")
+      if (!is.finite(stats::var(raw, na.rm = TRUE)) || stats::var(raw, na.rm = TRUE) <= 0) stop(nm, " has no variance")
       dat[[nm]] <- (raw - center) / divisor
       scaling[[nm]] <- data.frame(outcome_variable = outcome, model_column = nm,
         source_column = pgs_columns[[nm]], PGS = paste0("PGS", k), role = role,
-        raw_mean = mean(raw), raw_sd = stats::sd(raw), raw_variance = stats::var(raw),
+        raw_mean = mean(raw, na.rm = TRUE), raw_sd = stats::sd(raw, na.rm = TRUE), raw_variance = stats::var(raw, na.rm = TRUE),
         child_reference_mean = center, child_reference_sd = divisor,
-        scaled_mean = mean(dat[[nm]]), scaled_variance = stats::var(dat[[nm]]))
+        scaled_mean = mean(dat[[nm]], na.rm = TRUE), scaled_variance = stats::var(dat[[nm]], na.rm = TRUE))
     }
   }
   scaling <- do.call(rbind, scaling)
@@ -401,10 +441,11 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     if (!is.finite(response_scale) || response_scale <= 0) stop("Prepared outcome has no variance")
     dat$Y <- (dat$Y - response_center) / response_scale
   }
-  fixed_corr <- c(e1_mf = 0, e1_mc = .5, e1_fc = .5, e2_mf = 0, e2_mc = .5, e2_fc = .5)
+  fixed_corr <- c(e1_mf = 0, e1_mc = .5, e1_fc = .5, e2_mf = 0, e2_mc = .5, e2_fc = .5,
+    .parental_sib_residual_benchmarks(sib_roles))
   if (length(fe)) {
     model <- utils::getFromNamespace(".build_model", "RAVEL")(
-      fixed_effects = fe, fixed_crossperson_corr = fixed_corr)
+      fixed_effects = fe, fixed_crossperson_corr = fixed_corr, parental_sibs = parental_sibs)
     if (!all(vapply(c("Gc", "Gm", "Gf"), function(g)
       grepl(paste(g, "~~", fe[1]), model, fixed = TRUE), logical(1)))) {
       stop("This workflow requires the local covariate candidate; the installed RAVEL model lacks genetic-covariate covariances")
@@ -453,18 +494,24 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     numeric = .ravel_report_numeric_descriptives(source, numeric_columns),
     categorical = design$counts)
   moment_columns <- c(expected, "Y", covariate_map$model_column)
-  input_moments <- list(mean = colMeans(dat[moment_columns]), covariance = stats::cov(dat[moment_columns]))
+  input_moments <- list(mean = colMeans(dat[moment_columns], na.rm = TRUE),
+    covariance = stats::cov(dat[moment_columns], use = "pairwise.complete.obs"))
+  if (length(sib_columns)) {
+    counts <- vapply(sib_roles, function(role) sum(stats::complete.cases(dat[.parental_sib_columns(role)])), integer(1))
+    sample_counts <- rbind(sample_counts, data.frame(statistic = paste0("n_with_", unname(c(ms = "maternal_sib", fs = "paternal_sib")[sib_roles])), value = counts))
+    descriptives$sample_counts <- sample_counts
+  }
   pgs_covariance <- input_moments$covariance[expected, expected, drop = FALSE]
   pgs_variances <- data.frame(outcome_variable = outcome, model_column = expected,
-    variance = unname(diag(pgs_covariance)), N = n)
+    variance = unname(diag(pgs_covariance)), N = colSums(!is.na(dat[expected])))
   fingerprint_path <- tempfile()
   on.exit(unlink(fingerprint_path), add = TRUE)
   writeLines(c(deparse(utils::getFromNamespace("ravel_fit", "RAVEL")),
                deparse(utils::getFromNamespace(".build_outcome", "RAVEL"))), fingerprint_path)
   common_packet <- list(schema = "ravel_visible_transfer_v1",
     input_moments = input_moments, pgs_covariance = pgs_covariance, pgs_variances = pgs_variances,
-    raw_input_moments = list(mean = colMeans(cbind(source[c(unname(pgs_columns), outcome)], C[, -1, drop = FALSE])),
-      covariance = stats::cov(cbind(source[c(unname(pgs_columns), outcome)], C[, -1, drop = FALSE]))),
+    raw_input_moments = list(mean = colMeans(cbind(source[c(unname(pgs_columns), outcome)], C[, -1, drop = FALSE]), na.rm = TRUE),
+      covariance = stats::cov(cbind(source[c(unname(pgs_columns), outcome)], C[, -1, drop = FALSE]), use = "pairwise.complete.obs")),
     pgs_summary = scaling, covariate_map = covariate_map, covariates = covariates,
     categorical_covariates = design$categorical, descriptives = descriptives,
     vanilla = vanilla,
@@ -477,7 +524,10 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
       sample_prevalence = if (outcome_type == "binary_liability") mean(dat$Y) else NULL),
     settings = list(n_initial = nrow(df), n_complete = n, excluded = nrow(df) - n,
       h = if (fit_constraints == "none") 0 else h, n_boot = 0, ci_level = ci_level,
-      fit_constraints = fit_constraints, am_n_generations =
+      fit_constraints = fit_constraints, parental_sibs = parental_sibs,
+      moment_missingness = if (length(sib_columns) && outcome_type == "continuous")
+        "pairwise observed descriptive moments; SEM uses FIML" else "complete observed inputs",
+      am_n_generations =
         if (fit_constraints %in% c("equilibrium", "estimated_state")) NA_integer_ else am_n_generations,
       fixed_effects = fe, requires_covariate_mapping_review = length(fe) > 0,
       independent_families_assumed = TRUE,
@@ -519,7 +569,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   out["summary_bootstrap"] <- list(NULL)
   out["bootstrap"] <- list(NULL)
   out$settings <- list(uncertainty = uncertainty, n_boot = n_boot, seed = seed,
-    ci_level = ci_level, outcome_type = outcome_type, fit_constraints = fit_constraints,
+    ci_level = ci_level, outcome_type = outcome_type, fit_constraints = fit_constraints, parental_sibs = parental_sibs,
     h = if (fit_constraints == "none") 0 else h, am_n_generations =
       if (fit_constraints %in% c("equilibrium", "estimated_state")) NA_integer_ else am_n_generations)
   if (n_boot > 0) {
@@ -655,10 +705,12 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   allocate <- function(keys) matrix(NA_real_, n_boot, length(keys),
     dimnames = list(as.character(seq_len(n_boot)), keys))
   summary_draws <- allocate(.ravel_report_row_key(out$summary))
-  core_draws <- stats::setNames(lapply(residual_models, function(x) allocate(.report_core_labels)), residual_models)
+  labels <- c(.report_core_labels, .sib_core_labels(.parental_sib_roles(out$settings$parental_sibs %||% "none")))
+  core_draws <- stats::setNames(lapply(residual_models, function(x) allocate(labels)), residual_models)
   vanilla_draws <- lapply(out$vanilla, function(x) allocate(.ravel_report_row_key(x$coefficients)))
   status <- vector("list", n_boot)
-  pgs_map <- stats::setNames(names(dat)[1:6], names(dat)[1:6])
+  pgs_names <- names(dat)[grepl("^PGS[12]_", names(dat))]
+  pgs_map <- stats::setNames(pgs_names, pgs_names)
   for (i in seq_len(n_boot)) {
     set.seed(replicate_seeds[i])
     sample <- dat[sample.int(nrow(dat), nrow(dat), replace = TRUE), , drop = FALSE]
@@ -666,6 +718,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
       pgs_columns = pgs_map, outcome_type = outcome_type, continuous_adjustment = continuous_adjustment,
       residual_models = residual_models, ci_level = ci_level, make_plot = FALSE,
       fit_constraints = out$settings$fit_constraints %||% "none",
+      parental_sibs = out$settings$parental_sibs %||% "none",
       h = out$settings$h %||% 0, am_n_generations = out$settings$am_n_generations %||% 1L), error = identity)
     if (inherits(fitted, "error")) {
       models <- c(residual_models, "PGS1", "PGS2")
@@ -682,7 +735,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     }
     summary_draws[i, ] <- fitted$summary$estimate[match(colnames(summary_draws), .ravel_report_row_key(fitted$summary))]
     for (nm in residual_models) if (!is.null(fitted$packets[[nm]]))
-      core_draws[[nm]][i, ] <- fitted$packets[[nm]]$theta[.report_core_labels]
+      core_draws[[nm]][i, ] <- fitted$packets[[nm]]$theta[labels]
     for (nm in names(vanilla_draws)) {
       tab <- fitted$vanilla[[nm]]$coefficients
       vanilla_draws[[nm]][i, ] <- tab$estimate[match(colnames(vanilla_draws[[nm]]), .ravel_report_row_key(tab))]
@@ -697,7 +750,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   out$bootstrap <- list(n_requested = n_boot, minimum_success = minimum_success, seed = seed,
     replicate_seeds = replicate_seeds, status = do.call(rbind, status),
     summary_draws = summary_draws, core_draws = core_draws, vanilla_draws = vanilla_draws,
-    resampling = "whole complete-case trios; preprocessing and both models refitted per draw",
+    resampling = "whole families with complete core trios, retaining sibling missingness; preprocessing and all models refitted per draw",
     interval = "percentile", p_value = "normal approximation using bootstrap SE; not a bootstrap null test")
   out$summary_bootstrap <- .ravel_report_boot_table(out$summary, summary_draws, ci_level, minimum_success)
   for (nm in names(out$vanilla)) out$vanilla[[nm]]$coefficients_bootstrap <-
@@ -728,7 +781,7 @@ ravel_plot_report <- function(out, scale = NULL) {
     tab <- tab[tab$scale == scale, , drop = FALSE]
   }
   tab$parameter[tab$parameter == "beta_F"] <- "beta_P"
-  tab <- tab[tab$parameter %in% c("beta_D", "beta_M", "beta_P"), , drop = FALSE]
+  tab <- tab[tab$parameter %in% c("beta_D", "beta_M", "beta_P", "beta_MS", "beta_FS", "delta_M", "delta_F"), , drop = FALSE]
   if (!nrow(tab)) stop("No coefficient estimates to plot")
   if (!"regression" %in% names(tab)) tab$regression <- "RAVEL"
   if (!"residual_model" %in% names(tab)) tab$residual_model <- "unspecified"
@@ -790,9 +843,16 @@ print.ravel_report_plot <- function(x, ...) {
   on.exit(graphics::par(old))
   groups <- if (x$binary) intersect(c("PGS", "RAVEL"),
     unique(ifelse(x$data$regression == "RAVEL", "RAVEL", "PGS"))) else "all"
-  graphics::par(mfrow = c(length(groups), 3L), mar = c(3.8, 8.4, 2.7, 1.1),
+  roles <- c(beta_D = "Offspring", beta_M = "Mother", beta_P = "Father",
+    beta_MS = "Maternal sibling", delta_M = "Mother-specific contrast",
+    beta_FS = "Paternal sibling", delta_F = "Father-specific contrast")
+  roles <- roles[names(roles) %in% x$data$parameter]
+  corrected <- any(x$data$scale %in% c("corrected_std", "corrected_raw"))
+  label_width <- if (corrected) 26L else 29L
+  columns <- min(3L, length(roles))
+  rows_per_group <- ceiling(length(roles) / columns)
+  graphics::par(mfrow = c(length(groups) * rows_per_group, columns), mar = c(3.8, if (corrected) 9.4 else 8.4, 2.7, 1.1),
                 oma = c(if (x$binary) 3.2 else 2.3, 0, 2.5, 0), family = "sans", las = 1)
-  roles <- c(beta_D = "Offspring", beta_M = "Mother", beta_P = "Father")
   colors <- c(PGS1 = "#a56b28", PGS2 = "#cf9f60", fixed = "#175a83", free = "#5195b6")
   for (group in groups) {
     tab <- x$data
@@ -810,9 +870,11 @@ print.ravel_report_plot <- function(x, ...) {
           if (x$binary) if (group == "PGS") "Probit residual-SD units" else "SEM liability units" else
           "Standardized coefficient", ylab = "", axes = FALSE, main = roles[[role]])
       graphics::axis(1)
-      labels <- vapply(models, function(label) paste(strwrap(label, width = 29L), collapse = "\n"), character(1))
+      labels <- vapply(models, function(label) paste(strwrap(label, width = label_width), collapse = "\n"), character(1))
       graphics::axis(2, at = seq_along(models), labels = rev(labels), tick = FALSE, cex.axis = .75)
       graphics::abline(v = 0, col = "#969696", lty = 3)
+      if (!nrow(d) && group == "PGS") graphics::text(mean(lim), mean(seq_along(models)),
+        "Not estimated by\ntrio regression", cex = .8, col = "#777777")
       col <- unname(colors[ifelse(d$regression == "RAVEL", d$residual_model, d$regression)])
       col[is.na(col)] <- "#175a83"
       graphics::segments(d$ci_low, yy, d$ci_high, yy, col = col, lwd = 2)
@@ -823,6 +885,7 @@ print.ravel_report_plot <- function(x, ...) {
       if (any(no_ci)) graphics::text(d$estimate[no_ci], yy[no_ci] + .22, "CI unavailable", cex = .65)
       graphics::box(bty = "l", col = "#bdbdbd")
     }
+    if (length(roles) %% columns) for (i in seq_len(columns - length(roles) %% columns)) graphics::plot.new()
   }
   graphics::mtext(paste(x$outcome, collapse = ", "), side = 3, outer = TRUE, line = .7, font = 2, cex = 1.1)
   caption <- x$caption %||% paste0(round(100 * x$ci_level), "% intervals: ", x$uncertainty)
@@ -833,9 +896,11 @@ print.ravel_report_plot <- function(x, ...) {
 }
 
 .ravel_report_save_plot <- function(plot, out_dir) {
-  lines <- sum(vapply(unique(plot$data$model), function(x) length(strwrap(x, width = 29L)), integer(1)))
+  label_width <- if (any(plot$data$scale %in% c("corrected_std", "corrected_raw"))) 26L else 29L
+  lines <- sum(vapply(unique(plot$data$model), function(x) length(strwrap(x, width = label_width)), integer(1)))
   separate_outcomes <- plot$binary && any(plot$data$regression != "RAVEL") && any(plot$data$regression == "RAVEL")
-  height <- max(if (separate_outcomes) 8 else 4.5, 2 + .28 * lines)
+  height <- max(if (separate_outcomes) 8 else 4.5, 2 + .28 * lines) *
+    ceiling(length(unique(plot$data$parameter)) / 3L)
   path <- file.path(out_dir, "diagnostic_estimates.pdf")
   grDevices::pdf(path, width = 14, height = height)
   tryCatch(print(plot), finally = grDevices::dev.off())
@@ -877,19 +942,23 @@ print.ravel_report_plot <- function(x, ...) {
       fixed_crossperson_corr = chosen_corr, n_boot = 0, ci_level = settings$ci_level,
       am_correction = correction_mode,
       am_n_generations = if (constraint_mode == "none") 1L else settings$am_n_generations,
-      fit_constraints = constraint_mode)
+      fit_constraints = constraint_mode, parental_sibs = settings$parental_sibs %||% "none")
     diagnostics$converged <- isTRUE(fit$converged)
     if (!diagnostics$converged) stop(fit$error %||% "RAVEL did not converge")
     V <- lavaan::vcov(fit$fit)
-    if (!is.matrix(V) || !all(.report_core_labels %in% rownames(V))) stop("Missing joint parameter covariance matrix")
-    V_core <- V[.report_core_labels, .report_core_labels, drop = FALSE]
-    theta <- c(fit$beta_vis[c("bD", "bm", "bf")], fit$latent_cov_vis[c("rhoMF", "eta_m", "eta_f")])
+    roles <- .report_packet_roles(common_packet)
+    labels <- .report_packet_labels(common_packet)
+    if (!is.matrix(V) || !all(labels %in% rownames(V))) stop("Missing joint parameter covariance matrix")
+    V_core <- V[labels, labels, drop = FALSE]
+    theta <- c(fit$beta_vis[c("bD", "bm", "bf")], fit$latent_cov_vis[c("rhoMF", "eta_m", "eta_f")],
+      .sib_theta(fit$parental_sibs, roles))[labels]
     postcheck <- suppressWarnings(isTRUE(lavaan::lavInspect(fit$fit, "post.check")))
-    if (!postcheck || any(!is.finite(theta)) || any(!is.finite(V_core)) || any(diag(V_core) <= 0) ||
+    if (!postcheck || any(!is.finite(theta)) || any(!is.finite(V_core)) ||
+        any(diag(V_core)[.report_core_labels] <= 0) || any(diag(V_core) < -1e-10) ||
         min(eigen((V_core + t(V_core)) / 2, symmetric = TRUE, only.values = TRUE)$values) < -1e-8)
       stop("RAVEL returned inadmissible estimates or unusable parameter uncertainty")
     if (specification == "fixed") {
-      actual <- fit$crossperson_resid_corr[names(fixed_corr)]
+      actual <- c(fit$crossperson_resid_corr, fit$parental_sibs$resid_corr)[names(fixed_corr)]
       diagnostics$maximum_fixed_correlation_error <- max(abs(actual - fixed_corr))
       if (any(!is.finite(actual)) || diagnostics$maximum_fixed_correlation_error > 1e-5)
         stop("Fitted residual correlations violate the requested fixed constraints; numerical review required")
@@ -931,6 +1000,7 @@ print.ravel_report_plot <- function(x, ...) {
     diagnostics$binary_covariate_validation <- if (binary_covariates)
       "conditional-probit moments; requires a linear, homoscedastic conditional liability model" else "not_applicable"
     packet <- common_packet
+    packet$parental_sibs <- fit$parental_sibs
     packet$theta <- theta
     packet$vcov_core <- V_core
     packet$vcov_full <- V
@@ -956,8 +1026,9 @@ print.ravel_report_plot <- function(x, ...) {
     packet$settings$lavaan_options <- options[c("estimator", "estimator.orig", "se", "parameterization",
                                                "fixed.x", "conditional.x", "std.lv")]
     residuals <- data.frame(outcome_variable = outcome$name, residual_model = specification,
-      parameter = names(fixed_corr), covariance = unname(fit$crossperson_resid[names(fixed_corr)]),
-      correlation = unname(fit$crossperson_resid_corr[names(fixed_corr)]))
+      parameter = names(fixed_corr),
+      covariance = unname(c(fit$crossperson_resid, fit$parental_sibs$resid_cov)[names(fixed_corr)]),
+      correlation = unname(c(fit$crossperson_resid_corr, fit$parental_sibs$resid_corr)[names(fixed_corr)]))
     list(summary = visible[wanted], fit_statistics = statistics, residuals = residuals,
          diagnostics = diagnostics, packet = packet)
   }, warning = function(w) {
@@ -969,7 +1040,7 @@ print.ravel_report_plot <- function(x, ...) {
     diagnostics$warnings <- unique(messages)
     tab <- data.frame(outcome_variable = outcome$name, regression = "RAVEL", scale = "visible",
       outcome_scale = if (outcome$type == "continuous") "prepared_phenotype_SD" else "SEM_probit_liability",
-      parameter = c("beta_D", "beta_M", "beta_P", "rho_visible"),
+      parameter = .report_parameters(.report_packet_roles(common_packet), "visible"),
       estimate = NA_real_, se = NA_real_, ci_low = NA_real_, ci_high = NA_real_, p_value = NA_real_,
       N = nrow(dat), inference = "unavailable", residual_model = specification, fit_status = "failed")
     list(summary = tab[wanted], fit_statistics = stats_table(c(N = nrow(dat)), "RAVEL", specification),

@@ -41,14 +41,14 @@ generation count, falling back to 15. Must match a finite-generation constrained
 \item{uncertainty}{Use the object's selected mode, model-based joint core
 covariance, or covariance of stored joint core bootstrap draws. All output
 intervals from this function use the joint delta method and are Wald intervals.}
-\item{core_pi_cov}{Optional named length-six vector of sampling covariances
+\item{core_pi_cov}{Optional named vector of sampling covariances for all core parameters
 between the core estimates \code{bD}, \code{bm}, \code{bf}, \code{rhoMF},
 \code{eta_m}, \code{eta_f}, evaluated at fixed true \code{pi}, and the external
 \code{pi} estimator on the raw probability scale. Defaults to independence.
 For a fit that depends on \code{pi}, this is not the covariance of its final
 plug-in core estimates with \code{pi}: that marginal covariance additionally
 contains \code{core_pi_sensitivity * Var(pi)}.}
-\item{core_pi_sensitivity}{Optional named length-six derivative of the fitted
+\item{core_pi_sensitivity}{Optional named derivative of the entire fitted
 core with respect to the \code{pi} supplied during SEM fitting. Computed by
 perturbed refitting for a live finite-generation fit when needed; required for
 a pi-dependent transferred packet. Applies only to pi-dependent constrained
@@ -77,6 +77,14 @@ uncertainty are not used as inputs or counted twice. The original fit object
 is not modified. Supply the desired uncertainty input for the new correction;
 the function does not implicitly reuse an earlier pi SE.
 
+Parental-sibling fits and transfer packets retain the entire enlarged joint
+core covariance. Maternal siblings add \code{bms}, \code{kap_m},
+\code{chi_ms}, and \code{eta_ms}; paternal siblings add \code{bfs},
+\code{kap_f}, \code{chi_fs}, and \code{eta_fs}; including both also adds
+\code{zeta}. Optional covariance and sensitivity vectors must name every
+included core parameter. Uncertainty in each parent-specific contrast includes
+its covariance with the corresponding sibling coefficient.
+
 Confidence intervals remain supported for compatibility. A confidence interval
 alone does not determine a variance, so this input requires a normal-Wald or
 logit-Wald interpretation, with bounds symmetric about
@@ -88,7 +96,7 @@ bounds may lie outside [0,1]; they are a local sampling approximation and are
 never clipped. The point estimate must be physical. A nondegenerate interval
 at \code{pi = 0} requires a boundary-aware method and is rejected.
 
-Let \eqn{G} be the correction derivative with respect to the six core
+Let \eqn{G} be the correction derivative with respect to the fitted core
 parameters, \eqn{g} its partial derivative with respect to pi, and \eqn{s}
 the derivative of the fitted core with respect to an input pi. The total pi
 derivative is \eqn{a = g + Gs}. If \eqn{V} is the conditional core covariance,
@@ -118,24 +126,26 @@ equilibrium and after one generation the constrained measurement model does
 not depend on pi. Covariance matrices may be singular because of exact
 constraints, but must be positive semidefinite.
 
-Bootstrap mode requires joint six-parameter draws with at least 80 percent
+Bootstrap mode requires joint core-parameter draws with at least 80 percent
 and at least ten complete draws. It uses their covariance in the joint delta
 method; its intervals are not bootstrap percentile intervals. Legacy results
 without joint draws can be used with explicit \code{uncertainty = "lavaan"}.
 These are local first-order intervals, which may extend beyond parameter
 boundaries and are not truncated. Transformation failures are reported.
 }
-\value{An eight-row data frame with corrected estimates, standard errors,
+\value{A data frame with corrected estimates, standard errors,
 confidence limits, p-values and inference metadata. The
 \code{pi_uncertainty_source} column and \code{pi_uncertainty} attribute identify
 direct SE input (\code{source = "se"}) or CI input (\code{source = "ci"}).
 Direct SE input retains the supplied raw-scale SE and has no CI bounds, level,
 or scale in the metadata. The \code{covariance}
-attribute is the full eight-by-eight transformed covariance, including
+attribute is the full transformed covariance, including
 dependence between raw and standardized scales. Attributes \code{jacobian},
 \code{partial_jacobian}, \code{joint_input_covariance},
 \code{variance_components}, and \code{pi_uncertainty} retain the derivatives,
-joint input covariance, variance contributions and external-uncertainty assumptions.}
+joint input covariance, variance contributions and external-uncertainty assumptions.
+Trio-only input produces eight rows; each parental sibling adds four rows
+(sibling coefficient and parent-specific contrast on raw and standardized scales).}
 \section{Estimated-state output}{For \code{am_correction = "estimated_state"},
 the \code{estimated_state} attribute contains point diagnostics plus a
 \code{summary} table, joint \code{covariance}, and \code{jacobian} for offspring
