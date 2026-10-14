@@ -94,17 +94,62 @@ independent trio per row.
 
 ## Choose the assortment assumptions
 
-| `fit_constraints` | Use when you want… |
-|---|---|
-| `"estimated_state"` | Inheritance constraints, with variance growth estimated from the data and no specified generation count |
-| `"equilibrium"` | Equilibrium transmission and stable within-score reliability across family roles |
-| `"n_gen"` | A specified constant-strength history from random-mating founders; supply `am_n_generations` |
-| `"none"` | The original unconstrained SEM; assortment history enters only the total correction |
+All modes estimate **separate, unknown reliabilities for PGS1 and PGS2** and
+assume independent errors between the two score versions. The constrained
+modes add the following restrictions to the base trio model:
 
-The constrained modes fix within-score error correlations to 0 between spouses
-and 0.5 between child and parent. They retain independent errors between PGS
-versions and allow the versions to have different reliabilities. Choose these
-restrictions on scientific grounds; greater precision depends on their validity.
+| `fit_constraints` | Visible genetic variance growth (child / parent) | Reliability within each PGS | Latent child–parent correlations |
+|---|---|---|---|
+| `"estimated_state"` | Estimated from the data; no generation count | Equal in mother and father; child follows estimated growth | Equal for both parents; linked to growth and fitted spouse correlation |
+| `"equilibrium"` | Fixed to **1** | Equal in mother, father and child | Both fixed to **(1 + fitted spouse correlation) / 2** |
+| `"n_gen"` | Determined by fitted assortment, supplied pi and `am_n_generations` | Equal in mother and father; child follows modeled growth | Equal for both parents; linked to growth and fitted spouse correlation |
+| `"none"` | No growth restriction in the SEM | Free across family roles | Estimated separately for mother and father |
+
+The three constrained modes also fix **within-score error correlations** to
+**0 between spouses** and **0.5 between child and parent**; these are estimated
+by default with `"none"`. Spouse signal correlation and outcome coefficients
+remain estimated in every mode. `"n_gen"` assumes constant-strength assortment
+from random-mating founders; `"estimated_state"` retains the founder and
+Mendelian segregation assumptions without specifying a duration. Greater
+precision depends on these restrictions being appropriate for your data.
+
+<details>
+<summary>View the trio model and parameter labels</summary>
+
+![RAVEL trio SEM: each person's genetic signal has two PGS indicators and a path to the phenotype. The genetic relatedness block shows spouse and child-parent signal correlations; edge labels identify estimated and constrained parameters.](docs/figures/ravel-model.svg)
+
+The labels refer to these `fit_constraints` settings:
+
+| Label | `"none"` | `"equilibrium"`, `"n_gen"` and `"estimated_state"` |
+|---|---|---|
+| **E** | Estimated | Estimated |
+| **E\*** (score loadings and error variances) | Freely estimated for each score and family role | Jointly estimated subject to the mode's reliability restrictions in the table above; not fixed to known values |
+| **E/C** (child–parent signal correlations) | Mother and father correlations estimated separately | Equal to one another and linked to fitted spouse correlation and variance growth |
+
+Thus **E and E\* are estimated in all four modes**. The asterisk indicates
+additional reliability restrictions in `"equilibrium"`, `"n_gen"` and
+`"estimated_state"`; it does not mean the loadings or error variances are known.
+The diagram uses the default freely estimated parental outcome paths.
+The genetic relatedness block contains signal correlations, not score-error
+correlations. Each latent G has variance 1 for scale identification; biological
+variance growth can still differ from 1.
+
+For the three constrained modes, `eta_m = eta_f = (1 + rho) / (2 * sqrt(B))`,
+where B is the child/parent visible-variance ratio from the table above.
+For each score separately,
+`R_child = B * R_parent / (1 - R_parent + B * R_parent)`;
+PGS1 and PGS2 need not have equal reliability or loadings.
+
+Score-error correlations are omitted to keep the paths readable: cross-version
+errors have correlation **0** in every mode; within-version spouse and
+child–parent error correlations are fixed to **0** and **0.5** in constrained
+modes, and estimated by default with `"none"`. Errors are orthogonal to the
+signal and outcome. Pi is external to this diagram: it supplies total-effect
+correction and also enters `"n_gen"` fitting after the first generation.
+This base continuous-outcome model omits optional covariates, parental siblings
+and interactions; see their sections below and the [methods](docs/methods.md).
+
+</details>
 
 ```r
 fit_eq <- ravel_fit(dat, pi = .4, fit_constraints = "equilibrium")

@@ -22,6 +22,9 @@ Thumbs.db
 docs/*
 !docs/methods.md
 !docs/reference.md
+!docs/figures/
+docs/figures/*
+!docs/figures/ravel-model.svg
 inst/doc/*.html
 inst/doc/*.pdf
 vignettes/*.html
