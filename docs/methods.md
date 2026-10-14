@@ -465,8 +465,24 @@ their final Jacobian to copies of the fitted models before calling the public
 robust difference-test function. This makes the delta calculation use the
 actual constrained moment spaces, including when a software version does not
 populate its linear-constraint projection for nonlinear restrictions. The
-stored scientific fits are unchanged. This calculation is checked against an
-independent constrained-information implementation.
+stored scientific fits are unchanged.
+
+This adaptation relies on lavaan internals. It has been run and cross-checked
+only on lavaan 0.6-19. On that version the reported statistic matched an
+independent constrained-information calculation (numerical moment and
+constraint Jacobians, observed information projected onto the final
+constraint tangent, normal-theory weights and the sample fourth-moment matrix)
+to within 5e-5 for trio, one- and two-parental-sibling, equilibrium,
+finite-history, estimated-state and fixed-residual configurations. lavaan's own
+calculation without the supplied tangent differed by less than 0.1%. Each call
+also recomputes the tangent-projected statistic directly and returns
+`invalid_robust_test` if it differs from lavaan's by more than 1e-6
+(relative), so a lavaan version that handles the supplied tangent differently
+fails safely instead of reporting a different statistic. The package accepts
+lavaan >= 0.6-12, but other versions are not otherwise validated for this
+diagnostic; `software$lavaan` records the version used. Satorra-Bentler (2010)
+differences are not valid comparators, because the two models are nested in
+their moments, not in their parameters.
 
 For reproducibility across input units, both diagnostic fits first express
 each observed score and the outcome in units of its sample SD. Intercepts and
@@ -477,6 +493,13 @@ finite-sample delta projection between the two fitted moment spaces. Positive
 rescaling of an input score therefore gives the same diagnostic problem.
 
 Both models use the same data, mean structure and external fitting constraints.
+The test conditions on every fitting setting of the scientific model: the
+constraint mode, the number of generations, any fixed residual covariances or
+correlations and, for finite histories, the external pi. It does not
+integrate over uncertainty in any of these; assess sensitivity by refitting
+under alternative settings. In constrained modes the score-only model is
+weakly identified when the spouse score correlation is near zero, and the
+diagnostic then returns a non-ok status.
 When a specified finite history makes the measurement model depend on pi,
 the test is conditional on that supplied pi. Adding pi sampling error to
 corrected-effect standard errors does not make the diagnostic unconditional.
@@ -547,22 +570,44 @@ the trio scores repeated, plus `interactions = "age"` and `cluster = "FID"`.
 This fits a population-averaged growth model: estimating equations treat rows
 as independent, and cluster-robust (sandwich) standard errors account for
 repeated rows and within-family correlation. Families with more occasions get
-more weight. Main effects and interaction coefficients are consistent under
-random intercepts and slopes, but their variances are not estimated. A squared
+more weight, so estimates describe the row-weighted population of observed
+occasions. Main effects and interaction coefficients are consistent under
+random intercepts and slopes that are independent of the genetic factors and
+of visit number and timing. Their variances are not estimated. Sandwich
+standard errors account for within-family correlation only. They do not
+correct bias from visit timing, attrition or missingness that depends on
+genotype or outcome, or from a misspecified age trend. A squared
 age term (centred, for example, at age2 = 0 for (age - 10)^2) allows curvature.
 
 **Validation.** Gaussian latent trios were simulated: 6,000 families with 1-4
-occasions at ages 4-16, random intercepts and slopes, and true
-g = (0.020, 0.010, 0) for (child, mother, father). Over 200 replicates:
+occasions at ages 4-16 (about 15,000 rows), random intercepts and slopes, and
+true g = (0.020, 0.010, 0) for (child, mother, father). Occasion counts and
+ages were drawn independently of genotype and outcome, and all data were
+complete. The long-format design was run as a prespecified 1,000-replicate
+study. All fits converged and passed the admissibility checks on the first
+attempt, so no replicate was excluded. The cross-sectional design used 200
+replicates.
 
-| | Bias in g | 95% coverage of g | Main-effect coverage |
-|---|---|---|---|
-| Long format | below 0.001 | 0.95, 0.91, 0.95 | 0.92-0.96 |
-| Cross-sectional (one row per child) | below 0.001 | 0.97-0.98 | 0.95-0.96 |
+| | Replicates | Bias | Observed coverage of nominal 95% CIs for g | Main-effect coverage |
+|---|---|---|---|---|
+| Long format | 1,000 (MC SE about 0.007) | below 0.001 | 0.954, 0.952, 0.954 | 0.948, 0.947, 0.955 |
+| Cross-sectional (one row per child) | 200 (MC SE about 0.015) | below 0.001 | 0.97-0.98 | 0.95-0.96 |
 
-In long format the child main-effect SE was about 10% small (Monte Carlo SD
-0.028, mean SE 0.026). The naive observed-score interaction was attenuated
-(0.015 for a true 0.020).
+In long format the mean cluster-robust SE was within 3.5% of the Monte Carlo
+SD for every coefficient (ratio 0.99-1.03). An earlier 200-replicate run of the
+same design gave 0.91 for the maternal interaction and a child main-effect SE
+about 7% below its Monte Carlo SD. Both were Monte Carlo variability: across
+five consecutive 200-seed blocks of the 1,000-replicate run, coverage ranged
+from 0.93 to 0.97 for g_M and from 0.92 to 0.985 over all six coefficients.
+The maternal interaction showed a small downward bias (-0.00036, about 4% of
+its true value), which halved at 12,000 families. The naive observed-score
+interaction was attenuated (0.015 for a true 0.020).
+
+The built-in observed-score comparator (`vanilla_regression`) is not matched
+to these models. It adds each moderator as a main effect but no
+PGS-by-moderator terms, so its PGS coefficients average over the moderator
+instead of referring to x_0. Its SEs are ordinary `lm` SEs that treat repeated
+rows as independent.
 
 **Total-liability scale.** Suppose the phenotype acts on the role-standardized
 total liabilities, Y = beta'T + gamma'(T x~) + c x~ + e, with x~ = x - x_0.
@@ -585,11 +630,23 @@ Two conditions apply:
    diagonal under assortment with hidden variation, so omitted terms load on
    the included ones and, when mu is not 0, on the main effects through
    mu gamma (A^{-1}B e_r - B_rr e_r). With pi > 0, `interaction_roles` therefore
-   defaults to all family members, and an incomplete set is rejected.
-2. The moderator is independent of the genetic components. This is plausible
-   for age but not, for example, for socioeconomic status. The fit reports
-   the latent correlation of each G with the moderator and warns when one is
-   clearly nonzero.
+   defaults to all family members, and an incomplete set is rejected. The
+   same rule applies when `ravel_correct_pi()` corrects an interaction fit
+   after fitting; it corrects main effects only, so refit with
+   `ravel_fit(..., pi = )` for corrected interaction rows.
+2. The moderator is independent of every family member's visible and hidden
+   genetic components in the analysed rows. Zero correlations are not enough:
+   x = G^2 - 1 + G H, with G and H independent standard normal visible and
+   hidden parts, is uncorrelated with both but breaks the map. Age is not
+   independent automatically: cohort effects, selective recruitment or
+   attrition related to genotype can break it. Independence is implausible
+   for socioeconomic status. The fit reports the latent correlation of each
+   visible G with the moderator and warns when one is clearly nonzero. A zero
+   correlation is necessary for independence but not sufficient. The check
+   cannot detect nonlinear dependence or dependence on hidden components, so
+   the assumption must be justified substantively. (Independence is
+   sufficient, not necessary: under the Gaussian model the map needs only
+   E[R | G, x] = 0 for the hidden residual R = T - (A^{-1}B)'G.)
 
 Corrected interactions (`beta_D:age`, ..., and `delta_M:age` with siblings) use
 delta-method standard errors over the joint SEM covariance of the trio core,
@@ -606,12 +663,19 @@ interaction on total liability. Over 100 replicates:
 |---|---|---|---|
 | True gamma | 0.020 | 0.010 | 0 |
 | Corrected mean | 0.0201 | 0.0097 | -0.0001 |
-| Coverage | 0.95 | 0.96 | 0.95 |
+| Observed 95% coverage (MC SE about 0.022) | 0.95 | 0.96 | 0.95 |
 | Visible mean | 0.0148 | 0.0088 | 0.0025 |
 
 Corrected main effects in the same fits had 0.96 coverage.
 
-**Scope.** Interactions need a continuous outcome.
+**Scope.** Interactions need a continuous outcome. All validation data were
+complete. Product indicators are non-Gaussian and are computed from the scores
+and the moderator, but FIML treats them as separate Gaussian variables. With
+missing scores, moderators or outcomes, including families without a parental
+sibling, the estimates are consistent if values are missing completely at
+random (MCAR). Under MAR they can be inconsistent, and robust standard errors
+do not fix this. Other missing-data use needs its own justification and
+checks.
 
 ## Parental midpoint and deviation contrasts
 
@@ -639,9 +703,11 @@ component.
 
 The contrasts are linear in (b_M, b_P), so they use the joint covariance of the
 fit: lavaan (cluster-robust when `cluster` is set), the pi-aware corrected
-covariance, or joint bootstrap draws. This gives the same estimate and Wald test
-as fitting the reparameterized model, and agrees with a likelihood-ratio test of
-b_M = b_P. A z test built from separate SEs ignores Cov(b_M, b_P) and is
+covariance, or joint bootstrap draws. On the visible scale this gives the same
+estimate and Wald test as fitting the reparameterized model. A likelihood-ratio
+test of b_M = b_P (scaled for MLR) is asymptotically equivalent, but its
+statistic need not equal the Wald statistic in a finite sample. On the
+corrected scales the test is a delta-method Wald test. A z test built from separate SEs ignores Cov(b_M, b_P) and is
 miscalibrated. Contrasts are reported on the visible scale, on the corrected
 standardized scale when pi > 0, and on the raw scale with `include_raw = TRUE`.
 

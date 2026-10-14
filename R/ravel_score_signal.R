@@ -329,6 +329,41 @@
   fit
 }
 
+#' Tangent-projected Satorra (2000) statistic computed directly
+#'
+#' Independent of whether lavTestLRT honours the supplied eq.constraints.K
+#' slot: projects the information onto the final equality-constraint tangent
+#' and forms the scaled-and-shifted statistic. Used as a runtime self-check.
+#' @noRd
+.ravel_score_signal_reference_lrt <- function(f0, f1, df) {
+  nullspace <- function(A) {
+    z <- svd(A, nu = 0, nv = ncol(A))
+    rank <- sum(z$d > 1e-8 * max(z$d))
+    z$v[, seq.int(rank + 1L, ncol(A)), drop = FALSE]
+  }
+  fits <- list(f0, f1)
+  J <- lapply(fits, function(f) as.matrix(lavaan::lavInspect(f, "delta")))
+  tangent <- lapply(1:2, function(i) {
+    A <- fits[[i]]@Model@con.jac
+    ceq <- attr(A, "ceq.idx")
+    if (!length(A) || !length(ceq)) return(diag(ncol(J[[i]])))
+    nullspace(A[ceq, , drop = FALSE])
+  })
+  H <- MASS::ginv(J[[2]] %*% tangent[[2]]) %*% (J[[1]] %*% tangent[[1]])
+  A <- t(nullspace(t(H))) %*% t(tangent[[2]])
+  P <- lavaan::lavTech(f1, "information")
+  N <- tangent[[2]]
+  Pn <- N %*% solve(crossprod(N, P %*% N)) %*% t(N)
+  Q <- Pn %*% t(A) %*% solve(A %*% Pn %*% t(A)) %*% A %*% Pn
+  W <- lavaan::lavTech(f1, "WLS.V")[[1]]
+  Gamma <- lavaan::lavTech(f1, "Gamma")[[1]]
+  UG <- W %*% J[[2]] %*% Q %*% t(J[[2]]) %*% W %*% Gamma
+  scale <- sqrt(df / sum(diag(UG %*% UG)))
+  shift <- df - scale * sum(diag(UG))
+  raw <- 2 * (lavaan::fitMeasures(f1, "logl") - lavaan::fitMeasures(f0, "logl"))
+  c(statistic = unname(raw * scale + shift), scale = unname(scale), shift = unname(shift))
+}
+
 #' Test score-specific phenotype associations
 #'
 #' Compare the shared latent-factor outcome model with unrestricted outcome
@@ -587,6 +622,17 @@ ravel_test_score_signal <- function(result, data = NULL) {
         !is.finite(tab[["Chisq diff"]][row]) || tab[["Chisq diff"]][row] < 0 ||
         !is.finite(tab[["Pr(>Chisq)"]][row]))
       return(finish("invalid_robust_test", "A finite scaled-and-shifted delta-Jacobian comparison was not returned; no unscaled fallback is reported."))
+    # lavTestLRT is driven through internal slots; recompute the projected
+    # statistic directly and refuse to report if the two disagree.
+    reference <- tryCatch(.ravel_score_signal_reference_lrt(h0$value, h1$value, expected),
+      error = function(e) NULL)
+    out$diagnostics$reference_statistic <- reference
+    if (is.null(reference) || !all(is.finite(reference)) ||
+        abs(reference[["statistic"]] - tab[["Chisq diff"]][row]) >
+          1e-6 * max(1, abs(reference[["statistic"]])))
+      return(finish("invalid_robust_test", paste0("lavTestLRT's robust statistic did not match the directly ",
+        "computed tangent-projected statistic (lavaan ", as.character(utils::packageVersion("lavaan")),
+        "); no robust p value is reported.")))
     out$statistic <- tab[["Chisq diff"]][row]
     out$df <- tab[["Df diff"]][row]
     out$p_value <- tab[["Pr(>Chisq)"]][row]

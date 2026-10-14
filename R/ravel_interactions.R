@@ -144,6 +144,50 @@
     PE$est[!is.na(PE$label) & PE$label == l & PE$op == "~"][1], numeric(1)), labels)
 }
 
+#' Variance of the full genetic predictor in an interaction model
+#'
+#' The genetic predictor is b'G + sum_j g_j'(G x_j), x_j on the internal
+#' centred/SD scale. Re-expressed at the moderator means m_j,
+#'   b'G + sum_j g_j'GX_j = b_bar'G + sum_j g_j'(GX_j - m_j G),
+#'   b_bar = b + sum_j m_j g_j,
+#' so each component is invariant to the centre. Uses the model-implied latent
+#' covariance matrix (no independence assumption) and model-scale coefficients.
+#' @param b Model-scale main coefficients named by role code (c, m, f, ms, fs).
+#' @noRd
+.ravel_interaction_variance <- function(fit, spec, b) {
+  J <- seq_along(spec$moderators)
+  theta <- .ravel_interaction_theta(fit, spec)
+  g <- lapply(J, function(j) {
+    out <- setNames(numeric(length(b)), names(b))
+    out[spec$codes] <- theta[vapply(spec$codes, .ravel_interaction_label, character(1), j = j)]
+    out
+  })
+  m <- lavaan::lavInspect(fit, "mean.ov")[spec$moderators]
+  shift <- Reduce(`+`, Map(`*`, g, m))
+  base_lv <- unname(c(c = "Gc", m = "Gm", f = "Gf", ms = "Gms", fs = "Gfs")[names(b)])
+  gx_lv <- unlist(lapply(J, function(j) sprintf("GX%s_%d", spec$codes, j)))
+  lv <- c(base_lv, gx_lv)
+  Psi <- lavaan::lavInspect(fit, "cov.lv")[lv, lv]
+  main <- c(b + shift, numeric(length(gx_lv)))
+  inter <- c(-shift, unlist(lapply(g, function(gj) gj[spec$codes])))
+  q <- function(u, v) drop(crossprod(u, Psi %*% v))
+  list(b_bar = b + shift, g = g, moderator_means = m,
+       moderator_cov = lavaan::lavInspect(fit, "cov.ov")[spec$moderators, spec$moderators, drop = FALSE],
+       components_vis = c(interaction = q(inter, inter), cross_main_interaction = 2 * q(main, inter)))
+}
+
+#' Total-scale interaction variance under moderator-genetic independence:
+#' sum_jk Cov(x_j, x_k) gamma_j' Sigma_TT gamma_k, gamma_j = map(g_j)
+#' @noRd
+.ravel_interaction_total_variance <- function(iv, map, Sigma_TT) {
+  gam <- lapply(iv$g, map)
+  C <- iv$moderator_cov
+  out <- 0
+  for (j in seq_along(gam)) for (k in seq_along(gam))
+    out <- out + C[j, k] * drop(crossprod(gam[[j]], Sigma_TT %*% gam[[k]]))
+  out
+}
+
 #' Rows for one moderator: per-role coefficients plus parent-specific contrasts
 #' @noRd
 .ravel_interaction_rows <- function(spec, j) {
@@ -160,13 +204,22 @@
   rows
 }
 
-#' Visible-scale interaction coefficients with lavaan inference
+#' Visible-scale interaction coefficients with lavaan or bootstrap inference
+#'
+#' With \code{draws} (bootstrap replicates of the model-scale interaction
+#' coefficients, one column per lavaan label), SEs are bootstrap SDs and
+#' intervals are percentile intervals of the same linear combinations.
 #' @noRd
-.ravel_interaction_table <- function(fit, spec, ci_level) {
+.ravel_interaction_table <- function(fit, spec, ci_level, draws = NULL) {
   if (is.null(spec)) return(NULL)
   theta <- .ravel_interaction_theta(fit, spec)
   V <- tryCatch(lavaan::vcov(fit), error = function(e) NULL)
   z <- stats::qnorm(1 - (1 - ci_level) / 2)
+  alpha <- 1 - ci_level
+  if (!is.null(draws)) {
+    draws <- draws[, names(theta), drop = FALSE]
+    draws <- draws[apply(is.finite(draws), 1L, all), , drop = FALSE]
+  }
   out <- do.call(rbind, lapply(seq_along(spec$moderators), function(j) {
     rows <- .ravel_interaction_rows(spec, j)
     s <- spec$scales[[spec$moderators[j]]]  # model uses x / SD(x); report per unit of x
@@ -179,25 +232,36 @@
       w / s
     })
     est <- vapply(weights, function(w) sum(w * theta), numeric(1))
-    se <- vapply(weights, function(w) {
-      if (is.null(V) || !all(names(theta) %in% rownames(V))) return(NA_real_)
-      sqrt(max(0, drop(t(w) %*% V[names(theta), names(theta)] %*% w)))
-    }, numeric(1))
+    if (!is.null(draws)) {
+      d <- draws %*% do.call(cbind, weights)
+      se <- apply(d, 2L, stats::sd)
+      lo <- apply(d, 2L, stats::quantile, probs = alpha / 2, names = FALSE)
+      hi <- apply(d, 2L, stats::quantile, probs = 1 - alpha / 2, names = FALSE)
+    } else {
+      se <- vapply(weights, function(w) {
+        if (is.null(V) || !all(names(theta) %in% rownames(V))) return(NA_real_)
+        sqrt(max(0, drop(t(w) %*% V[names(theta), names(theta)] %*% w)))
+      }, numeric(1))
+      lo <- est - z * se
+      hi <- est + z * se
+    }
     data.frame(parameter = rows$parameter, role = c(spec$roles, rep(NA_character_, nrow(rows) - length(spec$roles))),
       moderator = spec$moderators[j], center = unname(spec$centers[[spec$moderators[j]]]),
-      estimate = est, se = se, ci_low = est - z * se, ci_high = est + z * se, stringsAsFactors = FALSE)
+      estimate = est, se = unname(se), ci_low = unname(lo), ci_high = unname(hi), stringsAsFactors = FALSE)
   }))
   out$p_value <- .uncertainty_p(out$estimate, out$se)
-  out$uncertainty_source <- if (identical(lavaan::lavInspect(fit, "options")$se, "robust.cluster"))
+  out$uncertainty_source <- if (!is.null(draws)) sprintf("bootstrap (%d reps)", nrow(draws)) else
+    if (identical(lavaan::lavInspect(fit, "options")$se, "robust.cluster"))
     "lavaan cluster-robust" else "lavaan/delta-method"
   rownames(out) <- NULL
   out
 }
 
-#' Fitted correlation of each genetic factor with each moderator
+#' Fitted correlation of each visible genetic factor with each moderator
 #'
 #' The total-liability mapping of interactions assumes the moderator is
-#' independent of the genetic components, so these should be near zero.
+#' independent of the visible and hidden genetic components. Independence
+#' implies these are zero; zero values do not imply independence.
 #' @noRd
 .ravel_interaction_independence <- function(fit, spec, latents) {
   if (is.null(spec)) return(NULL)
@@ -225,10 +289,13 @@
 #' each moderator, with delta-method uncertainty over the joint SEM covariance
 #' of the core parameters and the interaction coefficients, optionally adding
 #' external pi uncertainty (and, for pi-dependent fits, the refit sensitivity).
+#' External pi must be independent of the whole SEM estimator: core_pi_cov
+#' covers only the core estimates, and the interaction/pi covariance is not an
+#' input, so correlated-pi interaction inference is reported as unavailable.
 #' @noRd
 .ravel_interaction_corrected <- function(fit, estimates, spec, h, am_correction, am_n_generations,
                                          sib_roles, ci_level, pi_se = NULL, core_pi_cov = NULL,
-                                         sensitivity = NULL) {
+                                         sensitivity = NULL, draws = NULL) {
   if (is.null(spec)) return(NULL)
   core_labels <- c(.report_core_labels, .sib_core_labels(sib_roles))
   core <- c(bD = unname(estimates$beta_vis["bD"]), bm = unname(estimates$beta_vis["bm"]),
@@ -238,8 +305,17 @@
   gtheta <- .ravel_interaction_theta(fit, spec)
   V_full <- tryCatch(lavaan::vcov(fit), error = function(e) NULL)
   with_pi <- !is.null(pi_se) && pi_se > 0
+  # Zero-filling Cov(interaction, pi) beside a nonzero core/pi block is an
+  # unstated assumption and need not give a valid joint covariance.
+  correlated_pi <- with_pi && !is.null(core_pi_cov) && any(core_pi_cov[core_labels] != 0)
+  if (correlated_pi && is.null(draws))
+    warning("Corrected interaction uncertainty is unavailable with a nonzero core_pi_cov: ",
+            "the interaction/pi covariance is not supplied. Estimates are retained.", call. = FALSE)
   z <- stats::qnorm(1 - (1 - ci_level) / 2)
+  alpha <- 1 - ci_level
+  n_draws <- NA_integer_
   sib_code <- c(ms = "ms", fs = "fs")[sib_roles]
+  status <- "ok"
 
   out <- lapply(seq_along(spec$moderators), function(j) {
     g_labels <- vapply(spec$codes, .ravel_interaction_label, character(1), j = j)
@@ -268,51 +344,122 @@
     want <- names_std[sub(":.*$", "", rows$parameter)]
     n_half <- length(estimate) / 2
     idx <- match(want, keys)
-    J <- tryCatch(.finite_difference_jacobian(transform, x), error = function(e) NULL)
-    if (!is.null(J)) colnames(J) <- names(x)
-    Vx <- matrix(0, length(x), length(x), dimnames = list(names(x), names(x)))
-    shared <- intersect(x_labels, rownames(V_full))
-    if (!is.null(V_full)) Vx[shared, shared] <- V_full[shared, shared, drop = FALSE]
-    if (with_pi) {
-      Vx["pi", "pi"] <- pi_se^2
-      if (!is.null(core_pi_cov)) Vx[core_labels, "pi"] <- Vx["pi", core_labels] <- core_pi_cov[core_labels]
-      if (!is.null(J) && !is.null(sensitivity))
-        J[, "pi"] <- J[, "pi"] + drop(J[, x_labels, drop = FALSE] %*% sensitivity[x_labels])
+    se <- lo <- hi <- rep(NA_real_, length(estimate))
+    # Joint bootstrap draws of (core, interaction) on the model scale.
+    dj <- NULL
+    if (!is.null(draws) && all(x_labels %in% colnames(draws))) {
+      dj <- draws[, x_labels, drop = FALSE]
+      dj <- dj[apply(is.finite(dj), 1L, all), , drop = FALSE]
     }
-    cov <- if (is.null(J) || any(!is.finite(J))) NULL else J %*% Vx %*% t(J)
-    se <- if (is.null(cov)) rep(NA_real_, length(estimate)) else sqrt(pmax(0, diag(cov)))
+    # Never zero-fill an unavailable block: missing SEM covariance, labels or
+    # draws, an unsupported cross-covariance, or an invalid joint matrix gives NA.
+    Vsrc <- if (correlated_pi) NULL else if (!is.null(draws)) {
+      if (!is.null(dj) && nrow(dj) > 1L) stats::cov(dj) else NULL
+    } else if (!is.null(V_full) && all(x_labels %in% rownames(V_full))) {
+      V_full[x_labels, x_labels, drop = FALSE]
+    } else NULL
+    if (!is.null(dj)) n_draws <<- nrow(dj)
+    if (!is.null(Vsrc) && !with_pi && !is.null(dj)) {
+      # Percentile intervals of the per-replicate corrected coefficients, as for
+      # the main corrected effects.
+      td <- t(apply(dj, 1L, function(r) tryCatch(transform(r),
+        error = function(e) rep(NA_real_, length(estimate)))))
+      td <- td[apply(is.finite(td), 1L, all), , drop = FALSE]
+      n_draws <<- nrow(td)
+      if (nrow(td) > 1L) {
+        se <- apply(td, 2L, stats::sd)
+        lo <- apply(td, 2L, stats::quantile, probs = alpha / 2, names = FALSE)
+        hi <- apply(td, 2L, stats::quantile, probs = 1 - alpha / 2, names = FALSE)
+      } else status <<- "invalid"
+    } else if (!is.null(Vsrc)) {
+      J <- tryCatch(.finite_difference_jacobian(transform, x), error = function(e) NULL)
+      Vx <- matrix(0, length(x), length(x), dimnames = list(names(x), names(x)))
+      Vx[x_labels, x_labels] <- Vsrc
+      if (with_pi) Vx["pi", "pi"] <- pi_se^2
+      Vx <- tryCatch(.ravel_pi_validate_covariance(Vx, names(x), "Joint core/interaction/pi covariance"),
+                     error = function(e) NULL)
+      if (!is.null(J) && all(is.finite(J)) && !is.null(Vx)) {
+        colnames(J) <- names(x)
+        if (with_pi && !is.null(sensitivity))
+          J[, "pi"] <- J[, "pi"] + drop(J[, x_labels, drop = FALSE] %*% sensitivity[x_labels])
+        cov <- J %*% Vx %*% t(J)
+        d <- diag((cov + t(cov)) / 2)
+        if (all(is.finite(d)) && all(d >= -1e-12)) se <- sqrt(pmax(0, d)) else status <<- "invalid"
+      } else status <<- "invalid"
+      lo <- estimate - z * se
+      hi <- estimate + z * se
+    } else if (!correlated_pi) status <<- "invalid"
     do.call(rbind, lapply(c("corrected_std", "corrected_raw"), function(scale) {
       k <- idx + if (scale == "corrected_raw") n_half else 0
       data.frame(scale = scale, parameter = rows$parameter, moderator = spec$moderators[j],
         estimate = unname(estimate[k]), se = unname(se[k]),
-        ci_low = unname(estimate[k] - z * se[k]), ci_high = unname(estimate[k] + z * se[k]),
+        ci_low = unname(lo[k]), ci_high = unname(hi[k]),
         stringsAsFactors = FALSE)
     }))
   })
   out <- do.call(rbind, out)
   out$p_value <- .uncertainty_p(out$estimate, out$se)
   cluster <- identical(lavaan::lavInspect(fit, "options")$se, "robust.cluster")
-  out$uncertainty_source <- paste0(if (cluster) "lavaan cluster-robust" else "lavaan/delta-method",
-    if (with_pi) " + pi (delta-Wald)" else "")
+  out$uncertainty_source <- if (correlated_pi)
+    "unavailable: correlated external pi (interaction/pi covariance not supplied)" else
+    if (status == "invalid") "unavailable: SEM covariance missing or not positive semidefinite" else
+    if (!is.null(draws)) {
+      if (with_pi) "bootstrap covariance + pi (delta-Wald)" else sprintf("bootstrap (%d reps)", n_draws)
+    } else paste0(if (cluster) "lavaan cluster-robust" else "lavaan/delta-method",
+      if (with_pi) " + pi (delta-Wald)" else "")
   rownames(out) <- NULL
   out
 }
 
+#' Interaction rows for the requested scale and uncertainty source
+#'
+#' Mirrors \code{.parental_sib_table}: \code{unc = NULL} (uncertainty "none")
+#' keeps the point estimates and drops all inference; a bootstrap selection uses
+#' the stored bootstrap tables, or falls back to lavaan with an explicit label
+#' when no interaction draws exist; corrected rows are unavailable when the
+#' requested external-pi correction failed.
+#' @noRd
+.ravel_interaction_rows_for <- function(result, unc, scale = c("visible", "corrected_std", "corrected_raw")) {
+  scale <- match.arg(scale)
+  ix <- result$interactions
+  if (is.null(ix)) return(NULL)
+  boot <- identical(unc$source, "bootstrap")
+  pick <- function(lav, bt) if (boot && !is.null(bt)) bt else lav
+  tab <- if (scale == "visible") pick(ix$table, ix$bootstrap$table) else {
+    ct <- pick(ix$corrected, ix$bootstrap$corrected)
+    if (is.null(ct)) NULL else ct[ct$scale == scale, , drop = FALSE]
+  }
+  if (is.null(tab) || !nrow(tab)) return(NULL)
+  rownames(tab) <- NULL
+  blank <- function(source, method) {
+    tab[c("se", "ci_low", "ci_high", "p_value")] <- NA_real_
+    tab$uncertainty_source <- source
+    tab$p_value_method <- method
+    tab
+  }
+  if (is.null(unc)) return(blank("none", "none"))
+  if (scale != "visible" && (!is.null(result$pi_correction_error) || !is.null(unc$pi_correction_error)))
+    return(blank("unavailable (incompatible pi/assortment state)", "unavailable"))
+  src <- tab$uncertainty_source[1]
+  tab$p_value_method <- if (startsWith(src, "unavailable")) "unavailable" else
+    if (grepl("pi (delta-Wald)", src, fixed = TRUE)) "normal_approx_from_joint_pi_delta_se" else
+    if (startsWith(src, "bootstrap")) "normal_approx_from_bootstrap_se" else "normal_approx_from_lavaan_se"
+  if (boot && !startsWith(src, "bootstrap") && !startsWith(src, "unavailable"))
+    tab$uncertainty_source <- paste0(tab$uncertainty_source, " (no bootstrap draws for interactions)")
+  tab
+}
+
 #' Print interaction coefficients
 #' @noRd
-.print_interactions <- function(result, digits, scale = c("visible", "corrected_std")) {
+.print_interactions <- function(result, unc, digits, scale = c("visible", "corrected_std")) {
   scale <- match.arg(scale)
-  tab <- if (scale == "visible") result$interactions$table else {
-    ct <- result$interactions$corrected
-    if (is.null(ct)) NULL else ct[ct$scale == "corrected_std", , drop = FALSE]
-  }
+  tab <- .ravel_interaction_rows_for(result, unc, scale)
   if (is.null(tab) || !nrow(tab)) return(invisible(NULL))
+  src <- if (identical(tab$uncertainty_source[1], "none")) "" else paste0("; ", tab$uncertainty_source[1])
   if (scale == "visible") {
-    cat(sprintf("\nGenetic x covariate interactions (visible scale; per SD of G per unit of covariate; %s):\n",
-                tab$uncertainty_source[1]))
+    cat(sprintf("\nGenetic x covariate interactions (visible scale; per SD of G per unit of covariate%s):\n", src))
   } else {
-    cat(sprintf("  Genetic x covariate interactions (standardized total liability; %s):\n",
-                tab$uncertainty_source[1]))
+    cat(sprintf("  Genetic x covariate interactions (standardized total liability%s):\n", src))
   }
   indent <- if (scale == "visible") "  " else "    "
   for (i in seq_len(nrow(tab))) {

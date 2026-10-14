@@ -348,3 +348,28 @@ test_that('the fixed-residual benchmark supports all roles and preserves covaria
   expect_equal(z$statistic,zz$statistic,tolerance=2e-5)
   expect_equal(z$p_value,zz$p_value,tolerance=2e-6)
 })
+
+
+test_that('the robust statistic matches the projected reference across supported designs', {
+  for (cfg in list(c('none','estimated_state'),c('both','estimated_state'),c('maternal','n_gen'))) {
+    x <- score_signal_fixture(cfg[1],mode=cfg[2],empirical=FALSE)
+    z <- ravel_test_score_signal(x$fit)
+    expect_identical(z$status,'ok',info=paste(cfg,collapse='/'))
+    independent <- score_signal_reference_lrt(z$fits$H0,z$fits$H1,z$df)
+    expect_equal(z$statistic,unname(independent['statistic']),tolerance=1e-7)
+    expect_equal(z$diagnostics$reference_statistic[['statistic']],z$statistic,tolerance=1e-9)
+  }
+})
+
+
+test_that('a robust statistic that disagrees with the projected reference is not reported', {
+  x <- score_signal_fixture('none',empirical=FALSE)
+  original <- .ravel_score_signal_reference_lrt
+  testthat::local_mocked_bindings(.ravel_score_signal_reference_lrt=function(f0,f1,df) {
+    out <- original(f0,f1,df); out[['statistic']] <- out[['statistic']]*1.01; out
+  })
+  z <- ravel_test_score_signal(x$fit)
+  expect_identical(z$status,'invalid_robust_test')
+  expect_true(all(is.na(c(z$statistic,z$p_value))))
+  expect_match(z$reason,'did not match')
+})

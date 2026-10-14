@@ -1,5 +1,29 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Review fixes for interactions, clustering and reporting
+
+- `ravel_correct_pi()` refuses a fit whose interactions omit a family member
+  when pi > 0 (its main effects would be biased when the moderator is not
+  centred at its mean). With complete roles it corrects main effects only and
+  warns that interaction rows need `ravel_fit(..., pi = )`.
+- `R2_model`, `R2_total_assumed` and their components include the interaction
+  terms and no longer depend on `interaction_center`.
+- Corrected interaction SEs validate the full joint covariance. They are
+  reported as unavailable, instead of zero-filled or clamped, when
+  `core_pi_cov` is nonzero or the SEM covariance is missing or invalid.
+- With `cluster`, an explicit `cluster_var` must name a column that equals or
+  nests the cluster; the bootstrap never silently falls back to row resampling.
+- Interaction rows honour the selected uncertainty (`none`, `lavaan`,
+  `bootstrap`). Bootstrap results keep joint interaction draws.
+- A failed external-pi correction clears every corrected interval, including
+  parental contrasts and bootstrap rows.
+- `ravel_test_score_signal()` recomputes the robust statistic directly and
+  returns `invalid_robust_test` if lavaan's differs.
+- Documentation qualifies the moderator independence check, FIML with product
+  indicators (MCAR only), row weighting in long format, the Wald and
+  likelihood-ratio equivalence, the unmatched plain-regression comparator and
+  the growth-model coverage (now a 1,000-replicate run).
+
 ## Parental midpoint and deviation contrasts
 
 - `parent_contrasts = TRUE` in `print_simple()`, `print_ravel_results()`,
@@ -8,9 +32,10 @@
   from it (`delta_M_mid` = bm - bf, `delta_P_mid` = bf - bm), mirroring the
   parental-sibling contrasts. They are reported on the visible scale, the
   corrected scale when pi > 0, and the raw scale with `include_raw`.
-- Uncertainty uses the fit's joint covariance or joint bootstrap draws, so the
-  deviation test equals a test of equal maternal and paternal coefficients in
-  the reparameterized model. Bootstrap results now also keep the corrected
+- Uncertainty uses the fit's joint covariance or joint bootstrap draws, so on
+  the visible scale the deviation test equals the Wald test of equal maternal
+  and paternal coefficients in the reparameterized model. A likelihood-ratio
+  test is asymptotically equivalent, not identical. Bootstrap results now also keep the corrected
   coefficient draws.
 
 ## Covariate confirmation no longer gates corrections
@@ -19,9 +44,10 @@
   `ravel_correct_pi()`, `ravel_correct_packet()` or `ravel_correct_grid()`. It
   never changed an estimate, and it is now accepted and ignored so existing
   calls still run.
-- The assumption it guarded is documented in the README instead: corrections
-  with covariates assume the visible-to-total mapping applies conditional on
-  them, which holds for covariates unrelated to genetic liability.
+- The assumption it guarded still applies and is documented in the README:
+  corrections with covariates assume the visible-to-total mapping applies
+  conditional on them. This holds for covariates independent of genetic
+  liability. RAVEL cannot check it from the data.
 
 ## Genetic x covariate interactions and growth models
 
@@ -38,11 +64,15 @@
 - With `pi > 0`, interaction coefficients are corrected to the total-liability
   scale by the main-effect map, for trios and parental-sibling fits
   (`delta_M:age` and so on). This requires interaction terms for every family
-  member (the default when `pi > 0`) and a moderator independent of genetic
-  liability; a latent-correlation check warns otherwise. External `pi_se` and
+  member (the default when `pi > 0`) and a moderator independent of every
+  family member's visible and hidden genetic components. A latent-correlation
+  check warns when a moderator is clearly correlated with a visible genetic
+  factor. It cannot detect nonlinear dependence or dependence on hidden
+  components, so independence must be justified substantively. External `pi_se` and
   finite-generation refit sensitivity are propagated.
-- Interactions require a continuous outcome. Fits without these options are
-  unchanged.
+- Interactions require a continuous outcome. Validation used complete data;
+  with missing values, FIML is supported only under MCAR. Fits without these
+  options are unchanged.
 - Constraint checks now evaluate lavaan's internal equality labels, which
   appear when parameter labels are shared across rows.
 

@@ -1737,7 +1737,11 @@
 #'   It relaxes exact constant-strength integer-generation history; a
 #'   compatibility diagnostic is returned, not an estimated integer count.
 #' @param n_boot Integer. Number of bootstrap replicates (0 = no bootstrap).
-#' @param cluster_var Character. Column name for cluster bootstrap sampling.
+#' @param cluster_var Character. Column whose values are resampled as whole
+#'   units by the bootstrap. Without \code{cluster}, rows are resampled when the
+#'   column is absent. With \code{cluster}, it defaults to \code{cluster}; an
+#'   explicit value must name a column that equals or nests \code{cluster}
+#'   (for example a site containing whole families).
 #' @param ci_level Numeric. Confidence level for bootstrap CIs.
 #' @param seed Integer. Random seed for reproducibility.
 #' @param verbose Logical. Print model syntax?
@@ -1759,6 +1763,8 @@
 #' @param core_pi_cov Optional named vector of covariances between all
 #'   conditional core estimates and external pi, on its raw probability scale.
 #'   Requires \code{pi_se}; omitted means independent external estimation.
+#'   Corrected interaction coefficients report no uncertainty when it is
+#'   nonzero, because their covariance with pi is not supplied.
 #' @param covariate_mapping_confirmed Deprecated and ignored. Retained so
 #'   existing calls still run; it never changed any estimate. Corrections with
 #'   covariates assume the visible-to-total mapping applies conditional on them
@@ -1796,10 +1802,13 @@
 #'   which share G's loadings. Coefficients are reported per SD of the
 #'   liability per unit of the covariate; main effects then refer to the
 #'   centre. With \code{pi > 0}, interactions are also corrected to the
-#'   total-liability scale by the main-effect map, which assumes the covariate
-#'   is independent of genetic liability. For growth models, supply long-format data (one row
-#'   per child-occasion) with \code{interactions = "age"} and \code{cluster};
-#'   add a squared-age column for curvature. Requires a continuous outcome.
+#'   total-liability scale by the main-effect map. This assumes the covariate is
+#'   independent of every family member's visible and hidden genetic components,
+#'   which cannot be checked from the data. For growth models, supply long-format
+#'   data (one row per child-occasion) with \code{interactions = "age"} and
+#'   \code{cluster}; families with more rows get more weight. Add a squared-age
+#'   column for curvature. Requires a continuous outcome. Validated for complete
+#'   data; with missing values, FIML assumes MCAR here.
 #' @param interaction_roles Character. Liabilities that interact with the
 #'   covariates: any of \code{"child"} (default), \code{"mother"},
 #'   \code{"father"}, and \code{"mat_sib"} / \code{"pat_sib"} when those
@@ -1831,14 +1840,14 @@
 #'     \item{var_total_assumed}{Role-specific variances \eqn{\operatorname{Var}(T_r^*)}}
 #'     \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 #'     \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
-#'     \item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale}
-#'     \item{components_total_assumed}{Variance decomposition on assumed total scale}
-#'     \item{R2_model}{Variance explained by the visible latent linear predictor}
+#'     \item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale. With interactions, the main components use the coefficients at the moderator means and \code{interaction} and \code{cross_main_interaction} components are added, so the decomposition does not depend on \code{interaction_center}.}
+#'     \item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction.}
+#'     \item{R2_model}{Variance explained by the visible latent linear predictor, including any genetic x covariate interaction terms (but not covariate main effects)}
 #'     \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}
 #'     \item{reliability}{Indicator-level reliability estimates}
 #'     \item{determinacy}{Factor-score determinacy per role}
 #'     \item{within_person_corr}{Within-person Cor(PGS1,PGS2) per role}
-#'     \item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied}
+#'     \item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
 #'     \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
 #'     \item{bootstrap}{Bootstrap results (if n_boot > 0), conditional on supplied pi}
 #'     \item{pi_correction}{When pi_se is supplied, the external-pi corrected table
@@ -1856,7 +1865,8 @@
 #'       interaction coefficients (\code{beta_D:age} and so on) with lavaan
 #'       (cluster-robust when \code{cluster} is set) inference, corrected
 #'       total-liability rows when \code{pi > 0}, and the latent correlation of
-#'       each genetic factor with each moderator.}
+#'       each visible genetic factor with each moderator. This screens for
+#'       linear dependence only and does not establish independence.}
 #'       \item{cluster, n_clusters}{The cluster column and number of clusters, when
 #'       supplied.}
 #'   }
@@ -2081,7 +2091,22 @@ ravel_fit <- function(dat,
     if (outcome != "continuous")
       stop("Cluster-robust fitting currently requires a continuous outcome.")
     n_clusters <- length(unique(dat[[cluster]]))
-    if (missing(cluster_var)) cluster_var <- cluster
+    if (missing(cluster_var)) {
+      cluster_var <- cluster
+    } else {
+      # Never fall back to row resampling for clustered data: the bootstrap
+      # unit must be the cluster itself or a coarser unit that nests it.
+      if (!is.character(cluster_var) || length(cluster_var) != 1L ||
+          !cluster_var %in% names(dat))
+        stop("With cluster set, cluster_var must name a column of dat (omit it to ",
+             "resample whole '", cluster, "' clusters).")
+      if (anyNA(dat[[cluster_var]]))
+        stop("The cluster_var column must not contain missing values.")
+      units <- unique(data.frame(c = dat[[cluster]], u = dat[[cluster_var]]))
+      if (anyDuplicated(units$c))
+        stop("Each '", cluster, "' cluster must lie within a single '", cluster_var,
+             "' value: the bootstrap unit must equal or nest the cluster.")
+    }
   }
 
   # Retain only scope metadata for the optional likelihood diagnostic.
@@ -2294,13 +2319,25 @@ ravel_fit <- function(dat,
     theta_Y <- PE[PE$lhs == "Y" & PE$op == "~~" & PE$rhs == "Y", "est"]
     theta_Y <- if (length(theta_Y) == 0) NA_real_ else theta_Y[1]
 
+    # With genetic x covariate interactions the genetic predictor is
+    # b'G + sum_j g_j'(G x_j). Its variance is decomposed at the moderator
+    # means (main effects b_bar = b + sum_j E[x_j] g_j, plus interaction and
+    # main-interaction covariance components), so that R2 and every component
+    # are invariant to interaction_center.
+    b_main <- c(c = unname(bD), m = unname(bm), f = unname(bf),
+      if (!is.null(sib_input)) setNames(unname(sib_input$b), sib_input$roles))
+    iv <- if (is.null(interaction_spec)) NULL else
+      .ravel_interaction_variance(fit, interaction_spec, b_main)
+    b_ref <- if (is.null(iv)) b_main else iv$b_bar
     components_vis <- if (is.null(sib_input)) {
-      .variance_components_trio(beta_vis, cov_cm, cov_cf, cov_mf)
+      .variance_components_trio(setNames(b_ref[c("c", "m", "f")], c("bD", "bm", "bf")),
+        cov_cm, cov_cf, cov_mf)
     } else {
-      .variance_components_general(c(beta_vis, sib_input$b),
+      .variance_components_general(b_ref,
         .sib_latent_matrix(cov_cm, cov_cf, cov_mf, sib_input),
         c("child", "mother", "father", c(ms = "mat_sib", fs = "pat_sib")[sib_roles]))
     }
+    if (!is.null(iv)) components_vis <- c(components_vis, iv$components_vis)
     s2_gen_vis <- sum(components_vis)
     varY_model <- if (length(fixed_effects) > 0L) {
       lavaan::lavInspect(fit, "cov.ov")["Y", "Y"]
@@ -2309,8 +2346,26 @@ ravel_fit <- function(dat,
     }
     R2_model <- s2_gen_vis / varY_model
 
+    # Visible-to-total map of a coefficient vector named by role code; linear,
+    # so it applies equally to main effects and interaction vectors.
+    total_map <- function(v) {
+      sib <- sib_input
+      if (!is.null(sib)) sib$b <- setNames(unname(v[sib$roles]), names(sib_input$b))
+      est <- .compute_scale_estimates(v[c("c", "m", "f")], cov_cm, cov_cf, cov_mf,
+        h, am_correction, am_n_generations, sib = sib)
+      c(est$beta_total_assumed, if (!is.null(sib)) est$sib_total$raw[names(sib$b)])
+    }
+    beta_total_ref <- if (is.null(iv)) {
+      c(beta_total_assumed, if (!is.null(sib_input)) scale_estimates$sib_total$raw[names(sib_input$b)])
+    } else total_map(b_ref)
+    Sigma_TT <- if (is.null(sib_input)) {
+      vt <- var_total_assumed; ct <- latent_cov_total_assumed
+      matrix(c(vt[["child"]], ct[["eta_m"]], ct[["eta_f"]],
+               ct[["eta_m"]], vt[["mother"]], ct[["rhoMF"]],
+               ct[["eta_f"]], ct[["rhoMF"]], vt[["father"]]), 3L)
+    } else scale_estimates$sib_total$Sigma_TT
     components_total_assumed <- .variance_components_trio_general(
-      beta_total_assumed,
+      beta_total_ref[1:3],
       var_c = var_total_assumed["child"],
       var_m = var_total_assumed["mother"],
       var_f = var_total_assumed["father"],
@@ -2319,10 +2374,13 @@ ravel_fit <- function(dat,
       cov_mf = latent_cov_total_assumed["rhoMF"]
     )
     if (!is.null(sib_input)) {
-      st <- scale_estimates$sib_total
       components_total_assumed <- .variance_components_general(
-        c(beta_total_assumed, st$raw[names(sib_input$b)]), st$Sigma_TT, rownames(st$Sigma_TT))
+        beta_total_ref, Sigma_TT, rownames(Sigma_TT))
     }
+    # Under the independence assumption of the interaction correction the
+    # main-interaction covariance is zero on the total scale.
+    if (!is.null(iv)) components_total_assumed <- c(components_total_assumed,
+      interaction = .ravel_interaction_total_variance(iv, total_map, Sigma_TT))
     s2_gen_total_assumed <- sum(components_total_assumed)
 
     # "Total genetic R2" is only directly interpretable if Y is standardized.
@@ -2427,6 +2485,9 @@ ravel_fit <- function(dat,
     sib_labels <- names(.parental_sib_coef_map(sib_roles))
     boot_sib <- boot_sib_std <- boot_sib_raw <-
       matrix(NA_real_, n_boot, length(sib_labels), dimnames = list(NULL, sib_labels))
+    gxe_labels <- names(.ravel_interaction_theta(fit, interaction_spec))
+    boot_gxe <- if (length(gxe_labels))
+      matrix(NA_real_, n_boot, length(gxe_labels), dimnames = list(NULL, gxe_labels)) else NULL
     n_ok <- 0
 
     for (b in seq_len(n_boot)) {
@@ -2445,6 +2506,9 @@ ravel_fit <- function(dat,
 
       ext_b <- tryCatch(.extract(fit_b, data_for_r2 = dat_b), error = function(e) NULL)
       if (is.null(ext_b)) next
+      if (!is.null(boot_gxe)) boot_gxe[b, ] <- tryCatch(
+        .ravel_interaction_theta(fit_b, interaction_spec)[gxe_labels],
+        error = function(e) NA_real_)
 
       boot_vis_bD[b] <- ext_b$beta_vis["bD"]
       boot_vis_bM[b] <- ext_b$beta_vis["bm"]
@@ -2504,6 +2568,7 @@ ravel_fit <- function(dat,
         source = "bootstrap",
         n_successful = n_ok,
         core_draws = boot_core,
+        interaction_draws = boot_gxe,
         minimum_success = max(10L, ceiling(.8 * n_boot)),
         ci_level = ci_level,
         visible = visible_block,
@@ -2710,6 +2775,9 @@ ravel_fit <- function(dat,
     # Genetic x covariate interactions (NULL when interactions = NULL)
     interactions = if (is.null(interaction_spec)) NULL else c(interaction_spec,
       list(table = .ravel_interaction_table(fit, interaction_spec, ci_level),
+           bootstrap = if (!is.null(boot_results$interaction_draws)) list(
+             table = .ravel_interaction_table(fit, interaction_spec, ci_level,
+               draws = boot_results$interaction_draws)),
            theta = .ravel_interaction_theta(fit, interaction_spec),
            independence = .ravel_interaction_independence(fit, interaction_spec,
              c("Gc", "Gm", "Gf", c(ms = "Gms", fs = "Gfs")[sib_roles])))),
@@ -2757,11 +2825,18 @@ ravel_fit <- function(dat,
       h, am_correction, am_n_generations, sib_roles, ci_level,
       pi_se = if (is.null(result$pi_correction)) NULL else pi_se, core_pi_cov = core_pi_cov,
       sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL)
+    if (!is.null(boot_results$interaction_draws))
+      result$interactions$bootstrap$corrected <- .ravel_interaction_corrected(fit, estimates, interaction_spec,
+        h, am_correction, am_n_generations, sib_roles, ci_level,
+        pi_se = if (is.null(result$pi_correction)) NULL else pi_se, core_pi_cov = core_pi_cov,
+        sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL,
+        draws = cbind(boot_results$core_draws, boot_results$interaction_draws))
     indep <- result$interactions$independence
     if (!is.null(indep) && any(indep$p_value < 1e-3))
-      warning("An interaction covariate is correlated with a genetic factor (",
+      warning("An interaction covariate is correlated with a visible genetic factor (",
         paste(sprintf("%s-%s r = %.3f", indep$latent, indep$moderator, indep$correlation)[indep$p_value < 1e-3],
-          collapse = ", "), "). The total-liability correction of interactions assumes independence.")
+          collapse = ", "), "). The total-liability correction of interactions assumes independence ",
+          "from all visible and hidden genetic components, so corrected interaction rows may be biased.")
   }
   result
 }
@@ -3052,8 +3127,13 @@ ravel_fit <- function(dat,
   ci_level <- unc$ci_level %||% .95
   z <- stats::qnorm(1 - (1 - ci_level) / 2)
   se <- lo <- hi <- rep(NA_real_, nrow(W))
+  # A failed requested external-pi correction masks corrected inference; never
+  # fall back to the fixed-pi bootstrap draws or covariance.
+  unavailable <- scale != "visible" &&
+    (!is.null(result$pi_correction_error) || !is.null(unc$pi_correction_error))
   draws <- NULL
-  if (identical(unc$source, "bootstrap") && (scale == "visible" || is.null(unc$pi_correction))) {
+  if (!unavailable && identical(unc$source, "bootstrap") &&
+      (scale == "visible" || is.null(unc$pi_correction))) {
     draws <- switch(scale, visible = result$bootstrap$core_draws,
       corrected_std = result$bootstrap$total_std_draws, corrected_raw = result$bootstrap$total_raw_draws)
   }
@@ -3063,7 +3143,7 @@ ravel_fit <- function(dat,
     alpha <- 1 - ci_level
     lo <- apply(cd, 2, stats::quantile, probs = alpha / 2, names = FALSE)
     hi <- apply(cd, 2, stats::quantile, probs = 1 - alpha / 2, names = FALSE)
-  } else if (!is.null(block$cov) && all(c("bm", "bf") %in% rownames(block$cov))) {
+  } else if (!unavailable && !is.null(block$cov) && all(c("bm", "bf") %in% rownames(block$cov))) {
     C <- block$cov[c("bm", "bf"), c("bm", "bf")]
     se <- sqrt(pmax(0, diag(W %*% C %*% t(W))))
     lo <- est - z * se
@@ -3071,7 +3151,8 @@ ravel_fit <- function(dat,
   }
   data.frame(parameter = rownames(W), estimate = unname(est), se = unname(se),
     ci_low = unname(lo), ci_high = unname(hi), p_value = .uncertainty_p(unname(est), unname(se)),
-    uncertainty_source = if (is.null(unc)) "none" else
+    uncertainty_source = if (unavailable) "unavailable (incompatible pi/assortment state)" else
+      if (is.null(unc)) "none" else
       .uncertainty_label(unc, if (scale == "visible") "visible" else "total_std"),
     stringsAsFactors = FALSE, row.names = NULL)
 }
@@ -3133,13 +3214,15 @@ ravel_fit <- function(dat,
 #' @param include_raw Logical. If \code{TRUE}, also return the
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
-#'   trio regression rows returned by \code{ravel_fit()}.
+#'   trio regression rows returned by \code{ravel_fit()}. These rows have no
+#'   PGS-by-covariate terms and ordinary model SEs, so they are not matched to
+#'   interaction or clustered fits.
 #' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
 #'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-#'   covariance or bootstrap draws of the fit, so they match a test of the
-#'   reparameterized model.
+#'   covariance or bootstrap draws of the fit. On the visible scale this gives
+#'   the same Wald test as the reparameterized model.
 #'
 #' @return A tidy \code{data.frame} with columns \code{regression},
 #'   \code{family}, \code{outcome_variable}, \code{scale}, \code{parameter},
@@ -3188,15 +3271,16 @@ ravel_to_dataframe <- function(result,
       stringsAsFactors = FALSE))
   }
 
-  gxe_tbl <- result$interactions$table
-  if (!is.null(gxe_tbl)) {
-    out <- rbind(out, data.frame(
-      regression = "RAVEL", family = NA_character_, scale = "visible",
-      parameter = gxe_tbl$parameter, estimate = gxe_tbl$estimate, se = gxe_tbl$se,
-      ci_low = gxe_tbl$ci_low, ci_high = gxe_tbl$ci_high, p_value = gxe_tbl$p_value,
-      uncertainty_source = gxe_tbl$uncertainty_source,
-      p_value_method = "normal_approx_from_lavaan_se", stringsAsFactors = FALSE))
+  gxe_rows <- function(scale) {
+    tbl <- .ravel_interaction_rows_for(result, unc, scale)
+    if (is.null(tbl)) return(NULL)
+    data.frame(regression = "RAVEL", family = NA_character_, scale = scale,
+      parameter = tbl$parameter, estimate = tbl$estimate, se = tbl$se,
+      ci_low = tbl$ci_low, ci_high = tbl$ci_high, p_value = tbl$p_value,
+      uncertainty_source = tbl$uncertainty_source, p_value_method = tbl$p_value_method,
+      stringsAsFactors = FALSE)
   }
+  out <- rbind(out, gxe_rows("visible"))
 
   sib_rows <- function(scale) {
     tbl <- .parental_sib_table(result, unc, scale)
@@ -3239,22 +3323,13 @@ ravel_to_dataframe <- function(result,
     }
   }
 
-  gxe_corrected <- result$interactions$corrected
-  if (!is.null(gxe_corrected)) {
-    keep <- gxe_corrected$scale == "corrected_std" | (isTRUE(include_raw) & gxe_corrected$scale == "corrected_raw")
-    gc <- gxe_corrected[keep, , drop = FALSE]
-    if (nrow(gc)) out <- rbind(out, data.frame(
-      regression = "RAVEL", family = NA_character_, scale = gc$scale,
-      parameter = gc$parameter, estimate = gc$estimate, se = gc$se,
-      ci_low = gc$ci_low, ci_high = gc$ci_high, p_value = gc$p_value,
-      uncertainty_source = gc$uncertainty_source,
-      p_value_method = "normal_approx_from_lavaan_se", stringsAsFactors = FALSE))
-  }
+  out <- rbind(out, gxe_rows("corrected_std"), if (isTRUE(include_raw)) gxe_rows("corrected_raw"))
 
   if (isTRUE(include_vanilla) && !is.null(result$vanilla_regression) && !is.null(result$vanilla_regression$table)) {
     vanilla_tbl <- result$vanilla_regression$table
     vanilla_tbl$scale <- "vanilla"
-    vanilla_tbl$uncertainty_source <- "model_summary"
+    vanilla_tbl$uncertainty_source <- if (!is.null(result$interactions) || !is.null(result$cluster))
+      "model_summary (unmatched: no interaction terms, rows independent)" else "model_summary"
     vanilla_tbl$p_value_method <- ifelse(
       vanilla_tbl$family == "glm_probit_binary",
       "glm_summary_z_test",
@@ -3286,6 +3361,7 @@ ravel_to_dataframe <- function(result,
     attr(out, "settings")$pi <- result$h
     attr(out, "settings")$pi_se <- result$pi_se
     unavailable <- out$scale %in% c("corrected_std", "corrected_raw")
+    out[unavailable, intersect(c("se", "ci_low", "ci_high", "p_value"), names(out))] <- NA_real_
     out$uncertainty_source[unavailable] <- "unavailable (incompatible pi/assortment state)"
     out$p_value_method[unavailable] <- "unavailable"
   }
@@ -3317,13 +3393,15 @@ ravel_to_dataframe <- function(result,
 #' @param include_raw Logical. If \code{TRUE}, also return the
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
-#'   trio regression rows returned by \code{ravel_fit()}.
+#'   trio regression rows returned by \code{ravel_fit()}. These rows have no
+#'   PGS-by-covariate terms and ordinary model SEs, so they are not matched to
+#'   interaction or clustered fits.
 #' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
 #'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-#'   covariance or bootstrap draws of the fit, so they match a test of the
-#'   reparameterized model.
+#'   covariance or bootstrap draws of the fit. On the visible scale this gives
+#'   the same Wald test as the reparameterized model.
 #' @param ... Unused.
 #'
 #' @return A tidy \code{data.frame} of fitted coefficients and uncertainty.
@@ -3399,8 +3477,8 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 #'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-#'   covariance or bootstrap draws of the fit, so they match a test of the
-#'   reparameterized model.
+#'   covariance or bootstrap draws of the fit. On the visible scale this gives
+#'   the same Wald test as the reparameterized model.
 #'
 #' @export
 #' @importFrom stats reshape
@@ -3456,7 +3534,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
     cat("  (bm and bf are conditional on the parental siblings' liabilities)\n")
   cat("\n")
   .print_parental_sibs(result, unc, digits, compact = FALSE)
-  .print_interactions(result, digits)
+  .print_interactions(result, unc, digits)
   if (isTRUE(parent_contrasts)) {
     .print_parent_contrasts(result, unc, digits)
     if (result$h > 0) .print_parent_contrasts(result, unc, digits, "corrected_std")
@@ -3516,7 +3594,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
         cat("\n")
       }
       if (!is.null(result$interactions$corrected)) {
-        .print_interactions(result, digits, scale = "corrected_std")
+        .print_interactions(result, unc, digits, scale = "corrected_std")
         cat("\n")
       }
     } else {
@@ -3692,8 +3770,8 @@ cat("Within-person Cor(PGS1,PGS2):\n")
 #'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-#'   covariance or bootstrap draws of the fit, so they match a test of the
-#'   reparameterized model.
+#'   covariance or bootstrap draws of the fit. On the visible scale this gives
+#'   the same Wald test as the reparameterized model.
 #'
 #' @export
 print_simple <- function(result, digits = 4,
@@ -3750,7 +3828,7 @@ print_simple <- function(result, digits = 4,
   cat(sprintf("  rho_MF:  %s\n", fmt_ci(result$latent_cov_vis["rhoMF"], .uncertainty_ci(unc, "visible", "rhoMF"))))
   cat(sprintf("  R2:      %s\n", fmt_est(result$R2_model)))
   .print_parental_sibs(result, unc, digits, compact = TRUE)
-  .print_interactions(result, digits)
+  .print_interactions(result, unc, digits)
   if (isTRUE(parent_contrasts)) .print_parent_contrasts(result, unc, digits)
 
   # Hidden-corrected
@@ -3768,7 +3846,7 @@ print_simple <- function(result, digits = 4,
     cat(sprintf("    beta_M_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bm"], .uncertainty_ci(unc, "total_std", "bm"))))
     cat(sprintf("    beta_F_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bf"], .uncertainty_ci(unc, "total_std", "bf"))))
     if (!is.null(result$parental_sibs)) .print_parental_sibs(result, unc, digits, scale = "corrected_std")
-    .print_interactions(result, digits, scale = "corrected_std")
+    .print_interactions(result, unc, digits, scale = "corrected_std")
     if (isTRUE(parent_contrasts)) .print_parent_contrasts(result, unc, digits, "corrected_std")
     if (!is.null(result$R2_total_assumed) && !is.na(result$R2_total_assumed)) {
       cat(sprintf("  R2:      %s\n", fmt_est(result$R2_total_assumed)))

@@ -197,3 +197,63 @@ test_that("an incompatible sibling correction preserves visible single-call pi i
   expect_error(ravel_fit(d,parental_sibs='maternal',pi=.4,pi_se=.05,core_pi_cov=cross),
     'positive semidefinite')
 })
+# Body intended for tests/testthat/test-parental-sibs-core-review.R (after the
+# existing "an incompatible sibling correction preserves visible single-call pi
+# inference" test; it reuses review_sib_scores() defined in that file).
+
+test_that("a failed pi correction does not leak fixed-pi parental-contrast intervals", {
+  d <- review_sib_scores(2000)
+  ref <- suppressWarnings(ravel_fit(d, parental_sibs = 'maternal', pi = .4))$beta_vis
+  original <- .hidden_correction_sib_extend
+  # Incompatible only at the full-sample estimate, so bootstrap replicates
+  # still store finite fixed-pi total draws (a borderline sample).
+  testthat::local_mocked_bindings(.hidden_correction_sib_extend = function(hc, beta_vis, Sigma_xx, h, roles) {
+    out <- original(hc, beta_vis, Sigma_xx, h, roles)
+    if (max(abs(beta_vis[c('bD','bm','bf')] - ref[c('bD','bm','bf')])) < 1e-12) {
+      out$beta_total[] <- out$beta_total_std[] <- NA_real_
+      out$invalid_reason <- 'incompatible_parental_sibling_covariance'
+    }
+    out
+  })
+  fit <- suppressWarnings(ravel_fit(d, parental_sibs = 'maternal', pi = .4, pi_se = .05,
+    n_boot = 20, seed = 3))
+  expect_match(fit$pi_correction_error, 'incompatible')
+  expect_gt(sum(stats::complete.cases(fit$bootstrap$total_std_draws)), 1)
+  for (u in c('bootstrap', 'lavaan')) {
+    tab <- ravel_to_dataframe(fit, uncertainty = u, include_raw = TRUE, include_vanilla = FALSE,
+      parent_contrasts = TRUE)
+    pc <- tab[tab$parameter %in% c('beta_mid', 'delta_M_mid', 'delta_P_mid'), ]
+    vis <- pc[pc$scale == 'visible', ]
+    cor <- pc[pc$scale != 'visible', ]
+    expect_equal(nrow(vis), 3L)
+    expect_equal(nrow(cor), 6L)
+    expect_true(all(is.finite(c(vis$se, vis$ci_low, vis$ci_high, vis$p_value))))
+    expect_true(all(is.na(c(cor$se, cor$ci_low, cor$ci_high, cor$p_value))))
+    expect_true(all(cor$uncertainty_source == 'unavailable (incompatible pi/assortment state)'))
+    direct <- .ravel_parent_contrasts(fit, .resolve_uncertainty(fit, u), 'corrected_std')
+    expect_true(all(is.na(c(direct$se, direct$ci_low, direct$ci_high))))
+  }
+  out <- capture.output(print_simple(fit, parent_contrasts = TRUE, uncertainty = 'bootstrap'))
+  expect_false(any(grepl('_mid +NA \\[', out)))
+})
+
+test_that("a failed pi correction clears every corrected interval in the table", {
+  d <- review_sib_scores(2000)
+  ref <- suppressWarnings(ravel_fit(d, parental_sibs = 'maternal', pi = .4))$beta_vis
+  original <- .hidden_correction_sib_extend
+  testthat::local_mocked_bindings(.hidden_correction_sib_extend = function(hc, beta_vis, Sigma_xx, h, roles) {
+    out <- original(hc, beta_vis, Sigma_xx, h, roles)
+    if (max(abs(beta_vis[c('bD','bm','bf')] - ref[c('bD','bm','bf')])) < 1e-12) {
+      out$beta_total[] <- out$beta_total_std[] <- NA_real_
+      out$invalid_reason <- 'incompatible_parental_sibling_covariance'
+    }
+    out
+  })
+  fit <- suppressWarnings(ravel_fit(d, parental_sibs = 'maternal', pi = .4, pi_se = .05, n_boot = 20, seed = 3))
+  for (u in c('bootstrap', 'lavaan')) {
+    tab <- ravel_to_dataframe(fit, uncertainty = u, include_raw = TRUE, include_vanilla = FALSE)
+    cor <- tab[tab$scale %in% c('corrected_std', 'corrected_raw'), ]
+    expect_gt(nrow(cor), 0L)
+    expect_true(all(is.na(c(cor$se, cor$ci_low, cor$ci_high, cor$p_value))))
+  }
+})

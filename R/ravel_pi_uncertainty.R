@@ -186,6 +186,7 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
   packet <- input$packet
   labels <- input$labels
   sib_roles <- input$sib_roles
+  interaction_note <- .ravel_pi_interaction_check(input$live_result, pi)
   n_core <- length(labels)
   # Finite-generation fits may use pi in their measurement model. The total
   # derivative includes the fitted core's response to changing that input.
@@ -346,7 +347,36 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
         ci_high = unname(state_estimate + z * state_se), stringsAsFactors = FALSE),
       covariance = state_covariance, jacobian = state_J))
   }
+  if (!is.null(interaction_note)) attr(out, "interactions") <- interaction_note
   out
+}
+
+# Genetic x covariate fits map to the total scale only as a complete system:
+# with an interaction term for every family member, main effects and
+# interactions share the visible-to-total map (R/ravel_interactions.R). With
+# roles omitted, the omitted terms load on the included ones and, when the
+# moderator is centred away from its mean, on the main effects, so the core
+# correction would be applied to the wrong projection. This mirrors the
+# fit-time rule in ravel_fit(). pi = 0 is the identity map and stays allowed.
+# Interaction coefficients themselves are not corrected by ravel_correct_pi();
+# ravel_fit(pi = ...) reports them in fit$interactions$corrected.
+.ravel_pi_interaction_check <- function(live, pi) {
+  spec <- live$interactions
+  if (is.null(spec)) return(NULL)
+  model_roles <- c("child", "mother", "father",
+    unname(c(ms = "mat_sib", fs = "pat_sib")[live$parental_sibs$roles %||% character(0)]))
+  if (pi > 0 && !all(model_roles %in% spec$roles))
+    stop("This fit has genetic x covariate interactions for ", paste(spec$roles, collapse = ", "),
+      " only. With pi > 0, main effects can be corrected only when interaction_roles include every ",
+      "family member in the model (", paste(model_roles, collapse = ", "), "); refit with ",
+      "ravel_fit(..., pi = ", format(pi), ", interactions = ...).", call. = FALSE)
+  fitted_at_pi <- isTRUE(all.equal(as.numeric(live$h %||% 0), as.numeric(pi), tolerance = 1e-12))
+  if (pi > 0 && !fitted_at_pi)
+    warning("Interaction coefficients (", paste(spec$moderators, collapse = ", "), ") are not corrected ",
+      "by ravel_correct_pi(); only main effects are. Refit with ravel_fit(..., pi = ", format(pi),
+      ") for corrected interactions.", call. = FALSE)
+  list(moderators = spec$moderators, roles = spec$roles, corrected = FALSE,
+       corrected_in = if (pi > 0 && fitted_at_pi) "fit$interactions$corrected" else NA_character_)
 }
 
 # Validate the optional external-estimate covariance before expensive fitting.

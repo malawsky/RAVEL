@@ -69,7 +69,9 @@ zero contributes no external variance. A positive SE at pi zero is rejected.}
 between the visible core estimates and the external pi estimator. Requires
 \code{pi_se}. Defaults to independence. See \code{\link{ravel_correct_pi}}
 for the required names and the distinction between conditional and marginal
-covariance in pi-dependent finite-generation fits.}
+covariance in pi-dependent finite-generation fits. Corrected interaction
+coefficients report no uncertainty when it is nonzero, because their
+covariance with pi is not supplied.}
 
 \item{covariate_mapping_confirmed}{Deprecated and ignored. Retained so existing calls
 still run; it never changed any estimate. Corrections with covariates assume
@@ -152,7 +154,11 @@ returned in \code{hidden_correction_details$estimated_state}.}
 
 \item{n_boot}{Integer. Number of bootstrap replicates (0 = no bootstrap).}
 
-\item{cluster_var}{Character. Column name for cluster bootstrap sampling.}
+\item{cluster_var}{Character. Column whose values are resampled as whole
+units by the bootstrap. Without \code{cluster}, rows are resampled when the
+column is absent. With \code{cluster}, it defaults to \code{cluster}; an
+explicit value must name a column that equals or nests \code{cluster}
+(for example a site containing whole families).}
 
 \item{ci_level}{Numeric. Confidence level for model-based, bootstrap, and
 external-pi corrected intervals.}
@@ -209,10 +215,13 @@ covariate is measured by products of the centred scores and the covariate,
 which share G's loadings. Coefficients are reported per SD of the
 liability per unit of the covariate; main effects then refer to the
 centre. With \code{pi > 0}, interactions are also corrected to the
-total-liability scale by the main-effect map, which assumes the covariate
-is independent of genetic liability. For growth models, supply long-format data (one row
-per child-occasion) with \code{interactions = "age"} and \code{cluster};
-add a squared-age column for curvature. Requires a continuous outcome.}
+total-liability scale by the main-effect map. This assumes the covariate is
+independent of every family member's visible and hidden genetic components,
+which cannot be checked from the data. For growth models, supply long-format
+data (one row per child-occasion) with \code{interactions = "age"} and
+\code{cluster}; families with more rows get more weight. Add a squared-age
+column for curvature. Requires a continuous outcome. Validated for complete
+data; with missing values, FIML assumes MCAR here.}
 
 \item{interaction_roles}{Character. Liabilities that interact with the
 covariates: any of \code{"child"} (default), \code{"mother"},
@@ -248,14 +257,14 @@ A list with components (selected):
 \item{var_total_assumed}{Role-specific variances \eqn{\operatorname{Var}(T_r^*)}}
 \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
-\item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale}
-\item{components_total_assumed}{Variance decomposition on assumed total scale}
-\item{R2_model}{Variance explained by the visible latent linear predictor}
+\item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale. With interactions, the main components use the coefficients at the moderator means and \code{interaction} and \code{cross_main_interaction} components are added, so the decomposition does not depend on \code{interaction_center}.}
+\item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction.}
+\item{R2_model}{Variance explained by the visible latent linear predictor, including any genetic x covariate interaction terms (but not covariate main effects)}
 \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}
 \item{reliability}{Indicator-level reliability estimates}
 \item{determinacy}{Factor-score determinacy per role}
 \item{within_person_corr}{Within-person Cor(PGS1,PGS2) per role}
-\item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied}
+\item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
 \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
 \item{bootstrap}{Bootstrap results (if n_boot > 0), including visible-scale and corrected-scale summaries}
 \item{pi_correction}{When \code{pi_se} is supplied, the corrected table with
@@ -274,7 +283,8 @@ roles, centres and internal scales, a table of visible-scale
 interaction coefficients (\code{beta_D:age} and so on) with lavaan
 (cluster-robust when \code{cluster} is set) inference, corrected
 total-liability rows when \code{pi > 0}, and the latent correlation of
-each genetic factor with each moderator.}
+each visible genetic factor with each moderator. This screens for
+linear dependence only and does not establish independence.}
 \item{cluster, n_clusters}{The cluster column and number of clusters, when
 supplied.}
 }

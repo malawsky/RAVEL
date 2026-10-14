@@ -26,8 +26,8 @@ print_ravel_results(
 midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-covariance or bootstrap draws of the fit, so they match a test of the
-reparameterized model.}
+covariance or bootstrap draws of the fit. On the visible scale this gives
+the same Wald test as the reparameterized model.}
 }
 \description{
 Print RAVEL Results

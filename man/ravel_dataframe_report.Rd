@@ -124,8 +124,8 @@ retained separately in the transfer packet. Adjusted chi-square and RMSEA are
 moment-matched approximations; coefficient-SE checks do not establish their
 null calibration. See the fit-measure note in \code{diagnostics}.
 Successful fits are screened, but this does not prove calibration for arbitrary
-covariate mechanisms. Later hidden corrections require confirmation that the
-mapping is appropriate conditional on the chosen covariates.
+covariate mechanisms. Later hidden corrections assume the mapping applies conditional on the
+chosen covariates. This cannot be checked from the data.
 }
 \value{A list with \code{summary}, \code{summary_model_based},
 \code{summary_bootstrap}, \code{scaling}, \code{fit_statistics},

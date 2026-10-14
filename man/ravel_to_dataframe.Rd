@@ -22,14 +22,16 @@ ravel_to_dataframe(
 corrected raw total-liability rows.}
 
 \item{include_vanilla}{Logical. If \code{TRUE}, append the plain observed-PGS
-trio regression rows returned by \code{ravel_fit()}.}
+trio regression rows returned by \code{ravel_fit()}. These rows have no
+PGS-by-covariate terms and ordinary model SEs, so they are not matched to
+interaction or clustered fits.}
 
 \item{parent_contrasts}{Logical. If \code{TRUE}, also report the parental
 midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
-covariance or bootstrap draws of the fit, so they match a test of the
-reparameterized model.}
+covariance or bootstrap draws of the fit. On the visible scale this gives
+the same Wald test as the reparameterized model.}
 }
 \value{
 A tidy \code{data.frame} with columns \code{regression},

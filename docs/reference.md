@@ -372,8 +372,9 @@ and a PDF/PNG diagnostic plot; existing report folders are not overwritten.
 Send `ravel_report.rds`, not just the summary CSV, for later corrections.
 `ravel_correct_packet(out$packets$fixed, h = 0.4, ...)` propagates the full
 joint parameter covariance or stored bootstrap draws to total-liability
-coefficients. Joint-covariate corrections require explicit confirmation that
-the mapping applies conditional on those covariates.
+coefficients. Corrections with covariates assume the mapping applies conditional on those
+covariates. RAVEL cannot check this from the data, so justify it for each
+covariate.
 
 Inspect `out$model_status` and `out$diagnostics` before interpretation. Binary
 covariate fits remain subject to rare numerical/SE failures; successful checks
@@ -390,8 +391,8 @@ total_grid <- ravel_correct_grid(
 )
 ```
 
-Only set the confirmation flag after reviewing the conditional mapping
-assumption. Scalars work too; `Inf` denotes equilibrium. Both recorded residual
+Review the conditional mapping assumption before interpreting corrected rows.
+Scalars work too; `Inf` denotes equilibrium. Both recorded residual
 models are included unless `residual_models` selects one. The full `out`, not
 `out$summary`, is needed for corrected SEs. The returned table labels every
 scenario and preserves the selected uncertainty method without refitting.
@@ -492,7 +493,7 @@ mode are rejected.
 | `col_outcome` | `"Y"` | Column name for outcome variable |
 | `parental_sibs` | `"none"` | Add a full sibling of the mother (`"maternal"`), father (`"paternal"`) or both. Works with every constraint mode and with `pi`/`pi_se`. |
 | `col_pgs1_mat_sib`, `col_pgs2_mat_sib` | `"PGS1_mat_sib"`, `"PGS2_mat_sib"` | Column names for the maternal sibling's scores; continuous fits use FIML for missing values |
-| `interactions` | `NULL` | Numeric covariate columns interacting with the genetic liabilities (e.g. `"age"`); each is also added as a main effect. Continuous outcomes only. |
+| `interactions` | `NULL` | Numeric covariate columns interacting with the genetic liabilities (e.g. `"age"`); each is also added as a main effect. Continuous outcomes only. Missing values are fitted by FIML, which is supported here only under MCAR (see Methods). |
 | `interaction_roles` | `"child"` | Liabilities that interact: any of `"child"`, `"mother"`, `"father"`, `"mat_sib"`, `"pat_sib"` (siblings in the model). With `pi > 0` it defaults to every family member, which the total-liability correction requires. |
 | `interaction_center` | `NULL` | Named values at which main effects are reported, e.g. `c(age = 10)`; default is each covariate's mean. |
 | `cluster` | `NULL` | Column of independent units (e.g. `"FID"` for long-format repeated measures); gives cluster-robust SEs and cluster bootstrap. |
@@ -513,14 +514,14 @@ mode are rejected.
 | `var_total_assumed` | Role-specific V_T,r = Var(T_r*) for child, mother, and father. Standardized T has variance one. |
 | `reliability` | PGS reliability per role and PGS |
 | `determinacy` | Factor score determinacy per role |
-| `vanilla_regression` | Plain standardized trio regressions on observed `PGS1` and `PGS2` (`lm` for continuous outcomes, probit `glm` for binary outcomes) |
-| `R2_model` | Variance explained by the visible latent linear predictor. |
-| `R2_total_assumed` | Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and AM model. |
+| `vanilla_regression` | Plain standardized trio regressions on observed `PGS1` and `PGS2` (`lm` for continuous outcomes, probit `glm` for binary outcomes) with ordinary model-based SEs. They include interaction covariates only as main effects, with no PGS-by-covariate terms, and ignore `cluster`, so they are not a matched comparator for interaction or clustered fits. |
+| `R2_model` | Variance explained by the visible latent linear predictor, including genetic x covariate interaction terms (covariate main effects excluded). With interactions, `components_vis` is evaluated at the moderator means and adds `interaction` and `cross_main_interaction`, so it does not depend on `interaction_center`. |
+| `R2_total_assumed` | Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and AM model. With interactions it adds the total-scale interaction variance, assuming the moderator is independent of the genetic components. |
 | `lavaan_inference` | SEM-based inference conditional on pi. Printing and table conversion use `pi_correction` for corrected rows when external uncertainty was supplied. |
 | `bootstrap` | Fixed-pi CIs and SEs if `n_boot > 0` |
 | `pi_correction` | Corrected estimates with propagated external pi uncertainty when `pi_se` was supplied, including covariance and derivative attributes. |
 | `parental_sibs` | With parental siblings: `coefficients` (`bms`, `delta_m`, `bfs`, `delta_f`), `lavaan_table` (rows `beta_MS`, `delta_M`, `beta_FS`, `delta_F`), `corrected` (`raw` and `std` total-scale coefficients and contrasts, plus the four- or five-role covariance blocks), `latent_cov`, `resid_cov`, `resid_corr`, `reliability`, `determinacy` and `n_with_sib`. `NULL` otherwise. |
-| `interactions` | With `interactions`: moderators, roles, centres, internal scales, `table` of visible-scale coefficients (`beta_D:age`, ..., `delta_M:age` with siblings), `corrected` total-liability rows when `pi > 0`, `independence` (latent correlation of each G with each moderator), and `theta` (model-scale coefficients). `NULL` otherwise. |
+| `interactions` | With `interactions`: moderators, roles, centres, internal scales, `table` of visible-scale coefficients (`beta_D:age`, ..., `delta_M:age` with siblings), `corrected` total-liability rows when `pi > 0`, `independence` (latent correlation of each visible G with each moderator; it screens for linear dependence only and cannot establish independence), and `theta` (model-scale coefficients). `NULL` otherwise. |
 | `cluster`, `n_clusters` | Cluster column and number of clusters when `cluster` is supplied. |
 | `converged` | Logical convergence flag |
 
@@ -534,7 +535,7 @@ raw versus standardized total coefficients and the reliability reference scale.
 
 - `print_ravel_results(fit)` — full detailed output
 - `print_simple(fit)` — compact table with visible + corrected estimates and CIs
-- `ravel_to_dataframe(fit, uncertainty = "lavaan")` — tidy table with SEM rows plus the vanilla `PGS1`/`PGS2` comparator regressions
+- `ravel_to_dataframe(fit, uncertainty = "lavaan")` — tidy table with SEM rows plus the vanilla `PGS1`/`PGS2` comparator regressions (not matched to interaction or clustered fits; use `include_vanilla = FALSE` there)
 
 ---
 

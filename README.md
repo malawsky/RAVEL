@@ -207,8 +207,9 @@ correction assumes the visible-to-total mapping still applies after that
 adjustment, i.e. adjusting for the covariates does not change how the visible
 and hidden genetic components relate.
 
-- This holds for covariates unrelated to genetic liability, such as age, sex or
-  genotyping batch.
+- This holds for covariates independent of every family member's genetic
+  liability. Age, sex or genotyping batch often qualify, but cohort structure,
+  selective recruitment, attrition or batch-specific ancestry can break this.
 - For covariates that are genetically correlated with the trait, such as
   education, socioeconomic status and possibly ancestry PCs, interpret the
   corrected estimates with care.
@@ -269,13 +270,25 @@ curvature. Any numeric covariate can be used in place of age.
 
 This is a population-averaged growth model: it estimates average trajectories
 and their genetic modulation, with cluster-robust standard errors, but not
-random-intercept or random-slope variances.
+random-intercept or random-slope variances. Families with more occasions get
+more weight. Cluster-robust SEs do not correct bias from visit timing or
+attrition related to genotype or outcome. The plain PGS regression rows that
+`as.data.frame()` appends are not matched to these fits: they omit
+PGS-by-covariate terms and use unclustered SEs, so use `include_vanilla = FALSE`.
 
 With `pi > 0`, interaction coefficients are also corrected to the
 total-liability scale by the same map as the main effects. This needs an
 interaction term for every family member (the default when `pi > 0`) and a
-covariate independent of genetic liability, such as age. Interactions need a
+covariate independent of every family member's visible and hidden genetic
+components. Age at measurement can satisfy this, but cohort effects, selective
+recruitment or attrition related to genotype can break it. The fit warns when a
+covariate is clearly correlated with a visible genetic factor. The absence of a
+warning does not establish independence, because the check cannot detect
+nonlinear dependence or dependence on hidden components. Interactions need a
 continuous outcome; see [Methods](docs/methods.md#genetic-x-covariate-interactions).
+Validation used complete data. With missing values, such as absent parental
+siblings or a missing covariate, FIML is supported here only if values are
+missing completely at random, because product indicators are not Gaussian.
 
 ## Optional: compare the scores' phenotype associations
 
@@ -322,7 +335,9 @@ corrected <- ravel_correct_pi(out$packet, pi = .4, pi_se = .05)
 print_simple(corrected)
 ```
 
-The confirmation is appropriate for the bundled simulation's covariate mechanism.
+The bundled simulation generates its continuous covariates from the visible
+liabilities only, so the covariate mapping assumption holds by construction.
+Real covariates need their own justification.
 This dataset contains 4,000 simulated trios, founder pi 0.4, one generation of
 assortment, and founder PGS reliabilities 0.5 and 0.3. See `?ravel_example` for the
 full generating assumptions. Add `out_dir = "results"` to save a report in a new
