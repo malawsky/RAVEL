@@ -1847,7 +1847,7 @@
 #'     \item{reliability}{Indicator-level reliability estimates}
 #'     \item{determinacy}{Factor-score determinacy per role}
 #'     \item{within_person_corr}{Within-person Cor(PGS1,PGS2) per role}
-#'     \item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
+#'     \item{vanilla_regression}{Plain standardized regressions on observed PGS1 and PGS2, including requested parental siblings and their parent-minus-sibling contrasts, using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
 #'     \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
 #'     \item{bootstrap}{Bootstrap results (if n_boot > 0), conditional on supplied pi}
 #'     \item{pi_correction}{When pi_se is supplied, the external-pi corrected table
@@ -2675,7 +2675,8 @@ ravel_fit <- function(dat,
     dat = dat,
     outcome = outcome,
     fixed_effects = fixed_effects,
-    ci_level = ci_level
+    ci_level = ci_level,
+    parental_sibs = parental_sibs
   )
 
   # Ratios of spousal residual covariance to latent rho (descriptive; no constraint)
@@ -2994,124 +2995,64 @@ ravel_fit <- function(dat,
   )
 }
 
-#' Fit vanilla trio regressions on observed standardized PGS
+#' Fit ordinary regressions on observed standardized PGS and requested relatives
 #' @noRd
-.fit_vanilla_pgs_regression <- function(dat, outcome, fixed_effects, ci_level) {
+.fit_vanilla_pgs_regression <- function(dat, outcome, fixed_effects, ci_level,
+                                        parental_sibs = "none") {
   z <- stats::qnorm(1 - (1 - ci_level) / 2)
-
+  sib_roles <- .parental_sib_roles(parental_sibs)
+  roles <- c("child", "mother", "father", unname(c(ms = "mat_sib", fs = "pat_sib")[sib_roles]))
+  targets <- paste0(".pgs_", roles)
+  parameters <- c(child = "beta_child", mother = "beta_mother", father = "beta_father",
+    mat_sib = "beta_MS", pat_sib = "beta_FS")[roles]
   fit_one <- function(version) {
-    cols <- c(
-      child = paste0(version, "_child"),
-      mother = paste0(version, "_mother"),
-      father = paste0(version, "_father")
-    )
-
-    reg_dat <- data.frame(
-      .Y = if (outcome == "continuous") as.numeric(scale(dat$Y)) else dat$Y,
-      .pgs_child = as.numeric(scale(dat[[cols["child"]]])),
-      .pgs_mother = as.numeric(scale(dat[[cols["mother"]]])),
-      .pgs_father = as.numeric(scale(dat[[cols["father"]]])),
-      stringsAsFactors = FALSE
-    )
-    if (length(fixed_effects) > 0) {
-      reg_dat <- cbind(reg_dat, dat[fixed_effects], stringsAsFactors = FALSE)
+    cols <- paste0(version, "_", roles)
+    reg_dat <- data.frame(.Y = if (outcome == "continuous") as.numeric(scale(dat$Y)) else dat$Y)
+    for (i in seq_along(cols)) reg_dat[[targets[i]]] <- as.numeric(scale(dat[[cols[i]]]))
+    if (length(fixed_effects)) reg_dat <- cbind(reg_dat, dat[fixed_effects])
+    form <- stats::reformulate(c(targets, fixed_effects), response = ".Y")
+    fit <- tryCatch(if (outcome == "continuous") stats::lm(form, data = reg_dat) else
+      stats::glm(form, data = reg_dat, family = stats::binomial(link = "probit")), error = identity)
+    failed <- inherits(fit, "error")
+    est <- se <- p_val <- stats::setNames(rep(NA_real_, length(roles)), roles)
+    b <- stats::setNames(rep(NA_real_, length(targets)), targets)
+    V <- matrix(NA_real_, length(targets), length(targets), dimnames = list(targets, targets))
+    df <- Inf
+    if (!failed) {
+      coef_tab <- summary(fit)$coefficients
+      rows <- match(targets, rownames(coef_tab))
+      est[] <- coef_tab[rows, 1]
+      se[] <- coef_tab[rows, 2]
+      p_val[] <- coef_tab[rows, 4]
+      b <- stats::coef(fit)
+      V <- stats::vcov(fit)
+      if (outcome == "continuous") df <- fit$df.residual
     }
-
-    rhs <- c(".pgs_child", ".pgs_mother", ".pgs_father", fixed_effects)
-    form <- stats::reformulate(rhs, response = ".Y")
-
-    fit <- tryCatch(
-      if (outcome == "continuous") {
-        stats::lm(form, data = reg_dat)
-      } else {
-        stats::glm(form, data = reg_dat, family = stats::binomial(link = "probit"))
-      },
-      error = function(e) e
-    )
-
-    if (inherits(fit, "error")) {
-      return(list(
-        converged = FALSE,
-        model = NULL,
-        fit = NULL,
-        N = NA_integer_,
-        coefficients = c(child = NA_real_, mother = NA_real_, father = NA_real_),
-        se = c(child = NA_real_, mother = NA_real_, father = NA_real_),
-        ci = matrix(NA_real_, nrow = 2, ncol = 3,
-                    dimnames = list(c("lower", "upper"), c("child", "mother", "father"))),
-        p_value = c(child = NA_real_, mother = NA_real_, father = NA_real_),
-        table = data.frame(
-          regression = version,
-          parameter = c("beta_child", "beta_mother", "beta_father"),
-          estimate = NA_real_,
-          se = NA_real_,
-          ci_low = NA_real_,
-          ci_high = NA_real_,
-          p_value = NA_real_,
-          family = if (outcome == "continuous") "lm_scaled_outcome" else "glm_probit_binary",
-          stringsAsFactors = FALSE
-        ),
-        error = fit$message
-      ))
-    }
-
-    coef_tab <- summary(fit)$coefficients
-    target_rows <- c(".pgs_child", ".pgs_mother", ".pgs_father")
-    param_names <- c("child", "mother", "father")
-
-    extract_col <- function(j) {
-      out <- sapply(target_rows, function(r) {
-        if (r %in% rownames(coef_tab)) coef_tab[r, j] else NA_real_
-      })
-      names(out) <- param_names
-      out
-    }
-
-    est <- extract_col(1)
-    se <- extract_col(2)
-    p_val <- extract_col(4)
-    ci <- rbind(
-      lower = est - z * se,
-      upper = est + z * se
-    )
-
-    table <- data.frame(
-      regression = version,
-      parameter = c("beta_child", "beta_mother", "beta_father"),
-      estimate = unname(est),
-      se = unname(se),
-      ci_low = unname(ci["lower", ]),
-      ci_high = unname(ci["upper", ]),
-      p_value = unname(p_val),
-      family = if (outcome == "continuous") "lm_scaled_outcome" else "glm_probit_binary",
-      stringsAsFactors = FALSE
-    )
-
-    list(
-      converged = TRUE,
-      model = form,
-      fit = fit,
-      N = stats::nobs(fit),
-      coefficients = est,
-      se = se,
-      ci = ci,
-      p_value = p_val,
-      table = table,
-      error = NULL
-    )
+    ci <- rbind(lower = est - z * se, upper = est + z * se)
+    family <- if (outcome == "continuous") "lm_scaled_outcome" else "glm_probit_binary"
+    format_table <- function(tab) data.frame(regression = rep(version, nrow(tab)), tab, family = rep(family, nrow(tab)),
+      stringsAsFactors = FALSE, row.names = NULL)
+    table <- format_table(data.frame(parameter = unname(parameters), estimate = unname(est),
+      se = unname(se), ci_low = unname(ci["lower", ]), ci_high = unname(ci["upper", ]),
+      p_value = unname(p_val), stringsAsFactors = FALSE))
+    contrasts <- .ravel_pgs_contrast_table(b, V, ".pgs_mother", ".pgs_father",
+      mat_sib = if ("ms" %in% sib_roles) ".pgs_mat_sib",
+      pat_sib = if ("fs" %in% sib_roles) ".pgs_pat_sib", ci_level = ci_level, df = df)
+    midpoint <- contrasts$parameter %in% c("beta_mid", "delta_M_mid", "delta_P_mid")
+    table <- rbind(table, format_table(contrasts[!midpoint, , drop = FALSE]))
+    list(converged = !failed && (outcome == "continuous" || isTRUE(fit$converged)),
+      model = if (failed) NULL else form, fit = if (failed) NULL else fit,
+      N = if (failed) NA_integer_ else stats::nobs(fit), coefficients = est, se = se,
+      ci = ci, p_value = p_val, table = table,
+      parent_contrasts = format_table(contrasts[midpoint, , drop = FALSE]),
+      error = if (failed) fit$message else NULL)
   }
-
   pgs1 <- fit_one("PGS1")
   pgs2 <- fit_one("PGS2")
-
-  list(
-    outcome = outcome,
-    ci_level = ci_level,
-    fixed_effects = fixed_effects,
-    PGS1 = pgs1,
-    PGS2 = pgs2,
-    table = rbind(pgs1$table, pgs2$table)
-  )
+  list(outcome = outcome, ci_level = ci_level, fixed_effects = fixed_effects,
+    parental_sibs = parental_sibs, PGS1 = pgs1, PGS2 = pgs2,
+    table = rbind(pgs1$table, pgs2$table),
+    parent_contrasts = rbind(pgs1$parent_contrasts, pgs2$parent_contrasts))
 }
 
 #' Parental midpoint and deviation contrasts
@@ -3223,7 +3164,7 @@ ravel_fit <- function(dat,
 #' @param include_raw Logical. If \code{TRUE}, also return the
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
-#'   trio regression rows returned by \code{ravel_fit()}. These rows have no
+#'   regression rows (including requested parental siblings) returned by \code{ravel_fit()}. These rows have no
 #'   PGS-by-covariate terms and ordinary model SEs, so they are not matched to
 #'   interaction or clustered fits.
 #' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
@@ -3231,12 +3172,16 @@ ravel_fit <- function(dat,
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 #'   covariance or bootstrap draws of the fit. On the visible scale this gives
-#'   the same Wald test as the reparameterized model.
+#'   the same Wald test as the reparameterized model. For live fits, vanilla PGS
+#'   contrasts also use their joint regression covariance (t inference for lm;
+#'   normal inference for probit). Requested parental siblings enter these
+#'   regressions; parent-minus-sibling contrasts are returned automatically.
 #'
 #' @return A tidy \code{data.frame} with columns \code{regression},
 #'   \code{family}, \code{outcome_variable}, \code{scale}, \code{parameter},
 #'   \code{estimate}, \code{se}, \code{ci_low}, \code{ci_high},
-#'   \code{p_value}, \code{uncertainty_source}, and \code{p_value_method}.
+#'   \code{p_value}, \code{uncertainty_source}, \code{p_value_method}, and
+#'   \code{N} (the model-specific sample size).
 #'
 #' @export
 ravel_to_dataframe <- function(result,
@@ -3336,6 +3281,8 @@ ravel_to_dataframe <- function(result,
 
   if (isTRUE(include_vanilla) && !is.null(result$vanilla_regression) && !is.null(result$vanilla_regression$table)) {
     vanilla_tbl <- result$vanilla_regression$table
+    if (isTRUE(parent_contrasts)) vanilla_tbl <- rbind(vanilla_tbl,
+      .ravel_vanilla_parent_contrasts(result$vanilla_regression))
     vanilla_tbl$scale <- "vanilla"
     vanilla_tbl$uncertainty_source <- if (!is.null(result$interactions) || !is.null(result$cluster))
       "model_summary (unmatched: no interaction terms, rows independent)" else "model_summary"
@@ -3351,11 +3298,14 @@ ravel_to_dataframe <- function(result,
     out <- rbind(out, vanilla_tbl)
   }
 
+  out$N <- result$N %||% NA_integer_
+  for (version in c("PGS1", "PGS2")) out$N[out$regression == version] <-
+    result$vanilla_regression[[version]]$N %||% NA_integer_
   out$outcome_variable <- if (!is.null(result$outcome_variable)) result$outcome_variable else "Y"
   out <- out[, c(
     "regression", "family", "outcome_variable", "scale", "parameter",
     "estimate", "se", "ci_low", "ci_high", "p_value",
-    "uncertainty_source", "p_value_method"
+    "uncertainty_source", "p_value_method", "N"
   )]
 
   attr(out, "settings") <- list(fit_constraints = result$constraint_spec$mode %||% "none",
@@ -3402,7 +3352,7 @@ ravel_to_dataframe <- function(result,
 #' @param include_raw Logical. If \code{TRUE}, also return the
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
-#'   trio regression rows returned by \code{ravel_fit()}. These rows have no
+#'   regression rows (including requested parental siblings) returned by \code{ravel_fit()}. These rows have no
 #'   PGS-by-covariate terms and ordinary model SEs, so they are not matched to
 #'   interaction or clustered fits.
 #' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
@@ -3410,7 +3360,10 @@ ravel_to_dataframe <- function(result,
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 #'   covariance or bootstrap draws of the fit. On the visible scale this gives
-#'   the same Wald test as the reparameterized model.
+#'   the same Wald test as the reparameterized model. For live fits, vanilla PGS
+#'   contrasts also use their joint regression covariance (t inference for lm;
+#'   normal inference for probit). Requested parental siblings enter these
+#'   regressions; parent-minus-sibling contrasts are returned automatically.
 #' @param ... Unused.
 #'
 #' @return A tidy \code{data.frame} of fitted coefficients and uncertainty.
@@ -3487,7 +3440,10 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 #'   covariance or bootstrap draws of the fit. On the visible scale this gives
-#'   the same Wald test as the reparameterized model.
+#'   the same Wald test as the reparameterized model. For live fits, vanilla PGS
+#'   contrasts also use their joint regression covariance (t inference for lm;
+#'   normal inference for probit). Requested parental siblings enter these
+#'   regressions; parent-minus-sibling contrasts are returned automatically.
 #'
 #' @export
 #' @importFrom stats reshape
@@ -3544,6 +3500,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat("\n")
   .print_parental_sibs(result, unc, digits, compact = FALSE)
   .print_interactions(result, unc, digits)
+  .print_vanilla_contrasts(result, parent_contrasts, digits)
   if (isTRUE(parent_contrasts)) {
     .print_parent_contrasts(result, unc, digits)
     if (result$h > 0) .print_parent_contrasts(result, unc, digits, "corrected_std")
@@ -3780,7 +3737,10 @@ cat("Within-person Cor(PGS1,PGS2):\n")
 #'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 #'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 #'   covariance or bootstrap draws of the fit. On the visible scale this gives
-#'   the same Wald test as the reparameterized model.
+#'   the same Wald test as the reparameterized model. For live fits, vanilla PGS
+#'   contrasts also use their joint regression covariance (t inference for lm;
+#'   normal inference for probit). Requested parental siblings enter these
+#'   regressions; parent-minus-sibling contrasts are returned automatically.
 #'
 #' @export
 print_simple <- function(result, digits = 4,
@@ -3838,6 +3798,7 @@ print_simple <- function(result, digits = 4,
   cat(sprintf("  R2:      %s\n", fmt_est(result$R2_model)))
   .print_parental_sibs(result, unc, digits, compact = TRUE)
   .print_interactions(result, unc, digits)
+  .print_vanilla_contrasts(result, parent_contrasts, digits)
   if (isTRUE(parent_contrasts)) .print_parent_contrasts(result, unc, digits)
 
   # Hidden-corrected

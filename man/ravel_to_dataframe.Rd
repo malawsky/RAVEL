@@ -22,7 +22,7 @@ ravel_to_dataframe(
 corrected raw total-liability rows.}
 
 \item{include_vanilla}{Logical. If \code{TRUE}, append the plain observed-PGS
-trio regression rows returned by \code{ravel_fit()}. These rows have no
+regression rows (including requested parental siblings) returned by \code{ravel_fit()}. These rows have no
 PGS-by-covariate terms and ordinary model SEs, so they are not matched to
 interaction or clustered fits.}
 
@@ -31,13 +31,16 @@ midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 covariance or bootstrap draws of the fit. On the visible scale this gives
-the same Wald test as the reparameterized model.}
+the same Wald test as the reparameterized model. For live fits, vanilla PGS
+contrasts also use their joint regression covariance (t inference for lm;
+normal inference for probit). Requested parental siblings enter these
+regressions; parent-minus-sibling contrasts are returned automatically.}
 }
 \value{
 A tidy \code{data.frame} with columns \code{regression},
 \code{family}, \code{outcome_variable}, \code{scale}, \code{parameter},
 \code{estimate}, \code{se}, \code{ci_low}, \code{ci_high},
-\code{p_value}, \code{uncertainty_source}, and \code{p_value_method}.
+\code{p_value}, \code{uncertainty_source}, \code{p_value_method}, and \code{N} (model-specific sample size).
 }
 \description{
 Returns one row per reported parameter for the visible scale and, when

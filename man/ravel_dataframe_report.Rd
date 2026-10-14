@@ -14,9 +14,11 @@ ravel_dataframe_report(df, outcome = "Y", covariates = character(),
   seed = NULL, make_plot = TRUE, report_name = NULL,
   fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"), h = 0,
   am_n_generations = 1L,
-  parental_sibs = c("none", "maternal", "paternal", "both"))
+  parental_sibs = c("none", "maternal", "paternal", "both"),
+  parent_contrasts = FALSE)
 }
 \arguments{
+\item{parent_contrasts}{Logical. Include the parental midpoint and mother-father deviation contrasts for RAVEL and both vanilla PGS regressions. Parent-minus-sibling contrasts are automatic when the corresponding sibling is requested.}
 \item{df}{Data frame with one independent trio per row. Not modified.}
 \item{outcome}{Numeric outcome column; binary outcomes must be coded 0/1.}
 \item{covariates}{Names of jointly adjusted covariates.}
@@ -70,7 +72,9 @@ covariates use K-1 treatment dummies; a full-rank design is required.
 
 RAVEL uses the child's mean and SD for all roles within each score version,
 preserving parental variance ratios. The main PGS regression estimates use
-each role's own score SD. Continuous Y is standardized after complete-case
+each role's own score SD. Requested parental siblings enter the vanilla regressions;
+these use complete cases for their requested scores and report their actual N.
+All contrasts use the full joint coefficient covariance. Continuous Y is standardized after complete-case
 selection. Binary Y is unchanged. Ordinary probit PGS coefficients and SEM
 liability coefficients have different outcome scales and are plotted separately.
 

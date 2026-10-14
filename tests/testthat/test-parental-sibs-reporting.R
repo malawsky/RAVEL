@@ -37,7 +37,9 @@ test_that("sibling reports retain incomplete relatives and transfer every estima
     expect_identical(rownames(out$packet$vcov_core), labels)
     expect_identical(out$packet$settings$parental_sibs, mode)
     expect_equal(out$packet$settings$n_complete, 6000)
-    expect_true(all(out$summary$N == 6000))
+    expect_true(all(out$summary$N[out$summary$regression == "RAVEL"] == 6000))
+    n_vanilla <- c(maternal = 5300, paternal = 5500, both = 4800)[[mode]]
+    expect_true(all(out$summary$N[out$summary$regression != "RAVEL"] == n_vanilla))
     expect_true(all(params %in% out$summary$parameter))
     expect_true(all(is.finite(out$summary$se)))
     expected_residuals <- .parental_sib_residual_benchmarks(roles)

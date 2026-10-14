@@ -27,7 +27,10 @@ midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
 maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
 \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
 covariance or bootstrap draws of the fit. On the visible scale this gives
-the same Wald test as the reparameterized model.}
+the same Wald test as the reparameterized model. For live fits, vanilla PGS
+contrasts also use their joint regression covariance (t inference for lm;
+normal inference for probit). Requested parental siblings enter these
+regressions; parent-minus-sibling contrasts are returned automatically.}
 }
 \description{
 Print RAVEL Results

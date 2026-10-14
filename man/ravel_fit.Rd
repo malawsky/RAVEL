@@ -264,7 +264,7 @@ A list with components (selected):
 \item{reliability}{Indicator-level reliability estimates}
 \item{determinacy}{Factor-score determinacy per role}
 \item{within_person_corr}{Within-person Cor(PGS1,PGS2) per role}
-\item{vanilla_regression}{Plain standardized trio regressions on observed PGS1 and PGS2 using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
+\item{vanilla_regression}{Plain standardized regressions on observed PGS1 and PGS2, including requested parental siblings and parent-minus-sibling contrasts, using \code{lm()} for continuous outcomes or \code{glm(link = "probit")} for binary outcomes, with the same fixed effects if supplied. They have no PGS-by-covariate terms and use ordinary model SEs even when \code{cluster} is set, so they are not a matched comparator for interaction or clustered fits}
 \item{lavaan_inference}{lavaan-based SEs and normal-approximation CIs for visible and corrected estimates}
 \item{bootstrap}{Bootstrap results (if n_boot > 0), including visible-scale and corrected-scale summaries}
 \item{pi_correction}{When \code{pi_se} is supplied, the corrected table with

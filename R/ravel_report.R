@@ -133,8 +133,10 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
 }
 
 .ravel_report_vanilla <- function(dat, version, fixed_effects, scaling, response_scale,
-                                  response_center, outcome_type, ci_level, outcome_name) {
-  roles <- c("child", "mother", "father")
+                                  response_center, outcome_type, ci_level, outcome_name,
+                                  parental_sibs = "none", parent_contrasts = FALSE) {
+  sib_roles <- .parental_sib_roles(parental_sibs)
+  roles <- c("child", "mother", "father", unname(c(ms = "mat_sib", fs = "pat_sib")[sib_roles]))
   pgs <- paste0("PGS", version, "_", roles)
   formula <- stats::reformulate(c(pgs, fixed_effects), response = "Y")
   fit <- if (outcome_type == "continuous") stats::lm(formula, data = dat) else
@@ -153,14 +155,28 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
     p <- if (outcome_type == "continuous" && !normal)
       2 * stats::pt(-abs(statistic), fit$df.residual) else 2 * stats::pnorm(-abs(statistic))
     parameter <- names(est)
-    parameter[match(pgs, names(est))] <- c("beta_D", "beta_M", "beta_P")
-    data.frame(outcome_variable = outcome_name, regression = paste0("PGS", version),
+    parameter[match(pgs, names(est))] <- c(child = "beta_D", mother = "beta_M",
+      father = "beta_P", mat_sib = "beta_MS", pat_sib = "beta_FS")[roles]
+    tab <- data.frame(outcome_variable = outcome_name, regression = paste0("PGS", version),
       scale = predictor_scale, outcome_scale = response_unit, parameter = parameter,
       estimate = unname(est), se = unname(se), ci_low = unname(est - critical * se),
-      ci_high = unname(est + critical * se), p_value = unname(p), N = nrow(dat),
+      ci_high = unname(est + critical * se), p_value = unname(p), N = stats::nobs(fit),
       inference = if (outcome_type == "continuous" && !normal) "lm_t" else
         if (normal) "glm_delta_wald_conditional_on_sample_moments" else "glm_probit_wald",
       stringsAsFactors = FALSE)
+    contrasts <- .ravel_pgs_contrast_table(est, covariance, pgs[2], pgs[3],
+      mat_sib = if ("ms" %in% sib_roles) paste0("PGS", version, "_mat_sib"),
+      pat_sib = if ("fs" %in% sib_roles) paste0("PGS", version, "_pat_sib"),
+      ci_level = ci_level,
+      df = if (outcome_type == "continuous" && !normal) fit$df.residual else Inf,
+      parent_contrasts = parent_contrasts)
+    if (!is.null(contrasts)) {
+      extra <- tab[rep(1L, nrow(contrasts)), , drop = FALSE]
+      extra[names(contrasts)] <- contrasts
+      tab <- rbind(tab, extra)
+      rownames(tab) <- NULL
+    }
+    tab
   }
   response_unit <- if (outcome_type == "continuous") "prepared_phenotype_SD" else "probit_residual_SD"
   common <- make_table(b, V, "child_reference_PGS_SD", response_unit)
@@ -295,7 +311,10 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
                                     report_name = NULL,
                                     fit_constraints = c("none", "equilibrium", "n_gen", "estimated_state"),
                                     h = 0, am_n_generations = 1L,
-                                    parental_sibs = c("none", "maternal", "paternal", "both")) {
+                                    parental_sibs = c("none", "maternal", "paternal", "both"),
+                                    parent_contrasts = FALSE) {
+  if (!is.logical(parent_contrasts) || length(parent_contrasts) != 1L || is.na(parent_contrasts))
+    stop("parent_contrasts must be TRUE or FALSE.")
   fit_constraints <- match.arg(fit_constraints)
   parental_sibs <- match.arg(parental_sibs)
   sib_roles <- .parental_sib_roles(parental_sibs)
@@ -456,7 +475,8 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     report_stage <- paste0("PGS", k)
     report_model_status[report_stage] <- "running"
     vanilla[[k]] <- .ravel_report_vanilla(dat, k, fe, scaling,
-      response_scale, response_center, outcome_type, ci_level, outcome)
+      response_scale, response_center, outcome_type, ci_level, outcome,
+      parental_sibs = parental_sibs, parent_contrasts = parent_contrasts)
     report_model_status[report_stage] <- "ok"
   }
   report_stage <- "report"
@@ -464,7 +484,8 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
     tab <- x$coefficients
     tab <- tab[tab$scale == "own_role_PGS_SD" &
       tab$outcome_scale != "model_implied_marginal_probit_liability_SD" &
-      tab$parameter %in% c("beta_D", "beta_M", "beta_P"), , drop = FALSE]
+      tab$parameter %in% c("beta_D", "beta_M", "beta_P", "beta_MS", "beta_FS", "delta_M", "delta_F",
+        if (isTRUE(parent_contrasts)) c("beta_mid", "delta_M_mid", "delta_P_mid")), , drop = FALSE]
     tab$residual_model <- "not_applicable"
     tab$fit_status <- "ok"
     tab[wanted]
@@ -521,7 +542,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
       sample_prevalence = if (outcome_type == "binary_liability") mean(dat$Y) else NULL),
     settings = list(n_initial = nrow(df), n_complete = n, excluded = nrow(df) - n,
       h = if (fit_constraints == "none") 0 else h, n_boot = 0, ci_level = ci_level,
-      fit_constraints = fit_constraints, parental_sibs = parental_sibs,
+      fit_constraints = fit_constraints, parental_sibs = parental_sibs, parent_contrasts = parent_contrasts,
       moment_missingness = if (length(sib_columns) && outcome_type == "continuous")
         "pairwise observed descriptive moments; SEM uses FIML" else "complete observed inputs",
       am_n_generations =
@@ -566,7 +587,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
   out["summary_bootstrap"] <- list(NULL)
   out["bootstrap"] <- list(NULL)
   out$settings <- list(uncertainty = uncertainty, n_boot = n_boot, seed = seed,
-    ci_level = ci_level, outcome_type = outcome_type, fit_constraints = fit_constraints, parental_sibs = parental_sibs,
+    ci_level = ci_level, outcome_type = outcome_type, fit_constraints = fit_constraints, parental_sibs = parental_sibs, parent_contrasts = parent_contrasts,
     h = if (fit_constraints == "none") 0 else h, am_n_generations =
       if (fit_constraints %in% c("equilibrium", "estimated_state")) NA_integer_ else am_n_generations)
   if (n_boot > 0) {
@@ -716,6 +737,7 @@ ravel_dataframe_report <- function(df, outcome = "Y", covariates = character(),
       residual_models = residual_models, ci_level = ci_level, make_plot = FALSE,
       fit_constraints = out$settings$fit_constraints %||% "none",
       parental_sibs = out$settings$parental_sibs %||% "none",
+      parent_contrasts = out$settings$parent_contrasts %||% FALSE,
       h = out$settings$h %||% 0, am_n_generations = out$settings$am_n_generations %||% 1L), error = identity)
     if (inherits(fitted, "error")) {
       models <- c(residual_models, "PGS1", "PGS2")
@@ -777,6 +799,9 @@ ravel_plot_report <- function(out, scale = NULL) {
       stop("scale must name one available scale in the coefficient table.")
     tab <- tab[tab$scale == scale, , drop = FALSE]
   }
+  vanilla_names <- c(beta_child = "beta_D", beta_mother = "beta_M", beta_father = "beta_P")
+  mapped <- match(tab$parameter, names(vanilla_names))
+  tab$parameter[!is.na(mapped)] <- unname(vanilla_names[mapped[!is.na(mapped)]])
   tab$parameter <- sub("^beta_F(?=:|$)", "beta_P", tab$parameter, perl = TRUE)
   labels <- .ravel_plot_parameter_labels(tab$parameter)
   tab <- tab[tab$parameter %in% names(labels), , drop = FALSE]
@@ -989,7 +1014,8 @@ print.ravel_report_plot <- function(x, ...) {
       if (any(!is.finite(actual)) || diagnostics$maximum_fixed_correlation_error > 1e-5)
         stop("Fitted residual correlations violate the requested fixed constraints; numerical review required")
     }
-    visible <- RAVEL::ravel_to_dataframe(fit, uncertainty = "lavaan", include_vanilla = FALSE)
+    visible <- RAVEL::ravel_to_dataframe(fit, uncertainty = "lavaan", include_vanilla = FALSE,
+      parent_contrasts = settings$parent_contrasts %||% FALSE)
     visible <- visible[visible$scale == "visible", , drop = FALSE]
     visible$parameter[visible$parameter == "beta_F"] <- "beta_P"
     visible$outcome_variable <- outcome$name
@@ -1066,7 +1092,8 @@ print.ravel_report_plot <- function(x, ...) {
     diagnostics$warnings <- unique(messages)
     tab <- data.frame(outcome_variable = outcome$name, regression = "RAVEL", scale = "visible",
       outcome_scale = if (outcome$type == "continuous") "prepared_phenotype_SD" else "SEM_probit_liability",
-      parameter = .report_parameters(.report_packet_roles(common_packet), "visible"),
+      parameter = c(.report_parameters(.report_packet_roles(common_packet), "visible"),
+        if (isTRUE(settings$parent_contrasts)) c("beta_mid", "delta_M_mid", "delta_P_mid")),
       estimate = NA_real_, se = NA_real_, ci_low = NA_real_, ci_high = NA_real_, p_value = NA_real_,
       N = nrow(dat), inference = "unavailable", residual_model = specification, fit_status = "failed")
     list(summary = tab[wanted], fit_statistics = stats_table(c(N = nrow(dat)), "RAVEL", specification),

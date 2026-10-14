@@ -55,13 +55,28 @@ out_g3 <- ravel_dataframe_report(df, fit_constraints = "n_gen", h = .4,
 ## Reporting and exporting
 
 `parent_contrasts = TRUE` in `print_simple()`, `print_ravel_results()`,
-`as.data.frame()` and `ravel_to_dataframe()` adds three rows per scale:
+`as.data.frame()`, `ravel_to_dataframe()` and `ravel_dataframe_report()` adds
+three rows per reported scale, including each vanilla PGS regression:
 
 - `beta_mid` (bm + bf), the coefficient on the parental midpoint (G_m + G_p)/2;
 - `delta_M_mid` (bm - bf), the maternal deviation;
 - `delta_P_mid` (bf - bm), the paternal deviation.
 
-They use the fit's joint covariance or bootstrap draws (see
+Vanilla contrasts use the regression's joint coefficient covariance, including
+the covariance between the two coefficients. Model-based continuous-regression
+contrasts use t intervals and tests; probit contrasts use normal intervals and
+tests. Report bootstraps recompute contrasts in each whole-family draw. The
+ordinary comparators attached to a live fit retain their ordinary model SEs.
+
+When `parental_sibs` requests a maternal or paternal sibling, the corresponding
+sibling PGS enters each vanilla regression. Its coefficient (`beta_MS` / `beta_FS`)
+and the parent-minus-sibling contrast (`delta_M` / `delta_F`) are included without
+`parent_contrasts = TRUE`. Both PGS regressions use complete cases for their own
+requested scores and covariates, so their reported N can differ from the FIML
+SEM and from each other. All score coefficients use the documented score units;
+these contrasts are not standardized by the SD of the difference itself.
+
+RAVEL contrasts use the fit's joint covariance or bootstrap draws (see
 [Methods](methods.md#parental-midpoint-and-deviation-contrasts)).
 
 All fitting modes use the existing fit, table, print, report and bootstrap
@@ -521,7 +536,7 @@ mode are rejected.
 | `var_total_assumed` | Role-specific V_T,r = Var(T_r*) for child, mother, and father. Standardized T has variance one. |
 | `reliability` | PGS reliability per role and PGS |
 | `determinacy` | Factor score determinacy per role |
-| `vanilla_regression` | Plain standardized trio regressions on observed `PGS1` and `PGS2` (`lm` for continuous outcomes, probit `glm` for binary outcomes) with ordinary model-based SEs. They include interaction covariates only as main effects, with no PGS-by-covariate terms, and ignore `cluster`, so they are not a matched comparator for interaction or clustered fits. |
+| `vanilla_regression` | Plain standardized regressions on observed `PGS1` and `PGS2`, including requested parental siblings and parent-minus-sibling contrasts (`lm` for continuous outcomes, probit `glm` for binary outcomes) with ordinary model-based SEs. They include interaction covariates only as main effects, with no PGS-by-covariate terms, and ignore `cluster`, so they are not a matched comparator for interaction or clustered fits. |
 | `R2_model` | Variance explained by the visible latent linear predictor, including genetic x covariate interaction terms (covariate main effects excluded). With interactions, `components_vis` is evaluated at the moderator means and adds `interaction` and `cross_main_interaction`, so it does not depend on `interaction_center`. |
 | `R2_total_assumed` | Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and AM model. With interactions and pi > 0 it adds the total-scale interaction variance, assuming the moderator is independent of the genetic components. At pi = 0 it retains the fitted visible interaction and cross-term variances without that independence assumption. |
 | `lavaan_inference` | SEM-based inference conditional on pi. Printing and table conversion use `pi_correction` for corrected rows when external uncertainty was supplied. |

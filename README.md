@@ -185,7 +185,12 @@ Check convergence, warnings and diagnostics before interpreting intervals.
 For the parental midpoint and mother–father difference, add
 `parent_contrasts = TRUE` to either printer or `as.data.frame()`. These use the
 joint coefficient covariance. They compare the parental coefficients; they are
-not the within-lineage contrasts from parental siblings.
+not the within-lineage contrasts from parental siblings. The same option includes
+midpoint and mother–father contrasts for each vanilla PGS regression (and in
+`ravel_dataframe_report(..., parent_contrasts = TRUE)`). When parental siblings
+are requested, vanilla regressions include their scores and automatically return
+`delta_M` / `delta_F` (parent minus sibling). Their complete-case sample sizes
+are reported separately; missing sibling scores are not imputed.
 
 The default SEs come from the SEM. `pi_se` adds external uncertainty by the delta
 method, assuming independent external estimation of pi. For a bootstrap, add

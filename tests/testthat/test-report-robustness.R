@@ -65,7 +65,7 @@ robustness_report <- function(fail_at = NULL, attempts = new.env(parent = emptye
   report <- RAVEL::ravel_dataframe_report
   env <- new.env(parent = environment(report))
   env$.ravel_report_vanilla <- function(dat, version, fixed_effects, scaling, response_scale,
-                                       response_center, outcome_type, ci_level, outcome_name) {
+                                       response_center, outcome_type, ci_level, outcome_name, ...) {
     model <- paste0("PGS", version)
     attempts$models <- c(attempts$models, model)
     if (identical(fail_at, model)) stop("Injected ", model, " failure")
