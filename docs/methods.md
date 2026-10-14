@@ -564,10 +564,55 @@ In long format the child main-effect SE was about 10% small (Monte Carlo SD
 0.028, mean SE 0.026). The naive observed-score interaction was attenuated
 (0.015 for a true 0.020).
 
-**Scope.** Interaction coefficients are reported on the visible scale. Mapping
-them to the total-liability scale would need the covariate to be independent
-of the genetic components; this is not yet implemented. Outcomes must be
-continuous.
+**Total-liability scale.** Suppose the phenotype acts on the role-standardized
+total liabilities, Y = beta'T + gamma'(T x~) + c x~ + e, with x~ = x - x_0.
+Write A = Sigma_GG, B = Cov(G, T), mu = E[x~] and v = E[x~^2]. If x is
+independent of every family member's visible and hidden components, then:
+
+```
+Var(G) = A          Cov(G, G x~) = mu A        Var(G x~) = v A
+Cov(G, x~) = 0      Cov(G x~, x~) = 0
+Cov(G, Y) = B(beta + mu gamma)                Cov(G x~, Y) = B(mu beta + v gamma)
+```
+
+b = A^{-1} B beta and g = A^{-1} B gamma solve the normal equations for any mu.
+So the interaction vector is corrected by exactly the main-effect map,
+including the five-role map with parental siblings, whatever the centring.
+
+Two conditions apply:
+
+1. Every family member in the model needs an interaction term. A^{-1}B is not
+   diagonal under assortment with hidden variation, so omitted terms load on
+   the included ones and, when mu is not 0, on the main effects through
+   mu gamma (A^{-1}B e_r - B_rr e_r). With pi > 0, `interaction_roles` therefore
+   defaults to all family members, and an incomplete set is rejected.
+2. The moderator is independent of the genetic components. This is plausible
+   for age but not, for example, for socioeconomic status. The fit reports
+   the latent correlation of each G with the moderator and warns when one is
+   clearly nonzero. With `pi_se`, `covariate_mapping_confirmed = TRUE` is
+   required, as for other covariates.
+
+Corrected interactions (`beta_D:age`, ..., and `delta_M:age` with siblings) use
+delta-method standard errors over the joint SEM covariance of the trio core,
+the sibling core and the interaction coefficients. That covariance is
+cluster-robust when `cluster` is set. `pi_se` adds external pi variance, and
+finite-generation constrained fits include the refit sensitivity of the
+interaction coefficients.
+
+**Correction validation.** Gaussian latent pedigrees were simulated with
+pi = 0.4, two rounds at rho_T = 0.4, 8,000 families and 1-4 occasions, with the
+interaction on total liability. Over 100 replicates:
+
+| | Child | Mother | Father |
+|---|---|---|---|
+| True gamma | 0.020 | 0.010 | 0 |
+| Corrected mean | 0.0201 | 0.0097 | -0.0001 |
+| Coverage | 0.95 | 0.96 | 0.95 |
+| Visible mean | 0.0148 | 0.0088 | 0.0025 |
+
+Corrected main effects in the same fits had 0.96 coverage.
+
+**Scope.** Interactions need a continuous outcome.
 
 ## Covariate adjustment and binary outcomes
 

@@ -12,8 +12,14 @@
   bootstrap resampling. Long-format data (one row per child-occasion) with an
   age interaction give a population-averaged growth model; a squared-age
   column adds curvature.
-- Interaction coefficients are reported on the visible scale only. They
-  require a continuous outcome. Fits without these options are unchanged.
+- With `pi > 0`, interaction coefficients are corrected to the total-liability
+  scale by the main-effect map, for trios and parental-sibling fits
+  (`delta_M:age` and so on). This requires interaction terms for every family
+  member (the default when `pi > 0`) and a moderator independent of genetic
+  liability; a latent-correlation check warns otherwise. External `pi_se` and
+  finite-generation refit sensitivity are propagated.
+- Interactions require a continuous outcome. Fits without these options are
+  unchanged.
 - Constraint checks now evaluate lavaan's internal equality labels, which
   appear when parameter labels are shared across rows.
 

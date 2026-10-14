@@ -1792,13 +1792,18 @@
 #'   \code{"age"}. Each covariate is centred at \code{interaction_center} (default:
 #'   its sample mean) and added as a main effect. The latent interaction G x
 #'   covariate is measured by products of the centred scores and the covariate,
-#'   which share G's loadings. Coefficients are reported per SD of the visible
-#'   liability per unit of the covariate, on the visible scale only; main effects
-#'   then refer to the centre. For growth models, supply long-format data (one row
+#'   which share G's loadings. Coefficients are reported per SD of the
+#'   liability per unit of the covariate; main effects then refer to the
+#'   centre. With \code{pi > 0}, interactions are also corrected to the
+#'   total-liability scale by the main-effect map, which assumes the covariate
+#'   is independent of genetic liability. For growth models, supply long-format data (one row
 #'   per child-occasion) with \code{interactions = "age"} and \code{cluster};
 #'   add a squared-age column for curvature. Requires a continuous outcome.
 #' @param interaction_roles Character. Liabilities that interact with the
-#'   covariates: any of \code{"child"} (default), \code{"mother"}, \code{"father"}.
+#'   covariates: any of \code{"child"} (default), \code{"mother"},
+#'   \code{"father"}, and \code{"mat_sib"} / \code{"pat_sib"} when those
+#'   siblings are in the model. With \code{pi > 0} it defaults to every family
+#'   member, which the total-liability correction requires.
 #' @param interaction_center Optional numeric vector named by interaction
 #'   covariates giving the value at which main effects are reported (for example
 #'   \code{c(age = 10)}). Unnamed covariates are centred at their sample mean.
@@ -1846,9 +1851,11 @@
 #'       correlations, reliabilities, determinacy, and the number of families
 #'       with each sibling observed.}
 #'     \item{interactions}{When \code{interactions} is supplied: the moderators,
-#'       roles, centres and internal scales, and a table of visible-scale
+#'       roles, centres and internal scales, a table of visible-scale
 #'       interaction coefficients (\code{beta_D:age} and so on) with lavaan
-#'       (cluster-robust when \code{cluster} is set) inference.}
+#'       (cluster-robust when \code{cluster} is set) inference, corrected
+#'       total-liability rows when \code{pi > 0}, and the latent correlation of
+#'       each genetic factor with each moderator.}
 #'       \item{cluster, n_clusters}{The cluster column and number of clusters, when
 #'       supplied.}
 #'   }
@@ -1908,6 +1915,9 @@ ravel_fit <- function(dat,
       stop("covariate_mapping_confirmed must be TRUE or FALSE")
     if (length(fixed_effects) > 0L && !covariate_mapping_confirmed)
       stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
+    if (length(interactions) > 0L && !covariate_mapping_confirmed)
+      stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates; ",
+           "interaction covariates enter as covariates (covariate_mapping_confirmed = TRUE).")
     .ravel_pi_validate_cross(core_pi_cov, pi_se^2,
       c(.report_core_labels, .sib_core_labels(.parental_sib_roles(match.arg(parental_sibs)))))
   } else if (!is.null(core_pi_cov)) {
@@ -2052,8 +2062,20 @@ ravel_fit <- function(dat,
   # Genetic x covariate interactions: centre moderators, add them as main
   # effects, and build product indicators. Refits start from the data as given.
   dat_for_refit <- dat
+  model_roles <- c("child", "mother", "father", c(ms = "mat_sib", fs = "pat_sib")[sib_roles])
+  if (!is.null(interactions) && h > 0) {
+    # The total-liability map needs an interaction term for every family member:
+    # omitted terms would load on the included ones (and, off-mean, on the main effects).
+    if (missing(interaction_roles)) {
+      interaction_roles <- unname(model_roles)
+    } else if (!all(model_roles %in% interaction_roles)) {
+      stop("With pi > 0, interaction_roles must include every family member in the model (",
+           paste(model_roles, collapse = ", "), ") so that main effects and interactions map to ",
+           "the total-liability scale together.")
+    }
+  }
   interaction_spec <- .ravel_interaction_spec(interactions, interaction_roles,
-    interaction_center, dat, outcome)
+    interaction_center, dat, outcome, available_roles = unname(model_roles))
   if (!is.null(interaction_spec)) {
     fixed_effects <- unique(c(fixed_effects, interaction_spec$moderators))
     dat <- .ravel_interaction_data(dat, interaction_spec)
@@ -2692,7 +2714,10 @@ ravel_fit <- function(dat,
 
     # Genetic x covariate interactions (NULL when interactions = NULL)
     interactions = if (is.null(interaction_spec)) NULL else c(interaction_spec,
-      list(table = .ravel_interaction_table(fit, interaction_spec, ci_level))),
+      list(table = .ravel_interaction_table(fit, interaction_spec, ci_level),
+           theta = .ravel_interaction_theta(fit, interaction_spec),
+           independence = .ravel_interaction_independence(fit, interaction_spec,
+             c("Gc", "Gm", "Gf", c(ms = "Gms", fs = "Gfs")[sib_roles])))),
     cluster = cluster,
     n_clusters = n_clusters
   ), class = c("ravel_results", "list"))
@@ -2716,10 +2741,32 @@ ravel_fit <- function(dat,
         "the parental-sibling moments are incompatible with the supplied pi/assortment state.")
       warning(result$pi_correction_error, " The visible fit is retained.")
     } else {
-      result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
-        ci_level = ci_level, core_pi_cov = core_pi_cov,
-        covariate_mapping_confirmed = covariate_mapping_confirmed)
+      # Refit once for pi sensitivity when fitting depends on pi, covering the
+      # interaction coefficients too.
+      if (!is.null(interaction_spec) && pi_se > 0 && isTRUE(result$constraint_spec$depends_on_pi)) {
+        interaction_sensitivity <- .ravel_constraint_core_h_sensitivity(result, include_interactions = TRUE)
+        core_labels_now <- c(.report_core_labels, .sib_core_labels(sib_roles))
+        result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
+          ci_level = ci_level, core_pi_cov = core_pi_cov,
+          core_pi_sensitivity = interaction_sensitivity[core_labels_now],
+          covariate_mapping_confirmed = covariate_mapping_confirmed)
+      } else {
+        result$pi_correction <- ravel_correct_pi(result, pi = h, pi_se = pi_se,
+          ci_level = ci_level, core_pi_cov = core_pi_cov,
+          covariate_mapping_confirmed = covariate_mapping_confirmed)
+      }
     }
+  }
+  if (!is.null(interaction_spec) && h > 0) {
+    result$interactions$corrected <- .ravel_interaction_corrected(fit, estimates, interaction_spec,
+      h, am_correction, am_n_generations, sib_roles, ci_level,
+      pi_se = if (is.null(result$pi_correction)) NULL else pi_se, core_pi_cov = core_pi_cov,
+      sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL)
+    indep <- result$interactions$independence
+    if (!is.null(indep) && any(indep$p_value < 1e-3))
+      warning("An interaction covariate is correlated with a genetic factor (",
+        paste(sprintf("%s-%s r = %.3f", indep$latent, indep$moderator, indep$correlation)[indep$p_value < 1e-3],
+          collapse = ", "), "). The total-liability correction of interactions assumes independence.")
   }
   result
 }
@@ -3113,6 +3160,18 @@ ravel_to_dataframe <- function(result,
     )
   }
 
+  gxe_corrected <- result$interactions$corrected
+  if (!is.null(gxe_corrected)) {
+    keep <- gxe_corrected$scale == "corrected_std" | (isTRUE(include_raw) & gxe_corrected$scale == "corrected_raw")
+    gc <- gxe_corrected[keep, , drop = FALSE]
+    if (nrow(gc)) out <- rbind(out, data.frame(
+      regression = "RAVEL", family = NA_character_, scale = gc$scale,
+      parameter = gc$parameter, estimate = gc$estimate, se = gc$se,
+      ci_low = gc$ci_low, ci_high = gc$ci_high, p_value = gc$p_value,
+      uncertainty_source = gc$uncertainty_source,
+      p_value_method = "normal_approx_from_lavaan_se", stringsAsFactors = FALSE))
+  }
+
   if (isTRUE(include_vanilla) && !is.null(result$vanilla_regression) && !is.null(result$vanilla_regression$table)) {
     vanilla_tbl <- result$vanilla_regression$table
     vanilla_tbl$scale <- "vanilla"
@@ -3357,6 +3416,10 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
         .print_parental_sibs(result, unc, digits, scale = "corrected_std")
         cat("\n")
       }
+      if (!is.null(result$interactions$corrected)) {
+        .print_interactions(result, digits, scale = "corrected_std")
+        cat("\n")
+      }
     } else {
       cat("\n")
     }
@@ -3598,6 +3661,7 @@ print_simple <- function(result, digits = 4,
     cat(sprintf("    beta_M_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bm"], .uncertainty_ci(unc, "total_std", "bm"))))
     cat(sprintf("    beta_F_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bf"], .uncertainty_ci(unc, "total_std", "bf"))))
     if (!is.null(result$parental_sibs)) .print_parental_sibs(result, unc, digits, scale = "corrected_std")
+    .print_interactions(result, digits, scale = "corrected_std")
     if (!is.null(result$R2_total_assumed) && !is.na(result$R2_total_assumed)) {
       cat(sprintf("  R2:      %s\n", fmt_est(result$R2_total_assumed)))
     }

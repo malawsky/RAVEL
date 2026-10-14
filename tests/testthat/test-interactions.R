@@ -145,3 +145,97 @@ test_that("invalid interaction and cluster inputs are rejected", {
   dc <- d; dc$age <- as.character(dc$age)
   expect_error(gxe_fit(dc, interactions = "age"), "numeric")
 })
+
+# ---------------------------------------------------------------------------
+# Total-liability correction of interactions
+# ---------------------------------------------------------------------------
+
+# Hidden variation (pi = 0.4) and two constant rounds of assortment; the
+# phenotype has a genetic x age effect on the standardized total liabilities.
+gxe_hidden <- function(N = 8000L, seed = 3L, sibs = "none") {
+  key <- paste("hidden", N, seed, sibs, sep = "_")
+  if (exists(key, gxe_cache, inherits = FALSE)) return(gxe_cache[[key]])
+  z <- function(x) as.numeric(scale(x))
+  d <- ravel_simulate_trios(N = N, m = 300, m_hidden = 300, hidden_fraction = .4, rho_MF = .4,
+    grandparent_rho_MF = .4, parental_sibs = sibs, seed = seed)
+  Tz <- cbind(z(d$G_child), z(d$G_mother), z(d$G_father))
+  had_seed <- exists(".Random.seed", .GlobalEnv, inherits = FALSE)
+  if (had_seed) old_seed <- get(".Random.seed", .GlobalEnv)
+  on.exit(if (had_seed) assign(".Random.seed", old_seed, .GlobalEnv))
+  set.seed(seed)
+  fam <- rep(seq_len(N), sample(1:4, N, replace = TRUE))
+  a <- stats::runif(length(fam), 4, 16) - 10
+  Y <- drop(Tz[fam, ] %*% c(.30, .10, .05)) + drop((Tz[fam, ] * a) %*% c(.02, .01, 0)) + .05 * a +
+    rnorm(N, sd = sqrt(.3))[fam] + rnorm(length(fam), sd = sqrt(.6))
+  out <- data.frame(d[fam, grep("^PGS|^FID", names(d), value = TRUE)], Y = Y, age = a + 10)
+  rownames(out) <- NULL
+  gxe_cache[[key]] <- out
+  out
+}
+
+test_that("corrected interactions are the main-effect map applied to the interaction vector", {
+  d <- gxe_hidden()
+  fit <- gxe_fit(d, pi = .4, am_n_generations = 2L, interactions = "age",
+    interaction_center = c(age = 10), cluster = "FID")
+  expect_identical(fit$interactions$roles, c("child", "mother", "father"))
+  g <- fit$interactions$theta
+  lc <- fit$latent_cov_vis
+  mapped <- .compute_scale_estimates(g, lc[["eta_m"]], lc[["eta_f"]], lc[["rhoMF"]], .4, "n_gen", 2L)
+  ct <- fit$interactions$corrected
+  s <- fit$interactions$scales[["age"]]
+  expect_equal(ct$estimate[ct$scale == "corrected_std"], unname(mapped$beta_total_assumed_std) / s, tolerance = 1e-10)
+  expect_equal(ct$estimate[ct$scale == "corrected_raw"], unname(mapped$beta_total_assumed) / s, tolerance = 1e-10)
+  # Recovery of the total-liability truth; the visible coefficients are attenuated.
+  std <- ct[ct$scale == "corrected_std", ]
+  expect_true(all(abs(std$estimate - c(.02, .01, 0)) < 4 * std$se))
+  expect_gt(std$estimate[1], fit$interactions$table$estimate[1])
+  expect_true(all(abs(fit$interactions$independence$correlation) < .05))
+  df <- as.data.frame(fit, include_vanilla = FALSE)
+  expect_true(all(c("beta_D:age", "beta_M:age") %in% df$parameter[df$scale == "corrected_std"]))
+  expect_false(any(df$scale == "corrected_raw"))
+  expect_true("beta_D:age" %in% as.data.frame(fit, include_raw = TRUE)$parameter[
+    as.data.frame(fit, include_raw = TRUE)$scale == "corrected_raw"])
+  expect_output(print_simple(fit), "standardized total liability")
+})
+
+test_that("pi > 0 requires interaction terms for every family member", {
+  d <- gxe_hidden()
+  expect_error(gxe_fit(d, pi = .4, interactions = "age", interaction_roles = "child"),
+    "every family member")
+  expect_null(gxe_fit(gxe_data(N = 1500L, seed = 5L), interactions = "age")$interactions$corrected)
+})
+
+test_that("external pi uncertainty widens corrected interaction intervals", {
+  d <- gxe_hidden()
+  expect_error(gxe_fit(d, pi = .4, pi_se = .05, interactions = "age", cluster = "FID"), "Confirm")
+  fixed <- gxe_fit(d, pi = .4, am_n_generations = 2L, interactions = "age", cluster = "FID")
+  fit <- gxe_fit(d, pi = .4, pi_se = .05, am_n_generations = 2L, interactions = "age", cluster = "FID",
+    covariate_mapping_confirmed = TRUE)
+  a <- fixed$interactions$corrected; b <- fit$interactions$corrected
+  expect_equal(b$estimate, a$estimate, tolerance = 1e-10)
+  expect_true(all(b$se[b$scale == "corrected_std"] > a$se[a$scale == "corrected_std"]))
+  expect_match(b$uncertainty_source[1], "pi")
+})
+
+test_that("parental-sibling fits correct all five interaction terms and contrasts", {
+  d <- gxe_hidden(N = 6000L, seed = 4L, sibs = "both")
+  fit <- gxe_fit(d, pi = .4, am_n_generations = 2L, interactions = "age", interaction_center = c(age = 10),
+    cluster = "FID", parental_sibs = "both")
+  expect_identical(fit$interactions$roles, c("child", "mother", "father", "mat_sib", "pat_sib"))
+  ct <- fit$interactions$corrected
+  std <- ct[ct$scale == "corrected_std", ]
+  expect_identical(std$parameter, c("beta_D:age", "beta_M:age", "beta_F:age", "beta_MS:age",
+    "beta_FS:age", "delta_M:age", "delta_F:age"))
+  truth <- c(.02, .01, 0, 0, 0, .01, 0)
+  expect_true(all(abs(std$estimate - truth) < 4 * std$se))
+  vt <- fit$interactions$table
+  expect_equal(vt$estimate[vt$parameter == "delta_M:age"],
+    vt$estimate[vt$parameter == "beta_M:age"] - vt$estimate[vt$parameter == "beta_MS:age"], tolerance = 1e-10)
+})
+
+test_that("a moderator correlated with the genetic factors triggers a warning", {
+  d <- gxe_hidden()
+  d$age <- d$age + 3 * as.numeric(scale(d$PGS1_child))
+  expect_warning(ravel_fit(d, pi = .4, am_n_generations = 2L, interactions = "age", cluster = "FID"),
+    "assumes independence")
+})

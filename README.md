@@ -254,9 +254,13 @@ curvature. Any numeric covariate can be used in place of age.
 
 This is a population-averaged growth model: it estimates average trajectories
 and their genetic modulation, with cluster-robust standard errors, but not
-random-intercept or random-slope variances. Interaction coefficients are on the
-visible scale and need a continuous outcome; see
-[Methods](docs/methods.md#genetic-x-covariate-interactions).
+random-intercept or random-slope variances.
+
+With `pi > 0`, interaction coefficients are also corrected to the
+total-liability scale by the same map as the main effects. This needs an
+interaction term for every family member (the default when `pi > 0`) and a
+covariate independent of genetic liability, such as age. Interactions need a
+continuous outcome; see [Methods](docs/methods.md#genetic-x-covariate-interactions).
 
 ## Optional: compare the scores' phenotype associations
 

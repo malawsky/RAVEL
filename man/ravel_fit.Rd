@@ -206,14 +206,19 @@ whose interaction with the genetic liabilities is estimated, for example
 \code{"age"}. Each covariate is centred at \code{interaction_center} (default:
 its sample mean) and added as a main effect. The latent interaction G x
 covariate is measured by products of the centred scores and the covariate,
-which share G's loadings. Coefficients are reported per SD of the visible
-liability per unit of the covariate, on the visible scale only; main effects
-then refer to the centre. For growth models, supply long-format data (one row
+which share G's loadings. Coefficients are reported per SD of the
+liability per unit of the covariate; main effects then refer to the
+centre. With \code{pi > 0}, interactions are also corrected to the
+total-liability scale by the main-effect map, which assumes the covariate
+is independent of genetic liability. For growth models, supply long-format data (one row
 per child-occasion) with \code{interactions = "age"} and \code{cluster};
 add a squared-age column for curvature. Requires a continuous outcome.}
 
 \item{interaction_roles}{Character. Liabilities that interact with the
-covariates: any of \code{"child"} (default), \code{"mother"}, \code{"father"}.}
+covariates: any of \code{"child"} (default), \code{"mother"},
+\code{"father"}, and \code{"mat_sib"} / \code{"pat_sib"} when those
+siblings are in the model. With \code{pi > 0} it defaults to every family
+member, which the total-liability correction requires.}
 
 \item{interaction_center}{Optional numeric vector named by interaction
 covariates giving the value at which main effects are reported (for example
@@ -265,9 +270,11 @@ the sibling latent covariances, within-score residual covariances and
 correlations, reliabilities, determinacy, and the number of families
 with each sibling observed.}
 \item{interactions}{When \code{interactions} is supplied: the moderators,
-roles, centres and internal scales, and a table of visible-scale
+roles, centres and internal scales, a table of visible-scale
 interaction coefficients (\code{beta_D:age} and so on) with lavaan
-(cluster-robust when \code{cluster} is set) inference.}
+(cluster-robust when \code{cluster} is set) inference, corrected
+total-liability rows when \code{pi > 0}, and the latent correlation of
+each genetic factor with each moderator.}
 \item{cluster, n_clusters}{The cluster column and number of clusters, when
 supplied.}
 }

@@ -223,9 +223,10 @@
 
 #' Total derivative of the constrained visible fit with respect to external pi
 #' @noRd
-.ravel_constraint_core_h_sensitivity <- function(object) {
+.ravel_constraint_core_h_sensitivity <- function(object, include_interactions = FALSE) {
   sib_roles <- object$parental_sibs$roles %||% character(0)
-  labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", .sib_core_labels(sib_roles))
+  labels <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", .sib_core_labels(sib_roles),
+              if (include_interactions) names(object$interactions$theta))
   spec <- object$constraint_spec
   if (is.null(spec) || !isTRUE(spec$depends_on_pi))
     return(setNames(rep(0, length(labels)), labels))
@@ -238,7 +239,8 @@
     args$h <- h
     fit <- suppressWarnings(do.call(ravel_fit, args))
     if (!isTRUE(fit$converged)) stop("A finite-generation pi-sensitivity refit did not converge.")
-    out <- c(fit$beta_vis, fit$latent_cov_vis, .sib_theta(fit$parental_sibs, sib_roles))
+    out <- c(fit$beta_vis, fit$latent_cov_vis, .sib_theta(fit$parental_sibs, sib_roles),
+             if (include_interactions) fit$interactions$theta)
     out <- out[labels]
     if (any(!is.finite(out))) stop("A finite-generation pi-sensitivity refit was not finite.")
     assign(key,out,envir=cache)
@@ -256,7 +258,8 @@
       coarse <- (get_core(h+step)-get_core(h-step))/(2*step)
       fine <- (get_core(h+step/2)-get_core(h-step/2))/step
     } else {
-      center <- c(object$beta_vis,object$latent_cov_vis,.sib_theta(object$parental_sibs,sib_roles))[labels]
+      center <- c(object$beta_vis,object$latent_cov_vis,.sib_theta(object$parental_sibs,sib_roles),
+                  if (include_interactions) object$interactions$theta)[labels]
       coarse <- (get_core(h+step)-center)/step
       fine <- (get_core(h+step/2)-center)/(step/2)
     }
