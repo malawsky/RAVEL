@@ -233,6 +233,31 @@ exclude incomplete families. For the dataframe workflow, use the same
 `parental_sibs` option with lowercase score names; see the
 [report example and column mapping](docs/reference.md#parental-sibling-workflow).
 
+## Optional: genetic x covariate interactions and growth models
+
+`interactions` estimates how the genetic coefficients change with an observed
+covariate. For a growth model, use long-format data with one row per
+child-occasion, so trio scores repeat across a child's measurements, and
+cluster by family:
+
+```r
+fit <- ravel_fit(long_dat, interactions = "age", interaction_center = c(age = 10),
+                 interaction_roles = c("child", "mother"), cluster = "FID")
+print_simple(fit)   # main effects at age 10; beta_D:age, beta_M:age per year
+```
+
+The latent G x age term is measured by products of the centred scores and age,
+which share G's loadings, so the interaction is corrected for PGS measurement
+error like the main effects. Add a column such as `age2 = (age - 10)^2` to
+`interactions` (with `interaction_center = c(age = 10, age2 = 0)`) for
+curvature. Any numeric covariate can be used in place of age.
+
+This is a population-averaged growth model: it estimates average trajectories
+and their genetic modulation, with cluster-robust standard errors, but not
+random-intercept or random-slope variances. Interaction coefficients are on the
+visible scale and need a continuous outcome; see
+[Methods](docs/methods.md#genetic-x-covariate-interactions).
+
 ## Optional: compare the scores' phenotype associations
 
 For a continuous phenotype with complete, independently observed families and

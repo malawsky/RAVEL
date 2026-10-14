@@ -502,6 +502,73 @@ no covariates. Imputation, incomplete observations, covariates and complex
 sampling need separate validation. A future null bootstrap must simulate
 under the null and refit both models in every replicate.
 
+## Genetic x covariate interactions
+
+`interactions` adds terms G_r x x for an observed covariate x and roles r in
+`interaction_roles`:
+
+```
+Y = b_D G_c + b_M G_m + b_P G_p + g_D G_c x + g_M G_m x + g_P G_p x + c x + Gamma'W + e
+```
+
+The covariate is centred at a chosen value x_0 (default: its mean), so b
+refers to x = x_0 and g is the change in b per unit of x. Internally x is also
+divided by its SD for numerical conditioning, and g is reported per unit of
+the original covariate.
+
+**Measurement.** Because x is observed without error,
+
+```
+(P_kr - mean P_kr) x = lambda_kr (G_r x) + epsilon_kr x .
+```
+
+The product indicators therefore measure the latent G_r x with the same
+loadings lambda_kr as G_r, so g is corrected for score unreliability in the
+same way as b. Fitting the observed score products directly instead attenuates
+g. In the model:
+
+- The latent interaction has a free variance and free covariances with the
+  genetic factors and covariates.
+- Product-indicator residuals have free within-score covariances with one
+  another and with the base indicators. The latter equal theta E[x], which is
+  nonzero when x_0 is not the mean.
+
+**Assumptions.**
+
+- x is measured without error.
+- Score measurement errors are independent of x.
+- The interaction is linear in G given x.
+
+Constrained modes apply unchanged, because the product loadings are the base
+loadings.
+
+**Growth models.** Use long-format data, with one row per child-occasion and
+the trio scores repeated, plus `interactions = "age"` and `cluster = "FID"`.
+This fits a population-averaged growth model: estimating equations treat rows
+as independent, and cluster-robust (sandwich) standard errors account for
+repeated rows and within-family correlation. Families with more occasions get
+more weight. Main effects and interaction coefficients are consistent under
+random intercepts and slopes, but their variances are not estimated. A squared
+age term (centred, for example, at age2 = 0 for (age - 10)^2) allows curvature.
+
+**Validation.** Gaussian latent trios were simulated: 6,000 families with 1-4
+occasions at ages 4-16, random intercepts and slopes, and true
+g = (0.020, 0.010, 0) for (child, mother, father). Over 200 replicates:
+
+| | Bias in g | 95% coverage of g | Main-effect coverage |
+|---|---|---|---|
+| Long format | below 0.001 | 0.95, 0.91, 0.95 | 0.92-0.96 |
+| Cross-sectional (one row per child) | below 0.001 | 0.97-0.98 | 0.95-0.96 |
+
+In long format the child main-effect SE was about 10% small (Monte Carlo SD
+0.028, mean SE 0.026). The naive observed-score interaction was attenuated
+(0.015 for a true 0.020).
+
+**Scope.** Interaction coefficients are reported on the visible scale. Mapping
+them to the total-liability scale would need the covariate to be independent
+of the genetic components; this is not yet implemented. Outcomes must be
+continuous.
+
 ## Covariate adjustment and binary outcomes
 
 Covariates can be included jointly via `fixed_effects`. The SEM allows genetic

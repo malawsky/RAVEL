@@ -341,6 +341,8 @@
   values <- new.env(parent=baseenv())
   for (i in which(nzchar(pe$label))) assign(pe$label[i],pe$est[i],envir=values)
   pt <- lavaan::parameterTable(fit)
+  # Labels shared across rows become lavaan equality rows on internal plabels.
+  for (i in which(nzchar(pt$plabel))) assign(pt$plabel[i],pt$est[i],envir=values)
   rows <- which(pt$op %in% c("==",">","<"))
   checks <- vapply(rows,function(i) {
     lhs <- tryCatch(eval(parse(text=pt$lhs[i]),envir=values),error=function(e) NA_real_)

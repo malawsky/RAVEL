@@ -1,5 +1,22 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Genetic x covariate interactions and growth models
+
+- `ravel_fit(..., interactions = "age")` estimates how the visible genetic
+  coefficients change with an observed covariate. Products of the centred
+  scores and covariate measure the latent interaction with the same loadings
+  as the genetic factor, so the interaction is corrected for PGS measurement
+  error. `interaction_roles` selects child, mother and/or father liabilities,
+  and `interaction_center` sets where main effects are reported.
+- `cluster = "FID"` gives cluster-robust standard errors and family-level
+  bootstrap resampling. Long-format data (one row per child-occasion) with an
+  age interaction give a population-averaged growth model; a squared-age
+  column adds curvature.
+- Interaction coefficients are reported on the visible scale only. They
+  require a continuous outcome. Fits without these options are unchanged.
+- Constraint checks now evaluate lavaan's internal equality labels, which
+  appear when parameter labels are shared across rows.
+
 ## Score-specific phenotype association diagnostic
 
 - `ravel_test_score_signal()` compares the shared-factor outcome model with

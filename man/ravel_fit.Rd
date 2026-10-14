@@ -37,7 +37,11 @@ ravel_fit(
   col_pgs1_mat_sib = "PGS1_mat_sib",
   col_pgs2_mat_sib = "PGS2_mat_sib",
   col_pgs1_pat_sib = "PGS1_pat_sib",
-  col_pgs2_pat_sib = "PGS2_pat_sib"
+  col_pgs2_pat_sib = "PGS2_pat_sib",
+  interactions = NULL,
+  interaction_roles = "child",
+  interaction_center = NULL,
+  cluster = NULL
 )
 }
 \arguments{
@@ -196,6 +200,29 @@ sibling's PGS1 and PGS2.}
 
 \item{col_pgs1_pat_sib, col_pgs2_pat_sib}{Column names for the paternal
 sibling's PGS1 and PGS2.}
+
+\item{interactions}{Optional character vector of numeric covariate columns
+whose interaction with the genetic liabilities is estimated, for example
+\code{"age"}. Each covariate is centred at \code{interaction_center} (default:
+its sample mean) and added as a main effect. The latent interaction G x
+covariate is measured by products of the centred scores and the covariate,
+which share G's loadings. Coefficients are reported per SD of the visible
+liability per unit of the covariate, on the visible scale only; main effects
+then refer to the centre. For growth models, supply long-format data (one row
+per child-occasion) with \code{interactions = "age"} and \code{cluster};
+add a squared-age column for curvature. Requires a continuous outcome.}
+
+\item{interaction_roles}{Character. Liabilities that interact with the
+covariates: any of \code{"child"} (default), \code{"mother"}, \code{"father"}.}
+
+\item{interaction_center}{Optional numeric vector named by interaction
+covariates giving the value at which main effects are reported (for example
+\code{c(age = 10)}). Unnamed covariates are centred at their sample mean.}
+
+\item{cluster}{Optional column name identifying independent units, such as
+\code{"FID"} when rows repeat within families. Standard errors are then
+cluster-robust and the bootstrap resamples whole clusters. Requires a
+continuous outcome.}
 }
 \value{
 A list with components (selected):
@@ -237,6 +264,12 @@ contrasts (\code{delta_m}, \code{delta_f}) with a lavaan inference table,
 the sibling latent covariances, within-score residual covariances and
 correlations, reliabilities, determinacy, and the number of families
 with each sibling observed.}
+\item{interactions}{When \code{interactions} is supplied: the moderators,
+roles, centres and internal scales, and a table of visible-scale
+interaction coefficients (\code{beta_D:age} and so on) with lavaan
+(cluster-robust when \code{cluster} is set) inference.}
+\item{cluster, n_clusters}{The cluster column and number of clusters, when
+supplied.}
 }
 }
 \description{

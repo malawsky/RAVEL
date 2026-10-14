@@ -483,6 +483,10 @@ mode are rejected.
 | `col_outcome` | `"Y"` | Column name for outcome variable |
 | `parental_sibs` | `"none"` | Add a full sibling of the mother (`"maternal"`), father (`"paternal"`) or both. Works with every constraint mode and with `pi`/`pi_se`. |
 | `col_pgs1_mat_sib`, `col_pgs2_mat_sib` | `"PGS1_mat_sib"`, `"PGS2_mat_sib"` | Column names for the maternal sibling's scores; continuous fits use FIML for missing values |
+| `interactions` | `NULL` | Numeric covariate columns interacting with the genetic liabilities (e.g. `"age"`); each is also added as a main effect. Continuous outcomes only. |
+| `interaction_roles` | `"child"` | Liabilities that interact: any of `"child"`, `"mother"`, `"father"`. |
+| `interaction_center` | `NULL` | Named values at which main effects are reported, e.g. `c(age = 10)`; default is each covariate's mean. |
+| `cluster` | `NULL` | Column of independent units (e.g. `"FID"` for long-format repeated measures); gives cluster-robust SEs and cluster bootstrap. |
 | `col_pgs1_pat_sib`, `col_pgs2_pat_sib` | `"PGS1_pat_sib"`, `"PGS2_pat_sib"` | Column names for the paternal sibling's scores; continuous fits use FIML for missing values |
 
 ### Output fields
@@ -507,6 +511,8 @@ mode are rejected.
 | `bootstrap` | Fixed-pi CIs and SEs if `n_boot > 0` |
 | `pi_correction` | Corrected estimates with propagated external pi uncertainty when `pi_se` was supplied, including covariance and derivative attributes. |
 | `parental_sibs` | With parental siblings: `coefficients` (`bms`, `delta_m`, `bfs`, `delta_f`), `lavaan_table` (rows `beta_MS`, `delta_M`, `beta_FS`, `delta_F`), `corrected` (`raw` and `std` total-scale coefficients and contrasts, plus the four- or five-role covariance blocks), `latent_cov`, `resid_cov`, `resid_corr`, `reliability`, `determinacy` and `n_with_sib`. `NULL` otherwise. |
+| `interactions` | With `interactions`: moderators, roles, centres, internal scales, and `table` of visible-scale coefficients (`beta_D:age`, ...) with lavaan or cluster-robust inference. `NULL` otherwise. |
+| `cluster`, `n_clusters` | Cluster column and number of clusters when `cluster` is supplied. |
 | `converged` | Logical convergence flag |
 
 ## Analytical expected values

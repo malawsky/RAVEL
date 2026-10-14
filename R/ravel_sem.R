@@ -1786,6 +1786,26 @@
 #'   sibling's PGS1 and PGS2.
 #' @param col_pgs1_pat_sib,col_pgs2_pat_sib Column names for the paternal
 #'   sibling's PGS1 and PGS2.
+
+#' @param interactions Optional character vector of numeric covariate columns
+#'   whose interaction with the genetic liabilities is estimated, for example
+#'   \code{"age"}. Each covariate is centred at \code{interaction_center} (default:
+#'   its sample mean) and added as a main effect. The latent interaction G x
+#'   covariate is measured by products of the centred scores and the covariate,
+#'   which share G's loadings. Coefficients are reported per SD of the visible
+#'   liability per unit of the covariate, on the visible scale only; main effects
+#'   then refer to the centre. For growth models, supply long-format data (one row
+#'   per child-occasion) with \code{interactions = "age"} and \code{cluster};
+#'   add a squared-age column for curvature. Requires a continuous outcome.
+#' @param interaction_roles Character. Liabilities that interact with the
+#'   covariates: any of \code{"child"} (default), \code{"mother"}, \code{"father"}.
+#' @param interaction_center Optional numeric vector named by interaction
+#'   covariates giving the value at which main effects are reported (for example
+#'   \code{c(age = 10)}). Unnamed covariates are centred at their sample mean.
+#' @param cluster Optional column name identifying independent units, such as
+#'   \code{"FID"} when rows repeat within families. Standard errors are then
+#'   cluster-robust and the bootstrap resamples whole clusters. Requires a
+#'   continuous outcome.
 #'
 #' @return A list with components (selected):
 #'   \describe{
@@ -1825,6 +1845,12 @@
 #'       the sibling latent covariances, within-score residual covariances and
 #'       correlations, reliabilities, determinacy, and the number of families
 #'       with each sibling observed.}
+#'     \item{interactions}{When \code{interactions} is supplied: the moderators,
+#'       roles, centres and internal scales, and a table of visible-scale
+#'       interaction coefficients (\code{beta_D:age} and so on) with lavaan
+#'       (cluster-robust when \code{cluster} is set) inference.}
+#'       \item{cluster, n_clusters}{The cluster column and number of clusters, when
+#'       supplied.}
 #'   }
 #'
 #' @export
@@ -1860,7 +1886,11 @@ ravel_fit <- function(dat,
                       col_pgs1_mat_sib = "PGS1_mat_sib",
                       col_pgs2_mat_sib = "PGS2_mat_sib",
                       col_pgs1_pat_sib = "PGS1_pat_sib",
-                      col_pgs2_pat_sib = "PGS2_pat_sib") {
+                      col_pgs2_pat_sib = "PGS2_pat_sib",
+                      interactions = NULL,
+                      interaction_roles = "child",
+                      interaction_center = NULL,
+                      cluster = NULL) {
 
   # Resolve the preferred pi name before constructing any fitting constraints.
   h_supplied <- !missing(h)
@@ -2019,6 +2049,26 @@ ravel_fit <- function(dat,
     }
   }
 
+  # Genetic x covariate interactions: centre moderators, add them as main
+  # effects, and build product indicators. Refits start from the data as given.
+  dat_for_refit <- dat
+  interaction_spec <- .ravel_interaction_spec(interactions, interaction_roles,
+    interaction_center, dat, outcome)
+  if (!is.null(interaction_spec)) {
+    fixed_effects <- unique(c(fixed_effects, interaction_spec$moderators))
+    dat <- .ravel_interaction_data(dat, interaction_spec)
+  }
+  n_clusters <- NULL
+  if (!is.null(cluster)) {
+    if (!is.character(cluster) || length(cluster) != 1L || !cluster %in% names(dat))
+      stop("cluster must name a column of dat.")
+    if (anyNA(dat[[cluster]])) stop("The cluster column must not contain missing values.")
+    if (outcome != "continuous")
+      stop("Cluster-robust fitting currently requires a continuous outcome.")
+    n_clusters <- length(unique(dat[[cluster]]))
+    if (missing(cluster_var)) cluster_var <- cluster
+  }
+
   # Retain only scope metadata for the optional likelihood diagnostic.
   score_signal_input <- list(column_map = col_map,
     incomplete = any(!stats::complete.cases(dat[, names(col_map), drop = FALSE])),
@@ -2040,6 +2090,11 @@ ravel_fit <- function(dat,
     parental_sibs = parental_sibs,
     constrained = fit_constraints != "none"
   )
+  if (!is.null(interaction_spec)) {
+    model <- paste(model, .ravel_interaction_syntax(interaction_spec, fixed_effects,
+      base_roles = c("mother", "father", "child", c(ms = "mat_sib", fs = "pat_sib")[sib_roles])),
+      sep = "\n")
+  }
 
   if (fit_constraints != "none") {
     model <- paste(model, .ravel_constraint_syntax(fit_constraints, h, am_n_generations, sib_roles), sep = "\n")
@@ -2077,7 +2132,7 @@ ravel_fit <- function(dat,
       check.gradient = FALSE,
       warn = FALSE,
       ...
-    ), input))
+    ), if (!is.null(cluster)) list(cluster = cluster), input))
 
     if (length(fixed_effects) == 0L) return(fit_model())
 
@@ -2332,6 +2387,7 @@ ravel_fit <- function(dat,
     ci_level = ci_level,
     sib_roles = sib_roles
   )
+  if (!is.null(cluster) && !is.null(lavaan_inference)) lavaan_inference$cluster_robust <- TRUE
 
   # ---------------------------------------------------------------------------
   # Bootstrap (if requested)
@@ -2607,11 +2663,13 @@ ravel_fit <- function(dat,
       n_generations = if (fit_constraints == "n_gen") am_n_generations else NA_integer_,
       depends_on_pi = fit_constraints == "n_gen" && am_n_generations > 1L),
     constraint_refit = if (fit_constraints == "n_gen" && am_n_generations > 1L) list(
-      dat = dat, h = h, outcome = outcome, measurement = measurement,
+      dat = dat_for_refit, h = h, outcome = outcome, measurement = measurement,
       crossperson = crossperson, am_correction = am_correction,
       am_n_generations = am_n_generations, fix_parent_paths = fix_parent_paths,
       fixed_effects = fixed_effects, n_boot = 0, ci_level = ci_level,
-      fit_constraints = fit_constraints, parental_sibs = parental_sibs) else NULL,
+      fit_constraints = fit_constraints, parental_sibs = parental_sibs,
+      interactions = interactions, interaction_roles = interaction_roles,
+      interaction_center = interaction_center, cluster = cluster) else NULL,
 
     # Settings
     h = h,
@@ -2630,7 +2688,13 @@ ravel_fit <- function(dat,
       list(mode = parental_sibs, roles = sib_roles, n_with_sib = n_with_sib),
       sib_estimates,
       list(lavaan_table = .parental_sib_lavaan_table(fit, sib_roles, ci_level),
-           corrected = estimates$parental_sibs_total))
+           corrected = estimates$parental_sibs_total)),
+
+    # Genetic x covariate interactions (NULL when interactions = NULL)
+    interactions = if (is.null(interaction_spec)) NULL else c(interaction_spec,
+      list(table = .ravel_interaction_table(fit, interaction_spec, ci_level))),
+    cluster = cluster,
+    n_clusters = n_clusters
   ), class = c("ravel_results", "list"))
   if (!is.null(pi)) result$pi <- h
   if (!is.null(pi_se)) {
@@ -2730,7 +2794,9 @@ ravel_fit <- function(dat,
   if (is.null(uncertainty)) return(NULL)
   visible <- if (identical(uncertainty$source, "bootstrap")) {
     sprintf("bootstrap (%d reps)", uncertainty$n_successful)
-  } else if (identical(uncertainty$source, "lavaan")) "lavaan/delta-method" else "uncertainty"
+  } else if (identical(uncertainty$source, "lavaan")) {
+    if (isTRUE(uncertainty$cluster_robust)) "lavaan/delta-method, cluster-robust" else "lavaan/delta-method"
+  } else "uncertainty"
   if (!is.null(uncertainty$pi_correction_error)) {
     if (identical(block, "visible")) return(visible)
     if (!is.null(block)) return("unavailable (incompatible pi/assortment state)")
@@ -3008,6 +3074,16 @@ ravel_to_dataframe <- function(result,
       stringsAsFactors = FALSE))
   }
 
+  gxe_tbl <- result$interactions$table
+  if (!is.null(gxe_tbl)) {
+    out <- rbind(out, data.frame(
+      regression = "RAVEL", family = NA_character_, scale = "visible",
+      parameter = gxe_tbl$parameter, estimate = gxe_tbl$estimate, se = gxe_tbl$se,
+      ci_low = gxe_tbl$ci_low, ci_high = gxe_tbl$ci_high, p_value = gxe_tbl$p_value,
+      uncertainty_source = gxe_tbl$uncertainty_source,
+      p_value_method = "normal_approx_from_lavaan_se", stringsAsFactors = FALSE))
+  }
+
   sib_rows <- function(scale) {
     tbl <- .parental_sib_table(result, unc, scale)
     if (is.null(tbl)) return(NULL)
@@ -3227,6 +3303,7 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
     cat("  (bm and bf are conditional on the parental siblings' liabilities)\n")
   cat("\n")
   .print_parental_sibs(result, unc, digits, compact = FALSE)
+  .print_interactions(result, digits)
 
   if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Assumption-based post-estimation corrections:\n")
@@ -3504,6 +3581,7 @@ print_simple <- function(result, digits = 4,
   cat(sprintf("  rho_MF:  %s\n", fmt_ci(result$latent_cov_vis["rhoMF"], .uncertainty_ci(unc, "visible", "rhoMF"))))
   cat(sprintf("  R2:      %s\n", fmt_est(result$R2_model)))
   .print_parental_sibs(result, unc, digits, compact = TRUE)
+  .print_interactions(result, digits)
 
   # Hidden-corrected
   if (has_h) {
