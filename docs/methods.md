@@ -589,8 +589,7 @@ Two conditions apply:
 2. The moderator is independent of the genetic components. This is plausible
    for age but not, for example, for socioeconomic status. The fit reports
    the latent correlation of each G with the moderator and warns when one is
-   clearly nonzero. With `pi_se`, `covariate_mapping_confirmed = TRUE` is
-   required, as for other covariates.
+   clearly nonzero.
 
 Corrected interactions (`beta_D:age`, ..., and `delta_M:age` with siblings) use
 delta-method standard errors over the joint SEM covariance of the trio core,

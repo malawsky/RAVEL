@@ -15,7 +15,7 @@ print(out$summary)
 # This simulated covariate mechanism satisfies the conditional mapping assumption.
 total <- ravel_correct_grid(
   out, hidden_fraction = .4, n_generations = 1,
-  covariate_mapping_confirmed = TRUE, include_raw = TRUE
+  include_raw = TRUE
 )
 print(total)
 

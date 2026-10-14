@@ -71,9 +71,9 @@ between the visible core estimates and the external pi estimator. Requires
 for the required names and the distinction between conditional and marginal
 covariance in pi-dependent finite-generation fits.}
 
-\item{covariate_mapping_confirmed}{Logical. When using \code{pi_se} with jointly
-fitted covariates, explicitly confirm that the visible-to-total correction
-mapping applies conditional on those covariates. Defaults to \code{FALSE}.}
+\item{covariate_mapping_confirmed}{Deprecated and ignored. Retained so existing calls
+still run; it never changed any estimate. Corrections with covariates assume
+the visible-to-total mapping applies conditional on them (see the README).}
 
 \item{outcome}{Character. "continuous" (uses MLR) or "binary_liability"
 (uses WLSMV with probit link for a liability-threshold model).}

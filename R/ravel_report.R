@@ -70,9 +70,6 @@ ravel_correct_packet <- function(packet, h, am_correction = c("n_gen", "equilibr
   if (!identical(packet$software$transform_fingerprint, .report_transform_fingerprint())) {
     stop("The installed correction code differs from the collaborator's; align package versions before proceeding")
   }
-  if (isTRUE(packet$settings$requires_covariate_mapping_review) && !covariate_mapping_confirmed) {
-    stop("Joint covariate model: confirm that the standard visible-to-total mapping applies conditional on these covariates before correcting")
-  }
   transform <- utils::getFromNamespace(".compute_scale_estimates", "RAVEL")
   jacobian <- utils::getFromNamespace(".finite_difference_jacobian", "RAVEL")
   theta <- packet$theta[labels]

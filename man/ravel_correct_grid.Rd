@@ -27,9 +27,9 @@ No new bootstrap fits are run. Parental-sibling coefficients and contrasts
 use the full enlarged parameter covariance or joint draws.}
 \item{ci_level}{Confidence level; defaults to the report's level, or 0.95 for
 older reports without that setting.}
-\item{covariate_mapping_confirmed}{Explicit confirmation that the correction
-mapping applies conditional on the jointly fitted covariates. Required when
-the original packet flags this assumption for review.}
+\item{covariate_mapping_confirmed}{Deprecated and ignored. Retained so existing calls
+still run; it never changed any estimate. Corrections with covariates assume
+the visible-to-total mapping applies conditional on them (see the README).}
 \item{include_raw}{Return both standardized and raw genetic-liability scales
 by default. FALSE returns standardized coefficients and spouse correlation only.}
 \item{pi_se}{Optional finite nonnegative scalar standard error of the external
@@ -100,7 +100,7 @@ the combined table; use the corresponding scalar correction for those details.}
 \dontrun{
 total <- ravel_correct_grid(out,
   hidden_fraction = seq(.4, .5, .02), n_generations = c(1, 3, 15, Inf),
-  include_raw = FALSE, covariate_mapping_confirmed = TRUE)
+  include_raw = FALSE)
 total[total$parameter == "beta_D", ]
 
 # Inherit the constrained fit's history; estimated-state fits need no count.

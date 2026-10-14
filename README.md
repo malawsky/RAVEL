@@ -193,14 +193,25 @@ categorical covariates, the dataframe workflow below handles dummy coding.
 ```r
 fit_adjusted <- ravel_fit(
   dat, pi = .4, pi_se = .05, fit_constraints = "estimated_state",
-  fixed_effects = c("age", "PC1", "PC2"),
-  covariate_mapping_confirmed = TRUE
+  fixed_effects = c("age", "PC1", "PC2")
 )
 ```
 
-Set `covariate_mapping_confirmed = TRUE` only after checking that the
-visible-to-total mapping applies conditional on your covariates. Covariate
-adjustment alone does not establish this assumption.
+**Assumption for corrected estimates with covariates.** With covariates in the
+model, the visible coefficients are adjusted for them. The total-liability
+correction assumes the visible-to-total mapping still applies after that
+adjustment, i.e. adjusting for the covariates does not change how the visible
+and hidden genetic components relate.
+
+- This holds for covariates unrelated to genetic liability, such as age, sex or
+  genotyping batch.
+- For covariates that are genetically correlated with the trait, such as
+  education, socioeconomic status and possibly ancestry PCs, interpret the
+  corrected estimates with care.
+
+Covariate adjustment alone does not establish the assumption, and RAVEL cannot
+check it from the data. Visible-scale estimates do not depend on it.
+(`covariate_mapping_confirmed` is retained for compatibility and ignored.)
 
 For binary outcomes, keep `Y` coded 0/1 and use `outcome = "binary_liability"`.
 Results are on the SEM probit-liability scale. Baseline-relative fit indices
@@ -303,9 +314,7 @@ out$summary
 print(out$plot)
 
 # Report summaries are visible-scale comparisons; correct the packet separately.
-corrected <- ravel_correct_pi(
-  out$packet, pi = .4, pi_se = .05, covariate_mapping_confirmed = TRUE
-)
+corrected <- ravel_correct_pi(out$packet, pi = .4, pi_se = .05)
 print_simple(corrected)
 ```
 

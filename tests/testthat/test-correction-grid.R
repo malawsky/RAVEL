@@ -105,8 +105,9 @@ test_that("unsafe inputs and missing prerequisites fail before evaluating the gr
   expect_error(ravel_correct_grid(out, .4, 1, include_raw = NA), "TRUE or FALSE")
   expect_error(ravel_correct_grid(out, .4, 1, uncertainty = "bootstrap"), "lacks joint")
   out$packets$fixed$settings$requires_covariate_mapping_review <- TRUE
-  expect_error(ravel_correct_grid(out, .4, 1), "conditional")
-  expect_s3_class(ravel_correct_grid(out, .4, 1, covariate_mapping_confirmed = TRUE), "data.frame")
+  # The retired confirmation flag no longer gates the correction or changes it.
+  expect_s3_class(ravel_correct_grid(out, .4, 1), "data.frame")
+  expect_equal(ravel_correct_grid(out, .4, 1, covariate_mapping_confirmed = TRUE), ravel_correct_grid(out, .4, 1))
   out$packets$fixed$software$transform_fingerprint <- "different"
   expect_error(ravel_correct_grid(out, .4, 1, covariate_mapping_confirmed = TRUE), "align package versions")
 })

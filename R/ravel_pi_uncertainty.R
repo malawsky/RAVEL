@@ -110,8 +110,6 @@
     sib_roles <- .parental_sib_roles(packet$settings$parental_sibs %||% "none")
     labels <- c(.report_core_labels, .sib_core_labels(sib_roles))
   }
-  if (isTRUE(packet$settings$requires_covariate_mapping_review) && !covariate_mapping_confirmed)
-    stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
   if (!is.numeric(packet$theta) || is.complex(packet$theta) ||
       is.null(names(packet$theta)) || anyDuplicated(names(packet$theta)) ||
       !all(labels %in% names(packet$theta)) || any(!is.finite(packet$theta[labels])))
@@ -184,8 +182,6 @@ ravel_correct_pi <- function(object, pi, pi_ci = NULL,
       !is.finite(am_n_generations) || am_n_generations < 1 ||
       am_n_generations > .Machine$integer.max || am_n_generations != as.integer(am_n_generations)))
     stop("am_n_generations must be an integer of at least one")
-  if (!is.logical(covariate_mapping_confirmed) || length(covariate_mapping_confirmed) != 1L ||
-      is.na(covariate_mapping_confirmed)) stop("covariate_mapping_confirmed must be TRUE or FALSE")
   input <- .ravel_pi_extract(object, uncertainty, covariate_mapping_confirmed)
   packet <- input$packet
   labels <- input$labels

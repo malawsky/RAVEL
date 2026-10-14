@@ -69,10 +69,6 @@ test_that("pi inputs and mapping review fail before fitting when invalid", {
   for (bad in list(NA_real_, Inf, -.1, c(.1, .2), "0.02", 1e200))
     expect_error(ravel_fit(empty, pi = .4, pi_se = bad), "pi_se")
   expect_error(ravel_fit(empty, pi = 0, pi_se = .02), "boundary")
-  expect_error(ravel_fit(empty, pi = .4, pi_se = .02,
-    fixed_effects = "age"), "Confirm")
-  expect_error(ravel_fit(empty, pi = .4, pi_se = .02,
-    covariate_mapping_confirmed = NA), "TRUE or FALSE")
   expect_error(ravel_fit(empty, pi = .4, core_pi_cov = 1:6), "requires pi_se")
   expect_error(ravel_fit(empty, pi = .4, pi_se = .02, core_pi_cov = 1:6), "six core")
 })
@@ -169,5 +165,6 @@ test_that("one-call covariance and covariate options preserve the explicit corre
   expect_equal(covariates$pi_correction,
     ravel_correct_pi(covariates, pi = .4, pi_se = .02,
       covariate_mapping_confirmed = TRUE))
-  expect_error(ravel_correct_pi(covariates, pi = .4, pi_se = .02), "Confirm")
+  # The retired confirmation flag is ignored: same correction without it.
+  expect_equal(ravel_correct_pi(covariates, pi = .4, pi_se = .02), covariates$pi_correction)
 })

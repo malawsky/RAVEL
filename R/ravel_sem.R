@@ -1759,9 +1759,10 @@
 #' @param core_pi_cov Optional named vector of covariances between all
 #'   conditional core estimates and external pi, on its raw probability scale.
 #'   Requires \code{pi_se}; omitted means independent external estimation.
-#' @param covariate_mapping_confirmed Logical. Set TRUE with \code{pi_se} and
-#'   jointly fitted covariates only after confirming the visible-to-total
-#'   correction remains valid conditional on those covariates.
+#' @param covariate_mapping_confirmed Deprecated and ignored. Retained so
+#'   existing calls still run; it never changed any estimate. Corrections with
+#'   covariates assume the visible-to-total mapping applies conditional on them
+#'   (see the README).
 
 #' @param parental_sibs Character. Add full siblings of the parents:
 #'   \code{"none"} (default), \code{"maternal"} (a sibling of the mother),
@@ -1910,14 +1911,6 @@ ravel_fit <- function(dat,
   if (!is.null(pi_se)) {
     if (is.null(pi) && !h_supplied) stop("Supply pi (or h) explicitly when using pi_se")
     .ravel_pi_se_variance(h, pi_se)
-    if (!is.logical(covariate_mapping_confirmed) || length(covariate_mapping_confirmed) != 1L ||
-        is.na(covariate_mapping_confirmed))
-      stop("covariate_mapping_confirmed must be TRUE or FALSE")
-    if (length(fixed_effects) > 0L && !covariate_mapping_confirmed)
-      stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates")
-    if (length(interactions) > 0L && !covariate_mapping_confirmed)
-      stop("Confirm that the standard visible-to-total mapping applies conditional on the jointly fitted covariates; ",
-           "interaction covariates enter as covariates (covariate_mapping_confirmed = TRUE).")
     .ravel_pi_validate_cross(core_pi_cov, pi_se^2,
       c(.report_core_labels, .sib_core_labels(.parental_sib_roles(match.arg(parental_sibs)))))
   } else if (!is.null(core_pi_cov)) {

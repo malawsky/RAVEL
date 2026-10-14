@@ -104,10 +104,9 @@ test_that("joint continuous and binary reports keep mapping review and correctio
     expect_true(packet$settings$requires_covariate_mapping_review)
     expect_identical(packet$settings$constraint_spec$mode, "estimated_state")
     expect_true(packet$diagnostics$estimated_state_identified)
-    expect_error(ravel_correct_packet(packet, h = .4), "confirm|Confirm")
-    expect_error(ravel_correct_pi(packet, pi = .4, pi_se = .02), "confirm|Confirm")
-    corrected <- ravel_correct_pi(packet, pi = .4, pi_se = .02,
-      covariate_mapping_confirmed = TRUE)
+    expect_no_error(ravel_correct_packet(packet, h = .4))
+    corrected <- ravel_correct_pi(packet, pi = .4, pi_se = .02)
+    expect_equal(ravel_correct_pi(packet, pi = .4, pi_se = .02, covariate_mapping_confirmed = TRUE), corrected)
     expect_true(all(is.finite(corrected$estimate)))
     expect_true(all(is.finite(corrected$se)))
     expect_identical(unique(corrected$outcome_variable), if (binary) "Y_binary" else "Y")

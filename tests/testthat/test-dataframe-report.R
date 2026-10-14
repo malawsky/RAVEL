@@ -133,7 +133,7 @@ test_that("later corrections use joint bootstrap draws and reject insufficient d
   packet$bootstrap <- NULL
   expect_error(ravel_correct_packet(packet, h = 0), "no joint")
   packet$settings$requires_covariate_mapping_review <- TRUE
-  expect_error(ravel_correct_packet(packet, h = 0, uncertainty = "lavaan"), "conditional")
+  expect_no_error(ravel_correct_packet(packet, h = 0, uncertainty = "lavaan"))
 })
 test_that("binary covariate reports distinguish validated coefficients from baseline fit indices", {
   fixture <- cov_test_fixture(n = 4000L)

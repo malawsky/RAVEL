@@ -16,8 +16,9 @@ finite-generation default.}
 If omitted, inherits a constrained finite-generation packet's count; otherwise
 defaults to 15.}
 \item{ci_level}{Confidence level.}
-\item{covariate_mapping_confirmed}{Explicit confirmation that the standard
-mapping applies conditional on jointly fitted covariates. Required when present.}
+\item{covariate_mapping_confirmed}{Deprecated and ignored. Retained so existing calls
+still run; it never changed any estimate. Corrections with covariates assume
+the visible-to-total mapping applies conditional on them (see the README).}
 \item{uncertainty}{Use the packet's selected mode, model-based delta inference,
 or transform stored joint bootstrap draws.}
 }

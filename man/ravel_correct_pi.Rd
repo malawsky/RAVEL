@@ -53,8 +53,9 @@ core with respect to the \code{pi} supplied during SEM fitting. Computed by
 perturbed refitting for a live finite-generation fit when needed; required for
 a pi-dependent transferred packet. Applies only to pi-dependent constrained
 fits, and uses the raw probability scale.}
-\item{covariate_mapping_confirmed}{Explicit confirmation that the correction
-mapping applies conditional on jointly fitted covariates.}
+\item{covariate_mapping_confirmed}{Deprecated and ignored. Retained so existing calls
+still run; it never changed any estimate. Corrections with covariates assume
+the visible-to-total mapping applies conditional on them (see the README).}
 }
 \description{Adds sampling uncertainty in an externally estimated hidden
 genetic fraction to RAVEL's raw and standardized corrected effects and spouse

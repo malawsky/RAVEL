@@ -1,5 +1,15 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Covariate confirmation no longer gates corrections
+
+- `covariate_mapping_confirmed` no longer stops `ravel_fit()`,
+  `ravel_correct_pi()`, `ravel_correct_packet()` or `ravel_correct_grid()`. It
+  never changed an estimate, and it is now accepted and ignored so existing
+  calls still run.
+- The assumption it guarded is documented in the README instead: corrections
+  with covariates assume the visible-to-total mapping applies conditional on
+  them, which holds for covariates unrelated to genetic liability.
+
 ## Genetic x covariate interactions and growth models
 
 - `ravel_fit(..., interactions = "age")` estimates how the visible genetic

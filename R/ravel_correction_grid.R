@@ -26,9 +26,8 @@ ravel_correct_grid <- function(out, hidden_fraction, n_generations = 15L,
     stop("pi_se must be a finite nonnegative scalar on the raw probability scale")
   if (is.null(pi_se) && !is.null(core_pi_sensitivity))
     stop("core_pi_sensitivity requires pi_se")
-  for (value in list(include_raw, covariate_mapping_confirmed))
-    if (!is.logical(value) || length(value) != 1L || is.na(value))
-      stop("include_raw and covariate_mapping_confirmed must be TRUE or FALSE")
+  if (!is.logical(include_raw) || length(include_raw) != 1L || is.na(include_raw))
+    stop("include_raw must be TRUE or FALSE")
   available <- names(out$packets)
   if (is.null(available) || anyNA(available) || anyDuplicated(available) ||
       !all(available %in% c("fixed", "free"))) stop("Invalid residual-model names in out$packets")
@@ -77,8 +76,6 @@ ravel_correct_grid <- function(out, hidden_fraction, n_generations = 15L,
       stop("Estimated-state packets require a validated identification check; regenerate the report")
     if (!identical(packet$software$transform_fingerprint, fingerprint))
       stop("Correction code differs from the report; align package versions before proceeding")
-    if (isTRUE(packet$settings$requires_covariate_mapping_review) && !covariate_mapping_confirmed)
-      stop("Confirm that the visible-to-total mapping applies conditional on these covariates before correcting")
     bootstrap <- uncertainty == "bootstrap" ||
       (uncertainty == "auto" && identical(packet$settings$uncertainty, "bootstrap"))
     if (bootstrap && is.null(packet$bootstrap$core_draws))

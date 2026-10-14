@@ -207,10 +207,8 @@ test_that("pi > 0 requires interaction terms for every family member", {
 
 test_that("external pi uncertainty widens corrected interaction intervals", {
   d <- gxe_hidden()
-  expect_error(gxe_fit(d, pi = .4, pi_se = .05, interactions = "age", cluster = "FID"), "Confirm")
   fixed <- gxe_fit(d, pi = .4, am_n_generations = 2L, interactions = "age", cluster = "FID")
-  fit <- gxe_fit(d, pi = .4, pi_se = .05, am_n_generations = 2L, interactions = "age", cluster = "FID",
-    covariate_mapping_confirmed = TRUE)
+  fit <- gxe_fit(d, pi = .4, pi_se = .05, am_n_generations = 2L, interactions = "age", cluster = "FID")
   a <- fixed$interactions$corrected; b <- fit$interactions$corrected
   expect_equal(b$estimate, a$estimate, tolerance = 1e-10)
   expect_true(all(b$se[b$scale == "corrected_std"] > a$se[a$scale == "corrected_std"]))

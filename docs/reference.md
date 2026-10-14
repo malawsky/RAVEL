@@ -250,9 +250,9 @@ print(ravel_plot_report(corrected))
 For custom report names, include the requested sibling entries in the named
 `pgs_columns` vector, alongside the six usual trio entries. For example, add
 `PGS1_mat_sib = "aunt_score_1"` and `PGS2_mat_sib = "aunt_score_2"` for a
-maternal sibling. Only the selected side(s) are required. Use
-`covariate_mapping_confirmed = TRUE` in the correction when covariates are
-present and the mapping has been justified conditional on them.
+maternal sibling. Only the selected side(s) are required. When covariates are present, the
+correction assumes the mapping applies conditional on them (see the README
+covariate section).
 
 Continuous reports require complete core trio/outcome/covariate data and retain
 missing sibling scores for FIML, assuming ignorable missingness conditional on
@@ -376,8 +376,7 @@ total_grid <- ravel_correct_grid(
   out,
   hidden_fraction = seq(.4, .5, .02),
   n_generations = c(1, 3, 15, Inf),
-  include_raw = FALSE,
-  covariate_mapping_confirmed = TRUE
+  include_raw = FALSE
 )
 ```
 
@@ -459,7 +458,7 @@ mode are rejected.
 | `h` | `0` | Legacy name for `pi`. If both are supplied explicitly they must agree. With neither supplied, the hidden fraction is zero. |
 | `pi_se` | `NULL` | External SE on the raw pi scale. Omit to treat pi as fixed; supply to propagate its uncertainty in the same call. |
 | `core_pi_cov` | `NULL` | Optional covariance between the SEM core-parameter estimation errors at fixed pi and external pi. The default assumes independence. |
-| `covariate_mapping_confirmed` | `FALSE` | Confirm that the visible-to-total mapping applies conditional on jointly fitted covariates before adding pi uncertainty. |
+| `covariate_mapping_confirmed` | `FALSE` | Deprecated and ignored; retained so existing calls run. Corrections with covariates assume the mapping applies conditional on them (README). |
 | `fit_constraints` | `"none"` | `"none"`, `"equilibrium"`, `"n_gen"`, or `"estimated_state"`; see the README mode table. |
 | `outcome` | `"continuous"` | `"continuous"` or `"binary_liability"` (probit/WLSMV) |
 | `measurement` | `"free_loadings"` | Only `"free_loadings"` is currently supported |
