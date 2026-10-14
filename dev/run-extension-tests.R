@@ -5,7 +5,7 @@ pkgload::load_all(".", quiet = TRUE)
 # returns NA, including tests that call lavaan directly before ravel_fit.
 RAVEL:::.ensure_lavaan_runtime()
 filter <- if ("--all" %in% commandArgs(trailingOnly = TRUE)) NULL else
-  "constrained|extension-adversarial|pi-uncertainty|estimated-state|feature-|parental-sibs|score-signal"
+  "constrained|extension-adversarial|pi-uncertainty|estimated-state|feature-|parental-sibs|score-signal|interactions|interaction-r2|parent-contrasts"
 results <- testthat::test_local(".", filter = filter, reporter = "summary",
                                stop_on_failure = FALSE)
 tab <- as.data.frame(results)

@@ -98,6 +98,13 @@ write.csv(attr(state_corrected, "estimated_state")$summary,
           "estimated_variance_state.csv", row.names = FALSE)
 ```
 
+Plots of fitted coefficient tables also retain interaction rows and optional
+parental-midpoint contrasts. Interaction panels label the moderator unit and
+use their own axis ranges; cluster-based uncertainty is labelled. For example,
+`ravel_plot_report(as.data.frame(fit, parent_contrasts = TRUE,
+include_vanilla = FALSE), scale = "corrected_std")` includes all available
+corrected effects. Select one scale and outcome at a time.
+
 `ravel_dataframe_report()` summaries and its automatic plots remain visible-scale
 comparisons with the two ordinary PGS regressions. Corrected tables use `beta_P`
 for the paternal effect; plotting accepts both paternal labels. Corrected plots
@@ -516,7 +523,7 @@ mode are rejected.
 | `determinacy` | Factor score determinacy per role |
 | `vanilla_regression` | Plain standardized trio regressions on observed `PGS1` and `PGS2` (`lm` for continuous outcomes, probit `glm` for binary outcomes) with ordinary model-based SEs. They include interaction covariates only as main effects, with no PGS-by-covariate terms, and ignore `cluster`, so they are not a matched comparator for interaction or clustered fits. |
 | `R2_model` | Variance explained by the visible latent linear predictor, including genetic x covariate interaction terms (covariate main effects excluded). With interactions, `components_vis` is evaluated at the moderator means and adds `interaction` and `cross_main_interaction`, so it does not depend on `interaction_center`. |
-| `R2_total_assumed` | Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and AM model. With interactions it adds the total-scale interaction variance, assuming the moderator is independent of the genetic components. |
+| `R2_total_assumed` | Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and AM model. With interactions and pi > 0 it adds the total-scale interaction variance, assuming the moderator is independent of the genetic components. At pi = 0 it retains the fitted visible interaction and cross-term variances without that independence assumption. |
 | `lavaan_inference` | SEM-based inference conditional on pi. Printing and table conversion use `pi_correction` for corrected rows when external uncertainty was supplied. |
 | `bootstrap` | Fixed-pi CIs and SEs if `n_boot > 0` |
 | `pi_correction` | Corrected estimates with propagated external pi uncertainty when `pi_se` was supplied, including covariance and derivative attributes. |

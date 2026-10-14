@@ -14,7 +14,9 @@ ravel_plot_report(out, scale = NULL)
 }
 \description{Constructs a diagnostic comparison of offspring, maternal and
 paternal coefficients with the selected confidence intervals. When present,
-sibling coefficients and parent-specific contrasts receive additional panels.
+sibling coefficients, parent-specific contrasts, parental-midpoint contrasts
+and genetic-by-covariate interactions receive additional panels. Interaction
+axes identify the moderator unit and use separate ranges.
 Print to display.}
 \details{PGS regressions use own-role score SDs; visible RAVEL uses standardized
 latent factors. Corrected tables use either current-role total-liability SDs or
@@ -25,6 +27,7 @@ Binary models retain SEM liability units and are separated from ordinary probit
 regressions. Live continuous fits retain their supplied outcome units, whereas
 reports use their prepared standardized phenotype. External-pi delta-Wald
 intervals are distinguished from fixed-pi percentile bootstrap intervals.
+Cluster-robust and cluster-bootstrap inference are labelled when supplied.
 Confidence levels are read from metadata; none is invented when that metadata
 is absent. Failed fits and unavailable intervals are labelled. No fitting occurs.
 Subset tables to one outcome before plotting.}

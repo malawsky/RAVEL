@@ -2,6 +2,12 @@
 
 ## Review fixes for interactions, clustering and reporting
 
+- At pi = 0, total genetic variance retains the fitted interaction moments,
+  including dependence between genetic liability and the moderator.
+- Effect plots retain interaction and parental-midpoint contrast rows, label
+  interaction units, and identify cluster-based uncertainty.
+- The default extension test runner includes interactions and parental contrasts.
+
 - `ravel_correct_pi()` refuses a fit whose interactions omit a family member
   when pi > 0 (its main effects would be biased when the moderator is not
   centred at its mean). With complete roles it corrects main effects only and

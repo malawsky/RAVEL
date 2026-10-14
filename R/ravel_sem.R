@@ -1841,7 +1841,7 @@
 #'     \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 #'     \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
 #'     \item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale. With interactions, the main components use the coefficients at the moderator means and \code{interaction} and \code{cross_main_interaction} components are added, so the decomposition does not depend on \code{interaction_center}.}
-#'     \item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction.}
+#'     \item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions and pi > 0, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction. At pi = 0, the visible variance components are retained without that independence assumption.}
 #'     \item{R2_model}{Variance explained by the visible latent linear predictor, including any genetic x covariate interaction terms (but not covariate main effects)}
 #'     \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}
 #'     \item{reliability}{Indicator-level reliability estimates}
@@ -2377,10 +2377,17 @@ ravel_fit <- function(dat,
       components_total_assumed <- .variance_components_general(
         beta_total_ref, Sigma_TT, rownames(Sigma_TT))
     }
-    # Under the independence assumption of the interaction correction the
-    # main-interaction covariance is zero on the total scale.
-    if (!is.null(iv)) components_total_assumed <- c(components_total_assumed,
-      interaction = .ravel_interaction_total_variance(iv, total_map, Sigma_TT))
+    if (!is.null(iv)) {
+      # With no hidden component, raw total scaling only re-expresses the
+      # visible predictor. Preserve its fitted product moments, including
+      # genetic-moderator dependence and main-interaction covariance.
+      if (h == 0) components_total_assumed <- components_vis else {
+        # For a hidden-component correction, moderator-genetic independence
+        # supplies the unobserved product moments and sets the cross term to 0.
+        components_total_assumed <- c(components_total_assumed,
+          interaction = .ravel_interaction_total_variance(iv, total_map, Sigma_TT))
+      }
+    }
     s2_gen_total_assumed <- sum(components_total_assumed)
 
     # "Total genetic R2" is only directly interpretable if Y is standardized.
@@ -3354,7 +3361,7 @@ ravel_to_dataframe <- function(result,
   attr(out, "settings") <- list(fit_constraints = result$constraint_spec$mode %||% "none",
     am_correction = result$am_correction, am_n_generations = result$am_n_generations,
     h = result$h, ci_level = unc$ci_level, outcome_type = result$outcome,
-    parental_sibs = result$parental_sibs$mode %||% "none")
+    parental_sibs = result$parental_sibs$mode %||% "none", cluster = result$cluster)
   attr(out, "constraint_spec") <- result$constraint_spec
   attr(out, "estimated_state") <- result$hidden_correction_details$estimated_state
   attr(out, "ci_level") <- unc$ci_level

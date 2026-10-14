@@ -777,8 +777,9 @@ ravel_plot_report <- function(out, scale = NULL) {
       stop("scale must name one available scale in the coefficient table.")
     tab <- tab[tab$scale == scale, , drop = FALSE]
   }
-  tab$parameter[tab$parameter == "beta_F"] <- "beta_P"
-  tab <- tab[tab$parameter %in% c("beta_D", "beta_M", "beta_P", "beta_MS", "beta_FS", "delta_M", "delta_F"), , drop = FALSE]
+  tab$parameter <- sub("^beta_F(?=:|$)", "beta_P", tab$parameter, perl = TRUE)
+  labels <- .ravel_plot_parameter_labels(tab$parameter)
+  tab <- tab[tab$parameter %in% names(labels), , drop = FALSE]
   if (!nrow(tab)) stop("No coefficient estimates to plot")
   if (!"regression" %in% names(tab)) tab$regression <- "RAVEL"
   if (!"residual_model" %in% names(tab)) tab$residual_model <- "unspecified"
@@ -815,7 +816,7 @@ ravel_plot_report <- function(out, scale = NULL) {
   key <- paste(tab$model, tab$parameter, sep = "|")
   if (anyDuplicated(key)) stop("Multiple estimates share a plot row; select one outcome, scale and uncertainty source.")
   inference <- unique(tab$inference %||% tab$uncertainty_source)
-  pi_delta <- any(grepl("pi_delta_wald", inference))
+  pi_delta <- any(grepl("pi_delta_wald", inference) | grepl("pi (delta-Wald)", inference, fixed = TRUE))
   uncertainty <- if (pi_delta) "pi_delta_wald" else settings$uncertainty %||%
     if (any(grepl("bootstrap", inference))) "bootstrap" else "lavaan"
   level <- attr(out, "ci_level") %||% settings$ci_level %||%
@@ -826,12 +827,32 @@ ravel_plot_report <- function(out, scale = NULL) {
   caption <- paste0(if (length(level) == 1L && is.finite(level)) paste0(round(100 * level), "% ") else "",
     "intervals: ", if (pi_delta) "joint delta-Wald, including external pi uncertainty" else
     if (uncertainty == "mixed") "mixed model-based and bootstrap percentile; see inference column" else
-    if (uncertainty == "bootstrap") "whole-trio bootstrap (percentile)" else "model-based (lm/glm; lavaan delta)")
+    if (uncertainty == "bootstrap") {
+      if (!is.null(settings$cluster)) "cluster bootstrap (percentile)" else "whole-trio bootstrap (percentile)"
+    } else if (!is.null(settings$cluster) || any(grepl("cluster-robust", inference)))
+      "cluster-robust SEM / delta method" else "model-based (lm/glm; lavaan delta)")
   structure(list(data = tab, outcome = unique(tab$outcome_variable),
     ci_level = level, uncertainty = uncertainty, inference = inference, caption = caption,
     scale = scale, raw = raw, binary = binary,
     pi_uncertainty = attr(out, "pi_uncertainty"),
     estimated_state = attr(out, "estimated_state")), class = "ravel_report_plot")
+}
+
+# Labels for every coefficient family supported by fitted-result tables.
+# Unknown diagnostic rows (for example rho_MF) remain outside effect plots.
+.ravel_plot_parameter_labels <- function(parameters) {
+  base <- c(beta_D = "Offspring", beta_M = "Mother", beta_P = "Father",
+    beta_MS = "Maternal sibling", delta_M = "Mother-specific contrast",
+    beta_FS = "Paternal sibling", delta_F = "Father-specific contrast",
+    beta_mid = "Parental midpoint", delta_M_mid = "Maternal midpoint deviation",
+    delta_P_mid = "Paternal midpoint deviation")
+  parameters <- unique(parameters)
+  labels <- base[names(base) %in% parameters]
+  ix <- parameters[grepl(":", parameters, fixed = TRUE)]
+  key <- sub(":.*$", "", ix)
+  keep <- key %in% names(base)
+  if (!any(keep)) return(labels)
+  c(labels, stats::setNames(paste0(base[key[keep]], " x ", sub("^[^:]*:", "", ix[keep])), ix[keep]))
 }
 
 #' @export
@@ -840,10 +861,7 @@ print.ravel_report_plot <- function(x, ...) {
   on.exit(graphics::par(old))
   groups <- if (x$binary) intersect(c("PGS", "RAVEL"),
     unique(ifelse(x$data$regression == "RAVEL", "RAVEL", "PGS"))) else "all"
-  roles <- c(beta_D = "Offspring", beta_M = "Mother", beta_P = "Father",
-    beta_MS = "Maternal sibling", delta_M = "Mother-specific contrast",
-    beta_FS = "Paternal sibling", delta_F = "Father-specific contrast")
-  roles <- roles[names(roles) %in% x$data$parameter]
+  roles <- .ravel_plot_parameter_labels(x$data$parameter)
   corrected <- any(x$data$scale %in% c("corrected_std", "corrected_raw"))
   label_width <- if (corrected) 26L else 29L
   columns <- min(3L, length(roles))
@@ -861,23 +879,34 @@ print.ravel_report_plot <- function(x, ...) {
     for (role in names(roles)) {
       d <- tab[tab$parameter == role, , drop = FALSE]
       yy <- length(models) + 1L - match(d$model, models)
-      graphics::plot(NA_real_, NA_real_, xlim = lim, ylim = c(.4, length(models) + .6),
-        xlab = if (isTRUE(x$raw)) "Effect per founder-scale total liability" else
-          if (identical(x$scale, "corrected_std")) "Effect per current total-liability SD" else
-          if (x$binary) if (group == "PGS") "Probit residual-SD units" else "SEM liability units" else
-          "Standardized coefficient", ylab = "", axes = FALSE, main = roles[[role]])
+      interaction <- grepl(":", role, fixed = TRUE)
+      panel_lim <- lim
+      if (interaction) {
+        # Moderators can have different units, so do not compress their panels
+        # into the range of the main genetic coefficients.
+        panel_lim <- range(c(0, d$estimate, d$ci_low, d$ci_high), finite = TRUE)
+        pad <- max(diff(panel_lim) * .08, .001)
+        panel_lim <- panel_lim + c(-pad, pad)
+      }
+      axis_label <- if (isTRUE(x$raw)) "Effect per founder-scale total liability" else
+        if (identical(x$scale, "corrected_std")) "Effect per current total-liability SD" else
+        if (x$binary) if (group == "PGS") "Probit residual-SD units" else "SEM liability units" else
+        "Standardized coefficient"
+      if (interaction) axis_label <- paste0(axis_label, " per unit of ", sub("^[^:]*:", "", role))
+      graphics::plot(NA_real_, NA_real_, xlim = panel_lim, ylim = c(.4, length(models) + .6),
+        xlab = axis_label, ylab = "", axes = FALSE, main = roles[[role]])
       graphics::axis(1)
       labels <- vapply(models, function(label) paste(strwrap(label, width = label_width), collapse = "\n"), character(1))
       graphics::axis(2, at = seq_along(models), labels = rev(labels), tick = FALSE, cex.axis = .75)
       graphics::abline(v = 0, col = "#969696", lty = 3)
-      if (!nrow(d) && group == "PGS") graphics::text(mean(lim), mean(seq_along(models)),
+      if (!nrow(d) && group == "PGS") graphics::text(mean(panel_lim), mean(seq_along(models)),
         "Not estimated by\ntrio regression", cex = .8, col = "#777777")
       col <- unname(colors[ifelse(d$regression == "RAVEL", d$residual_model, d$regression)])
       col[is.na(col)] <- "#175a83"
       graphics::segments(d$ci_low, yy, d$ci_high, yy, col = col, lwd = 2)
       graphics::points(d$estimate, yy, pch = ifelse(d$regression == "RAVEL", 16, 17), col = col, cex = 1.15)
       bad <- !is.finite(d$estimate)
-      if (any(bad)) graphics::text(mean(lim), yy[bad], "Fit unavailable", cex = .8, col = "#777777")
+      if (any(bad)) graphics::text(mean(panel_lim), yy[bad], "Fit unavailable", cex = .8, col = "#777777")
       no_ci <- is.finite(d$estimate) & (!is.finite(d$ci_low) | !is.finite(d$ci_high))
       if (any(no_ci)) graphics::text(d$estimate[no_ci], yy[no_ci] + .22, "CI unavailable", cex = .65)
       graphics::box(bty = "l", col = "#bdbdbd")

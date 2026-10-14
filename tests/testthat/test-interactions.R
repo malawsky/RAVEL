@@ -4,7 +4,7 @@ gxe_cache <- new.env(parent = emptyenv())
 # child-occasion), with child and maternal genetic x age effects.
 gxe_data <- function(N = 4000L, max_occ = 4L, seed = 11L, rho = .2, rel = c(.5, .3),
                      gD = .02, gM = .01) {
-  key <- paste(N, max_occ, seed, gD, gM, sep = "_")
+  key <- paste(N, max_occ, seed, rho, paste(rel, collapse = ":"), gD, gM, sep = "_")
   if (exists(key, gxe_cache, inherits = FALSE)) return(gxe_cache[[key]])
   had_seed <- exists(".Random.seed", .GlobalEnv, inherits = FALSE)
   if (had_seed) old_seed <- get(".Random.seed", .GlobalEnv)
@@ -268,40 +268,6 @@ test_that("bootstrap resampling unit is reconciled with cluster", {
   gxe_fit(ds, fixed_effects = "age", cluster = "FID", cluster_var = "site", n_boot = 3, seed = 2)
   expect_true(whole_families(ds))
 })
-
-gxe_cache <- new.env(parent = emptyenv())
-
-# Gaussian latent trios measured at 1..max_occ ages (long format, one row per
-# child-occasion), with child and maternal genetic x age effects.
-gxe_data <- function(N = 4000L, max_occ = 4L, seed = 11L, rho = .2, rel = c(.5, .3),
-                     gD = .02, gM = .01) {
-  key <- paste(N, max_occ, seed, gD, gM, sep = "_")
-  if (exists(key, gxe_cache, inherits = FALSE)) return(gxe_cache[[key]])
-  had_seed <- exists(".Random.seed", .GlobalEnv, inherits = FALSE)
-  if (had_seed) old_seed <- get(".Random.seed", .GlobalEnv)
-  on.exit(if (had_seed) assign(".Random.seed", old_seed, .GlobalEnv))
-  set.seed(seed)
-  z <- MASS::mvrnorm(N, c(0, 0), matrix(c(1, rho, rho, 1), 2))
-  Gm <- z[, 1]; Gf <- z[, 2]; Gc <- (Gm + Gf) / 2 + sqrt(.5 * (1 - rho)) * rnorm(N)
-  P <- list()
-  for (k in 1:2) {
-    em <- rnorm(N); ef <- rnorm(N); ec <- (em + ef) / 2 + sqrt(.5) * rnorm(N)
-    P[[paste0("PGS", k, "_mother")]] <- sqrt(rel[k]) * Gm + sqrt(1 - rel[k]) * em
-    P[[paste0("PGS", k, "_father")]] <- sqrt(rel[k]) * Gf + sqrt(1 - rel[k]) * ef
-    P[[paste0("PGS", k, "_child")]] <- sqrt(rel[k]) * Gc + sqrt(1 - rel[k]) * ec
-  }
-  nocc <- sample(seq_len(max_occ), N, replace = TRUE)
-  fam <- rep(seq_len(N), nocc)
-  a <- stats::runif(length(fam), 4, 16) - 10
-  Y <- (.30 + gD * a) * Gc[fam] + (.10 + gM * a) * Gm[fam] + .05 * Gf[fam] + .05 * a +
-    rnorm(N, sd = sqrt(.3))[fam] + rnorm(N, sd = .03)[fam] * a + rnorm(length(fam), sd = sqrt(.6))
-  out <- data.frame(FID = fam, as.data.frame(P)[fam, ], Y = Y, age = a + 10)
-  rownames(out) <- NULL
-  gxe_cache[[key]] <- out
-  out
-}
-
-gxe_fit <- function(...) suppressWarnings(ravel_fit(...))
 
 test_that("post-fit pi correction refuses incomplete interaction roles and flags uncorrected interactions", {
   d <- gxe_data(N = 1500L, seed = 5L)

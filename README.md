@@ -3,358 +3,300 @@
 **Recovering Assortment-Adjusted Variance Explained by Genetic Liabilities**
 
 RAVEL estimates offspring, maternal and paternal genetic-liability coefficients
-from parent–offspring trios, using two independently constructed polygenic scores
-(PGSs) per person. It accounts for PGS measurement error and can correct estimates
-for assortative mating and genetic variation not captured by the scores.
+using two independently constructed polygenic scores (PGSs) per person. It
+accounts for PGS measurement error and can correct for assortative mating and
+hidden genetic variation.
 
 **Author:** Daniel Malawsky (<d.malawsky@gmail.com>), Wellcome Sanger Institute
 
-## Installation
-
-The development branch contains the constrained models and external-pi uncertainty
-features described below:
+## Install
 
 ```r
 remotes::install_github("malawsky/RAVEL", ref = "dev")
 library(RAVEL)
 ```
 
-Requires R >= 4.0, lavaan >= 0.6-12 and MASS. To install a local checkout, run
-`devtools::install()` from its directory.
+Requires R >= 4.0, lavaan >= 0.6-12 and MASS. To install a local checkout,
+run `devtools::install()` from its directory, or use
+`devtools::load_all(".")` while developing.
 
 ## Quick start
 
-With your trio data in `dat` and the column names listed below:
+Try the bundled simulated data, or replace `dat` with your own trio data:
 
 ```r
-fit <- ravel_fit(
-  dat,
-  pi = 0.40,
-  pi_se = 0.05,
-  fit_constraints = "estimated_state"
-)
+data("ravel_example", package = "RAVEL")
+dat <- ravel_example
+names(dat) <- sub("^pgs", "PGS", names(dat))
 
+fit <- ravel_fit(dat, pi = .40, pi_se = .05,
+                 fit_constraints = "estimated_state")
 print_simple(fit)
-results <- as.data.frame(fit, include_raw = TRUE)
+results <- as.data.frame(fit, include_vanilla = FALSE)
 ```
 
-This fits the constrained model without specifying a number of assortment
-generations. It returns visible and total corrected estimates; the corrected
-SEs and confidence intervals include the supplied uncertainty in pi.
-No second correction call is needed.
+This estimates the assortment variance state without specifying a generation
+count. It returns visible and total corrected effects, with uncertainty in pi
+included in the corrected SEs. No second correction call is needed.
 
-`pi` is the fraction of **founder/random-mating genetic variance hidden from the
-PGSs**, between 0 and 1 (excluding 1). It is not PGS measurement error or outcome
-heritability. `pi_se` is its external standard error on that same scale. Omit
-`pi_se` to treat pi as fixed. The older name `h` remains supported; if both `h`
-and `pi` are supplied, they must agree.
+`pi` is the fraction of **founder/random-mating genetic variance hidden from
+the scores**, in `[0, 1)`. It is not PGS measurement error or outcome
+heritability. Supply its external standard error as `pi_se`, or omit `pi_se`
+to treat pi as fixed. The values above are examples; choose them for your trait.
+The bundled data have founder pi 0.4, one generation of assortment and founder
+PGS reliabilities 0.5 and 0.3. See `?ravel_example`.
 
-To try the example without your own data, create `dat` first:
+## Which workflow fits your data?
 
-```r
-dat <- ravel_simulate_trios(
-  N = 10000, m = 200, hidden_fraction = 0.40, seed = 12345
-)
+```mermaid
+flowchart TD
+    A{"Two PGS versions from independent GWASs<br/>for child, mother and father?"}
+    A -->|No| B[Current RAVEL requires this trio score design]
+    A -->|Yes| C{"Repeated observations<br/>within families?"}
+    C -->|No| D[Continuous or binary outcome<br/>ravel_fit]
+    C -->|Yes| E[Continuous outcome in long format<br/>ravel_fit with cluster]
+    D --> F[Optional sibling scores: parental_sibs<br/>Optional continuous-outcome moderator: interactions]
+    E --> F
+    F --> G[Choose assortment assumptions and pi<br/>Add pi_se for external uncertainty]
+    G --> H[Inspect fit and estimates<br/>print_simple / as.data.frame]
+    H --> I[Save tables and fit<br/>write.csv / saveRDS]
+    H --> J[Plot coefficient tables<br/>ravel_plot_report]
+    H --> K[Scan pi values<br/>ravel_correct_pi or refit interactions]
+    D -.-> L[Independent-row dataframe workflow<br/>ravel_dataframe_report then ravel_correct_grid]
+    D -.-> M[Optional score-association diagnostic<br/>ravel_test_score_signal]
 ```
 
-This simulator produces one generation of assortment. The quick-start model
-estimates the variance state rather than being told that history. The example
-`pi_se` illustrates an external uncertainty input; the simulator does not estimate it.
+The dataframe workflow and its grid do not accept interactions or clustered
+observations; use `ravel_fit()` for those. The score-association diagnostic is
+restricted to complete, independent continuous-outcome data without covariates
+and requires an identified score model. See the examples below.
 
-## Input data
+## Prepare your data
 
-Use one row per trio, with two PGS versions targeting the same trait and
-independent GWAS estimation errors. Apply each version's weights to all three
-family members and orient both versions toward the same genetic target.
+Use two PGS versions targeting the same trait, with independent GWAS estimation
+errors. Apply each version's weights to every included family member and orient
+both scores toward the same genetic target.
 
-| Person | PGS columns expected by `ravel_fit()` |
+| Person | Default columns in `ravel_fit()` |
 |---|---|
+| Child | `PGS1_child`, `PGS2_child` |
 | Mother | `PGS1_mother`, `PGS2_mother` |
 | Father | `PGS1_father`, `PGS2_father` |
-| Child | `PGS1_child`, `PGS2_child` |
 
-The outcome column defaults to `Y`. Use the `col_pgs1_mother`,
-`col_pgs2_mother`, and corresponding father/child arguments to map other names;
-use `col_outcome` for the outcome. Raw or separately standardized PGSs can be
-used. Their reliability is estimated, including a separate reliability for each
-PGS version. Standardizing a score does not make its population variance known.
+The outcome defaults to `Y`. Map other names with `col_outcome`,
+`col_pgs1_child`, `col_pgs2_child` and the corresponding parent arguments.
+Raw or separately standardized scores are accepted; reliability is estimated
+separately for the two PGS versions.
 
-## Choose the assumptions explicitly
+For repeated measurements, use one row per child-occasion, repeat the family
+scores, and supply a family identifier through `cluster`. Otherwise, use one
+independent trio per row.
 
-| `fit_constraints` | What is imposed during fitting? | Generation count |
-|---|---|---|
-| `"none"` | Original unconstrained SEM | Used only for the later total correction |
-| `"equilibrium"` | Equilibrium transmission and stable within-score reliability across roles | Not supplied |
-| `"n_gen"` | A specified constant-strength history from random-mating founders | Supply `am_n_generations` |
-| `"estimated_state"` | Inheritance relations; variance growth estimated from the trio | Not supplied |
+## Choose the assortment assumptions
 
-All three constrained modes fix within-PGS residual spouse correlation to 0
-and child–parent residual correlations to 0.5. They assume independent errors
-between the two PGS versions and estimate their reliabilities separately.
-They do not assume the two PGSs are equally reliable. More restrictions can
-improve precision when these assumptions fit the data.
+| `fit_constraints` | Use when you want… |
+|---|---|
+| `"estimated_state"` | Inheritance constraints, with variance growth estimated from the data and no specified generation count |
+| `"equilibrium"` | Equilibrium transmission and stable within-score reliability across family roles |
+| `"n_gen"` | A specified constant-strength history from random-mating founders; supply `am_n_generations` |
+| `"none"` | The original unconstrained SEM; assortment history enters only the total correction |
+
+The constrained modes fix within-score error correlations to 0 between spouses
+and 0.5 between child and parent. They retain independent errors between PGS
+versions and allow the versions to have different reliabilities. Choose these
+restrictions on scientific grounds; greater precision depends on their validity.
 
 ```r
-# Equilibrium
-fit_eq <- ravel_fit(dat, pi = .4, pi_se = .05,
-                    fit_constraints = "equilibrium")
-
-# Three mating rounds from random-mating founders
-fit_g3 <- ravel_fit(dat, pi = .4, pi_se = .05,
-                    fit_constraints = "n_gen", am_n_generations = 3L)
-
-# Original SEM, with an equilibrium total correction
-fit_free <- ravel_fit(dat, pi = .4, pi_se = .05,
-                      fit_constraints = "none", am_correction = "equilibrium")
+fit_eq <- ravel_fit(dat, pi = .4, fit_constraints = "equilibrium")
+fit_g3 <- ravel_fit(dat, pi = .4, fit_constraints = "n_gen",
+                    am_n_generations = 3L)
+fit_free <- ravel_fit(dat, pi = .4, fit_constraints = "none",
+                      am_correction = "equilibrium")
 ```
 
-**Defaults have not changed:** bare `ravel_fit(dat)` uses `pi = 0`,
-`fit_constraints = "none"`, `am_correction = "n_gen"`,
-`am_n_generations = 1L`, and no bootstrap. One generation means founder parents
-and the children produced by their first assortative mating round. The default
-SEM itself does not impose this generation history. Selecting a constrained mode
-automatically selects its matching correction unless an incompatible one is
-explicitly supplied, which is rejected.
+**Bare `ravel_fit(dat)` defaults to** pi 0, unconstrained fitting, a one-generation
+post-fit correction and no bootstrap. A constrained mode selects its matching
+correction automatically. One generation means random-mating founder parents
+and their children after the first assortment round. The older name `h` is
+still accepted for pi. [Theory and identification limits](docs/methods.md).
 
-For the assumptions, identification limits and equations, see
-[Methods and assumptions](docs/methods.md).
-
-## Read, save and plot results
+## Read, plot and save results
 
 ```r
-print_simple(fit)                         # compact table
-print_ravel_results(fit)                  # detailed output
-results <- as.data.frame(fit, include_raw = TRUE)
+print_simple(fit)                       # compact results
+print_ravel_results(fit)                # diagnostics and detailed results
+results <- as.data.frame(fit, include_raw = TRUE, include_vanilla = FALSE)
+print(ravel_plot_report(results, scale = "corrected_std"))
 write.csv(results, "ravel_results.csv", row.names = FALSE)
-saveRDS(fit, "ravel_fit.rds")
-
-# Parental midpoint and maternal/paternal deviations (bm + bf, bm - bf, bf - bm)
-print_simple(fit, parent_contrasts = TRUE)
-as.data.frame(fit, parent_contrasts = TRUE)
-
-# Full corrected covariance and uncertainty details
-fit$pi_correction
-attr(fit$pi_correction, "covariance")
-print(ravel_plot_report(fit$pi_correction))
+saveRDS(fit, "ravel_fit.rds")             # retain covariance and other metadata
 ```
 
-Visible coefficients describe the genetic component measured by the scores.
-Corrected coefficients include the assumed hidden component. Standardized total
-coefficients are per current genetic SD; raw total coefficients use the founder
-reference scale. Maternal and paternal coefficients are genetic-liability-correlated
-associations, whose causal interpretation requires the model assumptions.
+Visible effects describe the genetic component measured by the scores.
+Corrected effects include the assumed hidden component. `corrected_std` uses
+current genetic SDs; `corrected_raw` uses the founder reference scale. Parent
+coefficients are associations; causal interpretation needs additional assumptions.
+Check convergence, warnings and diagnostics before interpreting intervals.
 
-The ordinary print and table functions include external-pi uncertainty when
-`pi_se` was supplied. Save RDS for further inference: CSV does not preserve joint
-covariance matrices and other attributes. Inspect convergence and diagnostics;
-failed or nonidentified fits are not suitable for ordinary confidence intervals.
+For the parental midpoint and mother–father difference, add
+`parent_contrasts = TRUE` to either printer or `as.data.frame()`. These use the
+joint coefficient covariance. They compare the parental coefficients; they are
+not the within-lineage contrasts from parental siblings.
 
-## How uncertainty is handled
+The default SEs come from the SEM. `pi_se` adds external uncertainty by the delta
+method, assuming independent external estimation of pi. For a bootstrap, add
+`n_boot = 500, seed = 123` to `ravel_fit()`. Repeated rows must use `cluster` so
+whole families are resampled. With `pi_se`, corrected bootstrap intervals use
+bootstrap covariance plus pi variance; visible intervals are percentile-based.
+[Uncertainty details](docs/reference.md).
 
-The default uses SEM-based SEs. Supplying `pi_se` adds its sampling variance by
-the delta method, assuming the external pi estimate is independent of the trio
-estimation errors. No Monte Carlo sampling of pi is used. Corrected intervals
-are normal-approximation intervals and are not clipped to parameter bounds.
-Finite-generation constrained fits after generation one also propagate how pi
-affects the fit, using automatic perturb-and-refit sensitivity.
+## Scan values of pi
 
-```r
-fit_boot <- ravel_fit(dat, pi = .4, pi_se = .05,
-                      fit_constraints = "estimated_state",
-                      n_boot = 500, seed = 123)
-print_simple(fit_boot, uncertainty = "bootstrap")
-```
-
-With external-pi uncertainty, corrected bootstrap-based results use the covariance
-of joint bootstrap estimates plus external pi variance in a delta-Wald interval.
-Visible bootstrap intervals remain percentile intervals. The underlying fixed-pi
-SEM and bootstrap results remain available in the fit. See the
-[reference](docs/reference.md) for uncertainty selectors and correlated external
-pi estimates (`core_pi_cov`).
-
-## Change pi after fitting
-
-`ravel_correct_pi()` remains useful for sensitivity analyses. It recalculates
-from the visible estimates and leaves the original fit unchanged:
+For the main effects from unconstrained, equilibrium or estimated-state fits,
+recalculate without changing the original fit:
 
 ```r
 alternative <- ravel_correct_pi(fit, pi = .45, pi_se = .05)
 print_simple(alternative)
+
+pi_scan <- do.call(rbind, lapply(c(.3, .4, .5), function(p) {
+  ans <- ravel_correct_pi(fit, pi = p, pi_se = .05)
+  ans$scenario_pi <- p
+  ans
+}))
+subset(pi_scan, scale == "corrected_std" & parameter == "beta_D",
+       select = c(scenario_pi, estimate, se, ci_low, ci_high))
 ```
 
-This works without refitting for unconstrained, equilibrium and estimated-state
-fits. A finite-generation constrained fit after generation one depends on pi:
-refit with the new value in `ravel_fit()` instead. The separate correction
-function rejects a mismatched pi for that case. The
-[reference](docs/reference.md) also covers assumption grids and aggregate packets.
+Each interval is conditional on its scenario, not a simultaneous band. Retain
+the original fit for further inference. Constrained `"n_gen"` fits after
+generation one depend on pi and must be refitted at each value. To scan
+**interaction effects**, also refit with `ravel_fit(..., pi = p)`:
+`ravel_correct_pi()` returns main effects only.
+
+For a dataframe report, use the grid helper shown below instead.
 
 ## Covariates and binary outcomes
 
-Pass numeric covariates to `fixed_effects` so they are fitted jointly. Do not
-residualize only the outcome when it correlates with genetic predictors. For
-categorical covariates, the dataframe workflow below handles dummy coding.
-
 ```r
-fit_adjusted <- ravel_fit(
-  dat, pi = .4, pi_se = .05, fit_constraints = "estimated_state",
-  fixed_effects = c("age", "PC1", "PC2")
-)
+fit_adjusted <- ravel_fit(dat, pi = .4, pi_se = .05,
+  fit_constraints = "estimated_state", fixed_effects = c("age", "PC1", "PC2"))
 ```
 
-**Assumption for corrected estimates with covariates.** With covariates in the
-model, the visible coefficients are adjusted for them. The total-liability
-correction assumes the visible-to-total mapping still applies after that
-adjustment, i.e. adjusting for the covariates does not change how the visible
-and hidden genetic components relate.
+Use numeric `fixed_effects` for joint adjustment; the dataframe workflow handles
+categorical covariates. Do not residualize only the outcome when it correlates
+with the genetic predictors. Corrected estimates additionally assume the
+visible-to-total mapping remains valid after adjustment. Covariates independent
+of family genetic components satisfy this; genetically related covariates need
+justification. RAVEL cannot establish that assumption from the data.
 
-- This holds for covariates independent of every family member's genetic
-  liability. Age, sex or genotyping batch often qualify, but cohort structure,
-  selective recruitment, attrition or batch-specific ancestry can break this.
-- For covariates that are genetically correlated with the trait, such as
-  education, socioeconomic status and possibly ancestry PCs, interpret the
-  corrected estimates with care.
-
-Covariate adjustment alone does not establish the assumption, and RAVEL cannot
-check it from the data. Visible-scale estimates do not depend on it.
-(`covariate_mapping_confirmed` is retained for compatibility and ignored.)
-
-For binary outcomes, keep `Y` coded 0/1 and use `outcome = "binary_liability"`.
-Results are on the SEM probit-liability scale. Baseline-relative fit indices
-are unavailable for binary fits with covariates; inspect the diagnostic output.
+For a binary `Y` coded 0/1, add `outcome = "binary_liability"`. Effects use the
+SEM probit-liability scale. Interactions and `cluster` currently require a
+continuous outcome. [Covariate and binary-outcome details](docs/methods.md#covariate-adjustment-and-binary-outcomes).
 
 ## Optional: parental siblings
 
-If you have a full sibling of the mother and/or father, add their two scores
-using the same PGS weights as the trio:
+Add two scores for a full sibling of the mother and/or father, using the same
+weights as the trio: `PGS1_mat_sib`, `PGS2_mat_sib` and/or `PGS1_pat_sib`,
+`PGS2_pat_sib`.
 
 ```r
-fit <- ravel_fit(dat, parental_sibs = "both",  # or "maternal" / "paternal"
-                 pi = .4, pi_se = .05, fit_constraints = "estimated_state")
-print_simple(fit)
-tab <- as.data.frame(fit)
-subset(tab, parameter %in% c("delta_M", "delta_F"))
+fit_sibs <- ravel_fit(sib_dat, parental_sibs = "both", # or "maternal" / "paternal"
+  pi = .4, pi_se = .05, fit_constraints = "estimated_state")
+print_simple(fit_sibs)
+subset(as.data.frame(fit_sibs), parameter %in% c("delta_M", "delta_F"))
 ```
 
-Supply `PGS1_mat_sib`, `PGS2_mat_sib` and/or `PGS1_pat_sib`, `PGS2_pat_sib`.
-`delta_M` and `delta_F` subtract the sibling's coefficient from their own
-parent's coefficient. This addresses shared lineage background under an
-exchangeable full-sibling model; a causal interpretation also requires no
+The delta rows subtract a parent's sibling coefficient from that parent's
+coefficient. A parent-specific causal interpretation additionally requires no
 sibling effect on the child and no remaining parent-specific confounding.
-The usual parent coefficients are now conditional on the included siblings.
-See the [assumptions and scales](docs/methods.md#parental-siblings).
+Tables, plots, bootstrap and pi uncertainty include sibling effects and
+contrasts. [Sibling assumptions and missing-data handling](docs/methods.md#parental-siblings).
 
-All constraint modes, tables, plots, bootstrap and pi uncertainty support this
-option. Continuous fits retain missing sibling scores using FIML; binary fits
-exclude incomplete families. For the dataframe workflow, use the same
-`parental_sibs` option with lowercase score names; see the
-[report example and column mapping](docs/reference.md#parental-sibling-workflow).
+## Optional: interactions and growth
 
-## Optional: genetic x covariate interactions and growth models
-
-`interactions` estimates how the genetic coefficients change with an observed
-covariate. For a growth model, use long-format data with one row per
-child-occasion, so trio scores repeat across a child's measurements, and
-cluster by family:
+For a continuous outcome, `interactions` estimates how genetic coefficients
+change with a numeric covariate. For repeated outcomes, cluster by family:
 
 ```r
-fit <- ravel_fit(long_dat, interactions = "age", interaction_center = c(age = 10),
-                 interaction_roles = c("child", "mother"), cluster = "FID")
-print_simple(fit)   # main effects at age 10; beta_D:age, beta_M:age per year
+fit_growth <- ravel_fit(long_dat, pi = .4, pi_se = .05,
+  fit_constraints = "estimated_state", interactions = "age",
+  interaction_center = c(age = 10), cluster = "FID")
+print_simple(fit_growth)
+growth_results <- as.data.frame(fit_growth, include_vanilla = FALSE)
+print(ravel_plot_report(growth_results, scale = "corrected_std"))
 ```
 
-The latent G x age term is measured by products of the centred scores and age,
-which share G's loadings, so the interaction is corrected for PGS measurement
-error like the main effects. Add a column such as `age2 = (age - 10)^2` to
-`interactions` (with `interaction_center = c(age = 10, age2 = 0)`) for
-curvature. Any numeric covariate can be used in place of age.
+Main effects refer to age 10; `beta_D:age`, `beta_M:age` and `beta_F:age` are
+changes per year. The moderator is also included as a main effect. To add
+curvature, create `age2 = (age - 10)^2`, then use
+`interactions = c("age", "age2")` and
+`interaction_center = c(age = 10, age2 = 0)`.
 
-This is a population-averaged growth model: it estimates average trajectories
-and their genetic modulation, with cluster-robust standard errors, but not
-random-intercept or random-slope variances. Families with more occasions get
-more weight. Cluster-robust SEs do not correct bias from visit timing or
-attrition related to genotype or outcome. The plain PGS regression rows that
-`as.data.frame()` appends are not matched to these fits: they omit
-PGS-by-covariate terms and use unclustered SEs, so use `include_vanilla = FALSE`.
+- The moderator must be measured without error and independent of PGS errors.
+  With `pi > 0`, correction additionally assumes independence from all family
+  members' visible and hidden genetic components. All family roles then receive
+  interaction terms by default and are required for correction. At pi 0,
+  `interaction_roles` defaults to `"child"`; select other roles explicitly.
+- Growth fits estimate average trajectories with cluster-robust SEs, not
+  random-intercept or random-slope variances. Families with more rows get more
+  weight. Clustering does not fix bias from selective visits or attrition.
+- Validation used complete data. Missing-data use of these product indicators
+  requires MCAR. A lack of correlation warnings does not establish independence.
+- Use `include_vanilla = FALSE`: the plain PGS comparator omits interactions
+  and uses unclustered SEs.
 
-With `pi > 0`, interaction coefficients are also corrected to the
-total-liability scale by the same map as the main effects. This needs an
-interaction term for every family member (the default when `pi > 0`) and a
-covariate independent of every family member's visible and hidden genetic
-components. Age at measurement can satisfy this, but cohort effects, selective
-recruitment or attrition related to genotype can break it. The fit warns when a
-covariate is clearly correlated with a visible genetic factor. The absence of a
-warning does not establish independence, because the check cannot detect
-nonlinear dependence or dependence on hidden components. Interactions need a
-continuous outcome; see [Methods](docs/methods.md#genetic-x-covariate-interactions).
-Validation used complete data. With missing values, such as absent parental
-siblings or a missing covariate, FIML is supported here only if values are
-missing completely at random, because product indicators are not Gaussian.
+[Interaction equations, assumptions and validation](docs/methods.md#genetic-x-covariate-interactions).
 
-## Optional: compare the scores' phenotype associations
+## Dataframe reports and pi grids
 
-For a continuous phenotype with complete, independently observed families and
-no covariates, check the shared-factor outcome restriction:
+For independent rows without interactions, `ravel_dataframe_report()` prepares
+covariates and generates comparison tables, plots and reusable correction
+packets. Its default score names are lowercase `pgs1_` / `pgs2_`.
 
 ```r
-fit <- ravel_fit(dat, fit_constraints = "estimated_state")
+out <- ravel_dataframe_report(ravel_example, outcome = "Y",
+  covariates = c("age", "sex", "site"),
+  categorical_covariates = c("sex", "site"),
+  fit_constraints = "estimated_state", h = .4)
+out$model_status
+print(out$plot)
+
+# Use the full report, not out$summary. Omit generation counts for estimated_state.
+grid <- ravel_correct_grid(out, hidden_fraction = c(.3, .4, .5),
+                           pi_se = .05, include_raw = FALSE)
+grid[, c("hidden_fraction", "parameter", "estimate", "se", "correction_status")]
+print(ravel_plot_report(grid))
+```
+
+The initial report compares visible-scale effects. The grid supplies total
+corrections and flags incompatible scenarios; inspect `correction_status`,
+`error` and `warning`. Add `out_dir = "results"` to the report call to save
+outputs. [Column mapping, packets and generation grids](docs/reference.md).
+
+## Optional: score-association diagnostic
+
+For complete, independent continuous-outcome observations without covariates:
+
+```r
 signal_test <- ravel_test_score_signal(fit)
 print(signal_test)
 ```
 
-This is a separate diagnostic; it does not change the effect estimates or their
-pi correction. It requires an identified score model, such as a supported
-constrained fit. The default fully free measurement model is unsupported.
-Always check the returned status before interpreting a p value.
+This tests whether the two scores' phenotype associations agree with the
+shared-factor outcome restriction. It needs an identified score model, such
+as a supported constrained fit; the fully free default is unsupported. Check
+the returned status before interpreting a p value. It does not change effects
+or corrections, and non-rejection does not establish unbiased effects.
+[Scope and interpretation](docs/reference.md#score-specific-phenotype-association-test).
 
-Rejection means the two scores' phenotype associations disagree with the
-shared-factor restriction under the retained measurement assumptions.
-Non-rejection does not establish genetic correlation one or unbiased effects.
-See the [scope and interpretation](docs/reference.md#score-specific-phenotype-association-test).
+## Documentation and citation
 
-## Dataframe reports and the bundled example
+[Methods and assumptions](docs/methods.md) contains the theory;
+[API and workflow reference](docs/reference.md) covers options and output fields.
+Installed help is available through `?ravel_fit`, `?ravel_correct_pi`,
+`?ravel_dataframe_report`, `?ravel_correct_grid` and `?ravel_test_score_signal`.
 
-`ravel_dataframe_report()` prepares raw data, compares RAVEL with ordinary PGS
-regressions, and can save tables and plots. Its default score names use lowercase
-`pgs1_` and `pgs2_`, unlike `ravel_fit()`. It jointly fits numeric and categorical
-covariates and standardizes continuous outcomes.
-
-```r
-data("ravel_example", package = "RAVEL")
-out <- ravel_dataframe_report(
-  ravel_example, outcome = "Y",
-  covariates = c("age", "sex", "site", paste0("PC", 1:6)),
-  categorical_covariates = c("sex", "site"),
-  fit_constraints = "estimated_state", h = .4
-)
-out$model_status
-out$summary
-print(out$plot)
-
-# Report summaries are visible-scale comparisons; correct the packet separately.
-corrected <- ravel_correct_pi(out$packet, pi = .4, pi_se = .05)
-print_simple(corrected)
-```
-
-The bundled simulation generates its continuous covariates from the visible
-liabilities only, so the covariate mapping assumption holds by construction.
-Real covariates need their own justification.
-This dataset contains 4,000 simulated trios, founder pi 0.4, one generation of
-assortment, and founder PGS reliabilities 0.5 and 0.3. See `?ravel_example` for the
-full generating assumptions. Add `out_dir = "results"` to save a report in a new
-folder. Keep the aggregate RDS packet for later corrections and inspect
-`out$model_status` and `out$diagnostics` before interpretation.
-
-## Further documentation
-
-- [Methods and assumptions](docs/methods.md): theory, equations and limitations.
-- [API and workflow reference](docs/reference.md): options, output fields, column
-  mapping, reporting, uncertainty and simulation details.
-- `?ravel_fit`, `?ravel_correct_pi`, `?ravel_dataframe_report`,
-  `?ravel_correct_grid`, `?ravel_test_score_signal`: installed function documentation.
-
-## License and citation
-
-MIT. When using RAVEL, please cite:
+MIT licensed. Please cite:
 
 > Malawsky, D. S., Hegemann, L., Wootton, O., Havdahl, A. K., Sunde, H. F., &
 > Martin, H. C. (2026). [Phantom genetic nurture: assortative mating accounts for

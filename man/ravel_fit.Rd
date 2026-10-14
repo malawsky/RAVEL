@@ -258,7 +258,7 @@ A list with components (selected):
 \item{crossperson_resid}{Estimated observed cross-person residual covariances}
 \item{crossperson_resid_corr}{Estimated observed cross-person residual correlations}
 \item{components_vis}{Quadratic variance decomposition over all included family roles on the visible scale. With interactions, the main components use the coefficients at the moderator means and \code{interaction} and \code{cross_main_interaction} components are added, so the decomposition does not depend on \code{interaction_center}.}
-\item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction.}
+\item{components_total_assumed}{Variance decomposition on assumed total scale. With interactions and pi > 0, an \code{interaction} component is added; the main-interaction covariance is zero under the independence assumption of the interaction correction. At pi = 0, the visible variance components are retained without that independence assumption.}
 \item{R2_model}{Variance explained by the visible latent linear predictor, including any genetic x covariate interaction terms (but not covariate main effects)}
 \item{R2_total_assumed}{Variance explained by the assumed total-liability linear predictor, conditional on the supplied hidden-variance and assortment model}
 \item{reliability}{Indicator-level reliability estimates}

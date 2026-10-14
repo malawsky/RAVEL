@@ -81,3 +81,23 @@ test_that("R2 is centre-invariant with parental siblings and several moderators"
   # The total-liability R2 recovers the realised share of the generating predictor.
   expect_lt(abs(a$R2_total_assumed - sim$oracle), .03)
 })
+
+
+test_that("zero-pi total variance retains genetic-moderator dependence", {
+  skip_on_cran()
+  d <- ravel_simulate_trios(N = 6000, m = 100, hidden_fraction = 0, seed = 779)
+  d <- r2_with_seed(780, {
+    g <- as.numeric(scale(d$G_child))
+    d$x <- .8 * g + .6 * rnorm(nrow(d))
+    d$Y <- g * d$x + rnorm(nrow(d))
+    d
+  })
+  f <- suppressWarnings(ravel_fit(d, interactions = "x", pi = 0))
+  expect_true(f$converged)
+  # No hidden component: changing the liability's units cannot change the
+  # variance of its predictor. Cov(G, x) is nonzero in this counterexample.
+  expect_equal(f$components_total_assumed, f$components_vis, tolerance = 1e-10)
+  expect_equal(f$s2_genetic_total_assumed, f$s2_genetic_vis, tolerance = 1e-10)
+  expect_equal(f$R2_total_assumed, f$s2_genetic_vis / var(d$Y), tolerance = 1e-10)
+  expect_true("cross_main_interaction" %in% names(f$components_total_assumed))
+})

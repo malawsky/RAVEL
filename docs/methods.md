@@ -559,11 +559,29 @@ g. In the model:
 **Assumptions.**
 
 - x is measured without error.
-- Score measurement errors are independent of x.
+- A sufficient measurement assumption is that each score-error vector is
+  independent of the genetic liabilities and moderators jointly, and the two
+  PGS versions have independent error vectors. This ensures that product
+  residuals are orthogonal to the genetic factors, their interactions and the
+  moderators, with zero cross-version residual covariances. Marginal zero
+  error correlations alone do not establish these higher-order moment
+  restrictions.
 - The interaction is linear in G given x.
 
 Constrained modes apply unchanged, because the product loadings are the base
 loadings.
+
+**Genetic variance.** The visible genetic predictor includes all interaction
+terms. Its variance is computed from the fitted joint covariance of G and
+G x, with main effects re-expressed at the moderator means so that the
+components do not depend on the reporting centre. At pi = 0, total liability
+is only a rescaling of visible liability, so the total genetic variance uses
+the same components, including the main-interaction cross term. It does not
+require moderator-genetic independence. At pi > 0, the total interaction
+variance uses the independence assumption below to recover unobserved product
+moments. Continuous total R² divides this variance by empirical Var(Y), while
+visible R² uses model-implied Var(Y); small differences from the denominator
+can therefore remain even at pi = 0.
 
 **Growth models.** Use long-format data, with one row per child-occasion and
 the trio scores repeated, plus `interactions = "age"` and `cluster = "FID"`.
