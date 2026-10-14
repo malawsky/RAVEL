@@ -1,5 +1,18 @@
 # RAVEL 0.2.0.9000 (development)
 
+## Parental midpoint and deviation contrasts
+
+- `parent_contrasts = TRUE` in `print_simple()`, `print_ravel_results()`,
+  `as.data.frame()` and `ravel_to_dataframe()` reports the parental midpoint
+  coefficient (`beta_mid` = bm + bf) and the maternal and paternal deviations
+  from it (`delta_M_mid` = bm - bf, `delta_P_mid` = bf - bm), mirroring the
+  parental-sibling contrasts. They are reported on the visible scale, the
+  corrected scale when pi > 0, and the raw scale with `include_raw`.
+- Uncertainty uses the fit's joint covariance or joint bootstrap draws, so the
+  deviation test equals a test of equal maternal and paternal coefficients in
+  the reparameterized model. Bootstrap results now also keep the corrected
+  coefficient draws.
+
 ## Covariate confirmation no longer gates corrections
 
 - `covariate_mapping_confirmed` no longer stops `ravel_fit()`,

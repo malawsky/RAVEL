@@ -128,6 +128,10 @@ results <- as.data.frame(fit, include_raw = TRUE)
 write.csv(results, "ravel_results.csv", row.names = FALSE)
 saveRDS(fit, "ravel_fit.rds")
 
+# Parental midpoint and maternal/paternal deviations (bm + bf, bm - bf, bf - bm)
+print_simple(fit, parent_contrasts = TRUE)
+as.data.frame(fit, parent_contrasts = TRUE)
+
 # Full corrected covariance and uncertainty details
 fit$pi_correction
 attr(fit$pi_correction, "covariance")

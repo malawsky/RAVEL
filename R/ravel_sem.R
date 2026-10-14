@@ -2509,6 +2509,8 @@ ravel_fit <- function(dat,
         visible = visible_block,
         total_raw = total_raw_block,
         total_std = total_std_block,
+        total_std_draws = cbind(bD = boot_std_bD, bm = boot_std_bM, bf = boot_std_bF),
+        total_raw_draws = cbind(bD = boot_raw_bD, bm = boot_raw_bM, bf = boot_raw_bF),
         parental_sibs = if (length(sib_labels))
           .summarize_sample_matrix(boot_sib, ci_level = ci_level) else NULL,
         parental_sibs_total_std = if (length(sib_labels))
@@ -3028,6 +3030,71 @@ ravel_fit <- function(dat,
   )
 }
 
+#' Parental midpoint and deviation contrasts
+#'
+#' Writing b_M G_m + b_P G_p = (b_M + b_P) MP + (b_M - b_P) D with midpoint
+#' MP = (G_m + G_p)/2 and deviation D = (G_m - G_p)/2 gives the midpoint
+#' coefficient and the maternal (or paternal) deviation from it, matching the
+#' parental-sibling contrasts. They are linear in (b_M, b_P), so their
+#' uncertainty uses the joint covariance (or joint bootstrap draws) of the
+#' fit: the same estimates and Wald tests as refitting the reparameterized
+#' model, unlike a z test that ignores Cov(b_M, b_P).
+#' @noRd
+.ravel_parent_contrasts <- function(result, unc, scale = c("visible", "corrected_std", "corrected_raw")) {
+  scale <- match.arg(scale)
+  W <- rbind(beta_mid = c(1, 1), delta_M_mid = c(1, -1), delta_P_mid = c(-1, 1))
+  colnames(W) <- c("bm", "bf")
+  est_vec <- switch(scale, visible = result$beta_vis, corrected_std = result$beta_total_assumed_std,
+    corrected_raw = result$beta_total_assumed)
+  est <- drop(W %*% unname(est_vec[c("bm", "bf")]))
+  block <- if (is.null(unc)) NULL else unc[[c(visible = "visible", corrected_std = "total_std",
+    corrected_raw = "total_raw")[[scale]]]]
+  ci_level <- unc$ci_level %||% .95
+  z <- stats::qnorm(1 - (1 - ci_level) / 2)
+  se <- lo <- hi <- rep(NA_real_, nrow(W))
+  draws <- NULL
+  if (identical(unc$source, "bootstrap") && (scale == "visible" || is.null(unc$pi_correction))) {
+    draws <- switch(scale, visible = result$bootstrap$core_draws,
+      corrected_std = result$bootstrap$total_std_draws, corrected_raw = result$bootstrap$total_raw_draws)
+  }
+  if (!is.null(draws) && all(c("bm", "bf") %in% colnames(draws))) {
+    cd <- draws[stats::complete.cases(draws[, c("bm", "bf")]), c("bm", "bf"), drop = FALSE] %*% t(W)
+    se <- apply(cd, 2, stats::sd)
+    alpha <- 1 - ci_level
+    lo <- apply(cd, 2, stats::quantile, probs = alpha / 2, names = FALSE)
+    hi <- apply(cd, 2, stats::quantile, probs = 1 - alpha / 2, names = FALSE)
+  } else if (!is.null(block$cov) && all(c("bm", "bf") %in% rownames(block$cov))) {
+    C <- block$cov[c("bm", "bf"), c("bm", "bf")]
+    se <- sqrt(pmax(0, diag(W %*% C %*% t(W))))
+    lo <- est - z * se
+    hi <- est + z * se
+  }
+  data.frame(parameter = rownames(W), estimate = unname(est), se = unname(se),
+    ci_low = unname(lo), ci_high = unname(hi), p_value = .uncertainty_p(unname(est), unname(se)),
+    uncertainty_source = if (is.null(unc)) "none" else
+      .uncertainty_label(unc, if (scale == "visible") "visible" else "total_std"),
+    stringsAsFactors = FALSE, row.names = NULL)
+}
+
+#' Print parental midpoint and deviation contrasts
+#' @noRd
+.print_parent_contrasts <- function(result, unc, digits, scale = "visible") {
+  tab <- .ravel_parent_contrasts(result, unc, scale)
+  desc <- c(beta_mid = "parental midpoint (bm + bf)", delta_M_mid = "maternal deviation (bm - bf)",
+            delta_P_mid = "paternal deviation (bf - bm)")
+  cat(if (scale == "visible") "\nParental midpoint and deviations (visible scale):\n" else
+    "  Parental midpoint and deviations (standardized total liability):\n")
+  indent <- if (scale == "visible") "  " else "    "
+  for (i in seq_len(nrow(tab))) {
+    ci <- if (is.na(tab$se[i])) "" else
+      sprintf(" [%.*f, %.*f], p = %s", digits, tab$ci_low[i], digits, tab$ci_high[i],
+        format.pval(tab$p_value[i], digits = 3))
+    cat(sprintf("%s%-12s %.*f%s  %s\n", indent, tab$parameter[i], digits, tab$estimate[i], ci,
+      desc[[tab$parameter[i]]]))
+  }
+  invisible(NULL)
+}
+
 #' Convert a fitted RAVEL result to a tidy data frame
 #'
 #' @description
@@ -3067,6 +3134,12 @@ ravel_fit <- function(dat,
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
 #'   trio regression rows returned by \code{ravel_fit()}.
+#' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
+#'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+#'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+#'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+#'   covariance or bootstrap draws of the fit, so they match a test of the
+#'   reparameterized model.
 #'
 #' @return A tidy \code{data.frame} with columns \code{regression},
 #'   \code{family}, \code{outcome_variable}, \code{scale}, \code{parameter},
@@ -3077,7 +3150,8 @@ ravel_fit <- function(dat,
 ravel_to_dataframe <- function(result,
                                uncertainty = c("auto", "bootstrap", "lavaan", "none"),
                                include_raw = FALSE,
-                               include_vanilla = TRUE) {
+                               include_vanilla = TRUE,
+                               parent_contrasts = FALSE) {
   if (!isTRUE(result$converged)) {
     stop("Cannot convert a non-converged RAVEL fit to a parameter table.")
   }
@@ -3151,6 +3225,18 @@ ravel_to_dataframe <- function(result,
       .results_block_to_df(unc$total_raw, "corrected_raw", "cov_corrected", corrected_source_label, corrected_p_value_method),
       sib_rows("corrected_raw")
     )
+  }
+
+  if (isTRUE(parent_contrasts)) {
+    scales <- c("visible", if (result$h > 0) "corrected_std", if (isTRUE(include_raw)) "corrected_raw")
+    for (sc in scales) {
+      pc <- .ravel_parent_contrasts(result, unc, sc)
+      out <- rbind(out, data.frame(regression = "RAVEL", family = NA_character_, scale = sc,
+        parameter = pc$parameter, estimate = pc$estimate, se = pc$se, ci_low = pc$ci_low,
+        ci_high = pc$ci_high, p_value = pc$p_value, uncertainty_source = pc$uncertainty_source,
+        p_value_method = if (sc == "visible") p_value_method else corrected_p_value_method,
+        stringsAsFactors = FALSE))
+    }
   }
 
   gxe_corrected <- result$interactions$corrected
@@ -3232,6 +3318,12 @@ ravel_to_dataframe <- function(result,
 #'   corrected raw total-liability rows, including at \code{h = 0}.
 #' @param include_vanilla Logical. If \code{TRUE}, append the plain observed-PGS
 #'   trio regression rows returned by \code{ravel_fit()}.
+#' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
+#'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+#'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+#'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+#'   covariance or bootstrap draws of the fit, so they match a test of the
+#'   reparameterized model.
 #' @param ... Unused.
 #'
 #' @return A tidy \code{data.frame} of fitted coefficients and uncertainty.
@@ -3240,12 +3332,14 @@ ravel_to_dataframe <- function(result,
 #' @export
 as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
                                         uncertainty = c("auto", "bootstrap", "lavaan", "none"),
-                                        include_raw = FALSE, include_vanilla = TRUE, ...) {
+                                        include_raw = FALSE, include_vanilla = TRUE,
+                                        parent_contrasts = FALSE, ...) {
   out <- ravel_to_dataframe(
     result = x,
     uncertainty = uncertainty,
     include_raw = include_raw,
-    include_vanilla = include_vanilla
+    include_vanilla = include_vanilla,
+    parent_contrasts = parent_contrasts
   )
 
   if (!is.null(row.names)) {
@@ -3301,11 +3395,18 @@ as.data.frame.ravel_results <- function(x, row.names = NULL, optional = FALSE,
 #' @param digits Number of decimal places
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
 #'   \code{"lavaan"}, or \code{"none"}.
+#' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
+#'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+#'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+#'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+#'   covariance or bootstrap draws of the fit, so they match a test of the
+#'   reparameterized model.
 #'
 #' @export
 #' @importFrom stats reshape
 print_ravel_results <- function(result, gold = NULL, digits = 4,
-                                uncertainty = c("auto", "bootstrap", "lavaan", "none")) {
+                                uncertainty = c("auto", "bootstrap", "lavaan", "none"),
+                                parent_contrasts = FALSE) {
 
   if (is.data.frame(result)) {
     if (match.arg(uncertainty) != "auto")
@@ -3356,6 +3457,11 @@ print_ravel_results <- function(result, gold = NULL, digits = 4,
   cat("\n")
   .print_parental_sibs(result, unc, digits, compact = FALSE)
   .print_interactions(result, digits)
+  if (isTRUE(parent_contrasts)) {
+    .print_parent_contrasts(result, unc, digits)
+    if (result$h > 0) .print_parent_contrasts(result, unc, digits, "corrected_std")
+    cat("\n")
+  }
 
   if (result$h > 0 || (result$constraint_spec$mode %||% "none") != "none") {
     cat("Assumption-based post-estimation corrections:\n")
@@ -3582,10 +3688,17 @@ cat("Within-person Cor(PGS1,PGS2):\n")
 #' @param digits Integer. Number of decimal places.
 #' @param uncertainty Character. One of \code{"auto"}, \code{"bootstrap"},
 #'   \code{"lavaan"}, or \code{"none"}.
+#' @param parent_contrasts Logical. If \code{TRUE}, also report the parental
+#'   midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+#'   maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+#'   \code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+#'   covariance or bootstrap draws of the fit, so they match a test of the
+#'   reparameterized model.
 #'
 #' @export
 print_simple <- function(result, digits = 4,
-                         uncertainty = c("auto", "bootstrap", "lavaan", "none")) {
+                         uncertainty = c("auto", "bootstrap", "lavaan", "none"),
+                         parent_contrasts = FALSE) {
 
   if (is.data.frame(result)) {
     if (match.arg(uncertainty) != "auto")
@@ -3638,6 +3751,7 @@ print_simple <- function(result, digits = 4,
   cat(sprintf("  R2:      %s\n", fmt_est(result$R2_model)))
   .print_parental_sibs(result, unc, digits, compact = TRUE)
   .print_interactions(result, digits)
+  if (isTRUE(parent_contrasts)) .print_parent_contrasts(result, unc, digits)
 
   # Hidden-corrected
   if (has_h) {
@@ -3655,6 +3769,7 @@ print_simple <- function(result, digits = 4,
     cat(sprintf("    beta_F_std:  %s\n", fmt_ci(result$beta_total_assumed_std["bf"], .uncertainty_ci(unc, "total_std", "bf"))))
     if (!is.null(result$parental_sibs)) .print_parental_sibs(result, unc, digits, scale = "corrected_std")
     .print_interactions(result, digits, scale = "corrected_std")
+    if (isTRUE(parent_contrasts)) .print_parent_contrasts(result, unc, digits, "corrected_std")
     if (!is.null(result$R2_total_assumed) && !is.na(result$R2_total_assumed)) {
       cat(sprintf("  R2:      %s\n", fmt_est(result$R2_total_assumed)))
     }

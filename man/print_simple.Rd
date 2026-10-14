@@ -7,7 +7,8 @@
 print_simple(
   result,
   digits = 4,
-  uncertainty = c("auto", "bootstrap", "lavaan", "none")
+  uncertainty = c("auto", "bootstrap", "lavaan", "none"),
+  parent_contrasts = FALSE
 )
 }
 \arguments{
@@ -17,6 +18,13 @@ print_simple(
 
 \item{uncertainty}{Character. One of \code{"auto"}, \code{"bootstrap"},
 \code{"lavaan"}, or \code{"none"}.}
+
+\item{parent_contrasts}{Logical. If \code{TRUE}, also report the parental
+midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+\code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+covariance or bootstrap draws of the fit, so they match a test of the
+reparameterized model.}
 }
 \description{
 Prints a concise summary with point estimates plus either bootstrap

@@ -613,6 +613,38 @@ Corrected main effects in the same fits had 0.96 coverage.
 
 **Scope.** Interactions need a continuous outcome.
 
+## Parental midpoint and deviation contrasts
+
+`parent_contrasts = TRUE` in `print_simple()`, `print_ravel_results()` or
+`as.data.frame()` writes the two parental terms in terms of the parents'
+midpoint MP = (G_m + G_p)/2 and the maternal deviation D = (G_m - G_p)/2:
+
+```
+b_M G_m + b_P G_p = (b_M + b_P) MP + (b_M - b_P) D
+```
+
+This mirrors the parental-sibling contrasts. Three rows are reported:
+
+| Row | Value | Meaning |
+|---|---|---|
+| `beta_mid` | b_M + b_P | Coefficient on the parental midpoint |
+| `delta_M_mid` | b_M - b_P | Maternal deviation from the midpoint |
+| `delta_P_mid` | b_P - b_M | Paternal deviation from the midpoint |
+
+The deviation test is therefore the test of equal maternal and paternal
+coefficients. Unlike a sibling contrast, it is not a within-lineage contrast:
+G_m - G_p is not randomized by Mendelian segregation, so it compares the two
+parental coefficients rather than isolating a parent-specific causal
+component.
+
+The contrasts are linear in (b_M, b_P), so they use the joint covariance of the
+fit: lavaan (cluster-robust when `cluster` is set), the pi-aware corrected
+covariance, or joint bootstrap draws. This gives the same estimate and Wald test
+as fitting the reparameterized model, and agrees with a likelihood-ratio test of
+b_M = b_P. A z test built from separate SEs ignores Cov(b_M, b_P) and is
+miscalibrated. Contrasts are reported on the visible scale, on the corrected
+standardized scale when pi > 0, and on the raw scale with `include_raw = TRUE`.
+
 ## Covariate adjustment and binary outcomes
 
 Covariates can be included jointly via `fixed_effects`. The SEM allows genetic

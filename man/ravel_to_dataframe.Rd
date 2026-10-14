@@ -8,7 +8,8 @@ ravel_to_dataframe(
   result,
   uncertainty = c("auto", "bootstrap", "lavaan", "none"),
   include_raw = FALSE,
-  include_vanilla = TRUE
+  include_vanilla = TRUE,
+  parent_contrasts = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,13 @@ corrected raw total-liability rows.}
 
 \item{include_vanilla}{Logical. If \code{TRUE}, append the plain observed-PGS
 trio regression rows returned by \code{ravel_fit()}.}
+
+\item{parent_contrasts}{Logical. If \code{TRUE}, also report the parental
+midpoint coefficient \code{beta_mid} (bm + bf, on (G_m + G_p)/2) and the
+maternal and paternal deviations from it, \code{delta_M_mid} (bm - bf) and
+\code{delta_P_mid} (bf - bm), on each reported scale. They use the joint
+covariance or bootstrap draws of the fit, so they match a test of the
+reparameterized model.}
 }
 \value{
 A tidy \code{data.frame} with columns \code{regression},

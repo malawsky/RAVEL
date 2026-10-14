@@ -54,6 +54,16 @@ out_g3 <- ravel_dataframe_report(df, fit_constraints = "n_gen", h = .4,
 
 ## Reporting and exporting
 
+`parent_contrasts = TRUE` in `print_simple()`, `print_ravel_results()`,
+`as.data.frame()` and `ravel_to_dataframe()` adds three rows per scale:
+
+- `beta_mid` (bm + bf), the coefficient on the parental midpoint (G_m + G_p)/2;
+- `delta_M_mid` (bm - bf), the maternal deviation;
+- `delta_P_mid` (bf - bm), the paternal deviation.
+
+They use the fit's joint covariance or bootstrap draws (see
+[Methods](methods.md#parental-midpoint-and-deviation-contrasts)).
+
 All fitting modes use the existing fit, table, print, report and bootstrap
 interfaces. Fit summaries name the constraint and correction mode; estimated-state
 summaries also show growth and founder-scaled variances. Table conversion retains
