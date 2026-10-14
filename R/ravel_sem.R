@@ -2824,13 +2824,15 @@ ravel_fit <- function(dat,
     result$interactions$corrected <- .ravel_interaction_corrected(fit, estimates, interaction_spec,
       h, am_correction, am_n_generations, sib_roles, ci_level,
       pi_se = if (is.null(result$pi_correction)) NULL else pi_se, core_pi_cov = core_pi_cov,
-      sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL)
+      sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL,
+      fixed_labels = if (isTRUE(fix_parent_paths)) c("bm", "bf") else character(0))
     if (!is.null(boot_results$interaction_draws))
       result$interactions$bootstrap$corrected <- .ravel_interaction_corrected(fit, estimates, interaction_spec,
         h, am_correction, am_n_generations, sib_roles, ci_level,
         pi_se = if (is.null(result$pi_correction)) NULL else pi_se, core_pi_cov = core_pi_cov,
         sensitivity = if (exists("interaction_sensitivity", inherits = FALSE)) interaction_sensitivity else NULL,
-        draws = cbind(boot_results$core_draws, boot_results$interaction_draws))
+        draws = cbind(boot_results$core_draws, boot_results$interaction_draws),
+        fixed_labels = if (isTRUE(fix_parent_paths)) c("bm", "bf") else character(0))
     indep <- result$interactions$independence
     if (!is.null(indep) && any(indep$p_value < 1e-3))
       warning("An interaction covariate is correlated with a visible genetic factor (",

@@ -471,3 +471,39 @@ test_that("corrected interaction intervals are withdrawn when the external-pi co
   expect_true(all(is.na(df$ci_low[gx & df$scale == "corrected_std"])))
   expect_false(anyNA(df$se[gx & df$scale == "visible"]))
 })
+
+test_that("fixed parental paths enter corrected interaction SEs as constants", {
+  d <- gxe_data(N = 3000L, seed = 5L)
+  fit <- gxe_fit(d, pi = .4, fix_parent_paths = TRUE, interactions = "age", cluster = "FID")
+  V <- lavaan::vcov(fit$fit)
+  expect_false(any(c("bm", "bf") %in% rownames(V)))
+  std <- fit$interactions$corrected
+  std <- std[std$scale == "corrected_std", ]
+  expect_true(all(is.finite(std$se)))
+  expect_identical(std$uncertainty_source[1], "lavaan cluster-robust")
+  # Independent delta method over the free parameters only: the map depends on
+  # the interaction vector and the latent covariances, not on bm or bf.
+  g <- names(fit$interactions$theta)
+  free <- c("rhoMF", "eta_m", "eta_f", g)
+  s <- fit$interactions$scales[["age"]]
+  f <- function(v) unname(.compute_scale_estimates(setNames(v[g], c("bD", "bm", "bf")), v[["eta_m"]],
+    v[["eta_f"]], v[["rhoMF"]], .4, fit$am_correction, fit$am_n_generations)$beta_total_assumed_std) / s
+  v0 <- c(fit$latent_cov_vis[c("rhoMF", "eta_m", "eta_f")], fit$interactions$theta[g])
+  J <- sapply(seq_along(v0), function(i) {
+    h <- 1e-6 * max(1, abs(v0[[i]])); up <- dn <- v0
+    up[i] <- up[i] + h; dn[i] <- dn[i] - h
+    (f(up) - f(dn)) / (2 * h)
+  })
+  expect_equal(std$estimate, f(v0), tolerance = 1e-10)
+  expect_equal(std$se, sqrt(diag(J %*% V[free, free] %*% t(J))), tolerance = 1e-5)
+  # External pi uncertainty and the finite-generation refit sensitivity still apply.
+  for (extra in list(list(), list(fit_constraints = "n_gen", am_n_generations = 2L))) {
+    base <- do.call(gxe_fit, c(list(d, pi = .4, fix_parent_paths = TRUE, interactions = "age", cluster = "FID"), extra))
+    withpi <- do.call(gxe_fit, c(list(d, pi = .4, pi_se = .05, fix_parent_paths = TRUE, interactions = "age",
+      cluster = "FID"), extra))
+    b <- base$interactions$corrected; w <- withpi$interactions$corrected
+    expect_true(all(is.finite(w$se)))
+    expect_true(all(w$se >= b$se - 1e-12))
+    expect_match(w$uncertainty_source[1], "pi \\(delta-Wald\\)")
+  }
+})

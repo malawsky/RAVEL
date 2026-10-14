@@ -292,10 +292,13 @@
 #' External pi must be independent of the whole SEM estimator: core_pi_cov
 #' covers only the core estimates, and the interaction/pi covariance is not an
 #' input, so correlated-pi interaction inference is reported as unavailable.
+#' \code{fixed_labels} names core parameters the model fixes (bm and bf with
+#' \code{fix_parent_paths}); they enter as constants with zero variance.
 #' @noRd
 .ravel_interaction_corrected <- function(fit, estimates, spec, h, am_correction, am_n_generations,
                                          sib_roles, ci_level, pi_se = NULL, core_pi_cov = NULL,
-                                         sensitivity = NULL, draws = NULL) {
+                                         sensitivity = NULL, draws = NULL,
+                                         fixed_labels = character(0)) {
   if (is.null(spec)) return(NULL)
   core_labels <- c(.report_core_labels, .sib_core_labels(sib_roles))
   core <- c(bD = unname(estimates$beta_vis["bD"]), bm = unname(estimates$beta_vis["bm"]),
@@ -355,8 +358,14 @@
     # draws, an unsupported cross-covariance, or an invalid joint matrix gives NA.
     Vsrc <- if (correlated_pi) NULL else if (!is.null(draws)) {
       if (!is.null(dj) && nrow(dj) > 1L) stats::cov(dj) else NULL
-    } else if (!is.null(V_full) && all(x_labels %in% rownames(V_full))) {
-      V_full[x_labels, x_labels, drop = FALSE]
+    } else if (!is.null(V_full) &&
+               all(setdiff(x_labels, rownames(V_full)) %in% fixed_labels)) {
+      # Core parameters fixed by the model (bm = bf = 0 with fix_parent_paths)
+      # are constants with zero sampling variance; only they may be absent.
+      free_x <- intersect(x_labels, rownames(V_full))
+      Vs <- matrix(0, length(x_labels), length(x_labels), dimnames = list(x_labels, x_labels))
+      Vs[free_x, free_x] <- V_full[free_x, free_x, drop = FALSE]
+      Vs
     } else NULL
     if (!is.null(dj)) n_draws <<- nrow(dj)
     if (!is.null(Vsrc) && !with_pi && !is.null(dj)) {
@@ -380,8 +389,11 @@
                      error = function(e) NULL)
       if (!is.null(J) && all(is.finite(J)) && !is.null(Vx)) {
         colnames(J) <- names(x)
-        if (with_pi && !is.null(sensitivity))
-          J[, "pi"] <- J[, "pi"] + drop(J[, x_labels, drop = FALSE] %*% sensitivity[x_labels])
+        if (with_pi && !is.null(sensitivity)) {
+          s <- setNames(sensitivity[x_labels], x_labels)
+          s[intersect(fixed_labels, x_labels)] <- 0  # constants do not respond to pi
+          J[, "pi"] <- J[, "pi"] + drop(J[, x_labels, drop = FALSE] %*% s)
+        }
         cov <- J %*% Vx %*% t(J)
         d <- diag((cov + t(cov)) / 2)
         if (all(is.finite(d)) && all(d >= -1e-12)) se <- sqrt(pmax(0, d)) else status <<- "invalid"

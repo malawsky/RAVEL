@@ -11,6 +11,8 @@
 - Corrected interaction SEs validate the full joint covariance. They are
   reported as unavailable, instead of zero-filled or clamped, when
   `core_pi_cov` is nonzero or the SEM covariance is missing or invalid.
+  Parental paths fixed by `fix_parent_paths = TRUE` enter as constants with
+  zero variance, so these SEs remain available in that model.
 - With `cluster`, an explicit `cluster_var` must name a column that equals or
   nests the cluster; the bootstrap never silently falls back to row resampling.
 - Interaction rows honour the selected uncertainty (`none`, `lavaan`,
