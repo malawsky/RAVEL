@@ -1,0 +1,7 @@
+Warning message:
+package 'testthat' was built under R version 4.4.3
+Fitting Y|state|main|0.4
+Fitting Y|state|main|0.4
+Fitting Y|state|grid|0.3
+Fitting Y|state|grid|0.5
+Family analysis wrapper: eight trio-assisted models, child-free FIML, pi-grid refits, duplicate-adult and duplicate-model guards passed.

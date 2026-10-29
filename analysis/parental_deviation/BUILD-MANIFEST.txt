@@ -1,0 +1,7 @@
+RAVEL 0.2.0.9001 family-regression analysis bundle
+Built and checked 2026-10-29
+Base commit: 09383e85d1fe378d5f142310a007a378f410c371
+Local branch: codex/family-outcome-subsets
+SHA256 RAVEL_0.2.0.9001.tar.gz: 3caf92fdf8d986bcf9d4e2b8cd6ac1604ceec16c75f8de88d58b75aae4356fa8
+All example observations are synthetic.
+See README.md for installation and usage; package-validation.md and validation-report.md for checks.

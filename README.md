@@ -262,6 +262,36 @@ sibling effect on the child and no remaining parent-specific confounding.
 Tables, plots, bootstrap and pi uncertainty include sibling effects and
 contrasts. [Sibling assumptions and missing-data handling](docs/methods.md#parental-siblings).
 
+## Adult outcomes and selected family regressions
+
+Use `genetic_roles` to choose the members whose scores identify the joint model,
+and `outcome_roles` to choose the predictors in the reported regression. For
+example, retain the child's scores for identification while analysing maternal
+height on the four adult liabilities:
+
+```r
+fit_adults <- ravel_family_fit(dat,
+  genetic_roles = c("child", "mother", "father", "mat_sib", "pat_sib"),
+  outcome_roles = c("mother", "mat_sib", "father", "pat_sib"),
+  col_outcome = "mom_height", pi = .4, fit_constraints = "estimated_state")
+fit_adults$regression$table
+
+# A different regression using the same fitted genetic model:
+ravel_family_regression(fit_adults, c("mother", "mat_sib"))
+```
+
+These are reduced regressions derived from the corrected joint moments, so
+omitted liabilities are marginalized rather than held fixed. The child needs no
+phenotype and is not an outcome predictor unless selected. Existing `ravel_fit()`
+calls retain their previous meaning and output.
+
+Child-free full-sibling pairs and partners with either or both siblings are also
+supported. Partners alone need a history assumption or an externally supplied
+state. See [identification and correction assumptions](docs/family-models.md) and
+the [analysis companion](analysis/parental_deviation/README.md), which enumerates
+all eight maternal regressions, runs pi sensitivity analyses and records sample
+counts and failures.
+
 ## Optional: interactions and growth
 
 For a continuous outcome, `interactions` estimates how genetic coefficients

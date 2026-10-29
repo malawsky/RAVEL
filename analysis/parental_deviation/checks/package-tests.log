@@ -1,0 +1,221 @@
+
+R version 4.4.1 (2024-06-14) -- "Race for Your Life"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+Warning message:
+package 'testthat' was built under R version 4.4.3
+> library(RAVEL)
+>
+> # Match the existing development runner before tests call lavaan directly.
+> # Restricted hosts can report NA from detectCores(), poisoning lavaan's cached
+> # default options if its first initialization precedes ravel_fit().
+> RAVEL:::.ensure_lavaan_runtime()
+>
+> test_check("RAVEL")
+2026-10-29 13:55:52.951 R[48295:513343] XType: Using static font registry.
+  residual_model status converged admissible error
+1          fixed     ok      TRUE       TRUE
+2           free     ok      TRUE       TRUE
+   outcome_variable regression           scale         outcome_scale
+1                 Y      RAVEL         visible prepared_phenotype_SD
+2                 Y      RAVEL         visible prepared_phenotype_SD
+3                 Y      RAVEL         visible prepared_phenotype_SD
+4                 Y      RAVEL         visible prepared_phenotype_SD
+5                 Y      RAVEL         visible prepared_phenotype_SD
+6                 Y      RAVEL         visible prepared_phenotype_SD
+7                 Y      RAVEL         visible prepared_phenotype_SD
+8                 Y      RAVEL         visible prepared_phenotype_SD
+9                 Y       PGS1 own_role_PGS_SD prepared_phenotype_SD
+10                Y       PGS1 own_role_PGS_SD prepared_phenotype_SD
+11                Y       PGS1 own_role_PGS_SD prepared_phenotype_SD
+12                Y       PGS2 own_role_PGS_SD prepared_phenotype_SD
+13                Y       PGS2 own_role_PGS_SD prepared_phenotype_SD
+14                Y       PGS2 own_role_PGS_SD prepared_phenotype_SD
+     parameter    estimate         se       ci_low    ci_high      p_value    N
+1       beta_D  0.29602280 0.03121410  0.234844281 0.35720132 2.456034e-21 4000
+2       beta_M  0.12025168 0.02735205  0.066642643 0.17386071 1.100402e-05 4000
+3       beta_P  0.02516307 0.02518139 -0.024191554 0.07451769 3.176628e-01 4000
+4  rho_visible  0.25996161 0.02588209  0.209233645 0.31068957 9.755975e-24 4000
+5       beta_D  0.29559489 0.03123972  0.234366159 0.35682362 3.016791e-21 4000
+6       beta_M  0.11379740 0.02825187  0.058424749 0.16917006 5.626302e-05 4000
+7       beta_P  0.03157581 0.02563884 -0.018675396 0.08182701 2.181130e-01 4000
+8  rho_visible  0.26571978 0.02964903  0.207608752 0.32383081 3.183367e-19 4000
+9       beta_D  0.16538920 0.02040836  0.125377402 0.20540099 7.006740e-16 4000
+10      beta_M  0.05525076 0.01745314  0.021032851 0.08946867 1.558960e-03 4000
+11      beta_P  0.01869083 0.01741481 -0.015451937 0.05283359 2.832140e-01 4000
+12      beta_D  0.11978401 0.02041345  0.079762225 0.15980579 4.772516e-09 4000
+13      beta_M  0.03827558 0.01732600  0.004306928 0.07224424 2.722150e-02 4000
+14      beta_P -0.01498947 0.01765359 -0.049600387 0.01962144 3.958827e-01 4000
+           inference residual_model fit_status
+1  lavaan_delta_wald          fixed         ok
+2  lavaan_delta_wald          fixed         ok
+3  lavaan_delta_wald          fixed         ok
+4  lavaan_delta_wald          fixed         ok
+5  lavaan_delta_wald           free         ok
+6  lavaan_delta_wald           free         ok
+7  lavaan_delta_wald           free         ok
+8  lavaan_delta_wald           free         ok
+9               lm_t not_applicable         ok
+10              lm_t not_applicable         ok
+11              lm_t not_applicable         ok
+12              lm_t not_applicable         ok
+13              lm_t not_applicable         ok
+14              lm_t not_applicable         ok
+   outcome_variable regression residual_model         scale
+1                 Y      RAVEL          fixed corrected_std
+2                 Y      RAVEL          fixed corrected_std
+3                 Y      RAVEL          fixed corrected_std
+4                 Y      RAVEL          fixed corrected_std
+5                 Y      RAVEL          fixed corrected_raw
+6                 Y      RAVEL          fixed corrected_raw
+7                 Y      RAVEL          fixed corrected_raw
+8                 Y      RAVEL          fixed corrected_raw
+9                 Y      RAVEL           free corrected_std
+10                Y      RAVEL           free corrected_std
+11                Y      RAVEL           free corrected_std
+12                Y      RAVEL           free corrected_std
+13                Y      RAVEL           free corrected_raw
+14                Y      RAVEL           free corrected_raw
+15                Y      RAVEL           free corrected_raw
+16                Y      RAVEL           free corrected_raw
+           outcome_scale     parameter    estimate         se      ci_low
+1  prepared_phenotype_SD        beta_D  0.39676328 0.04197691  0.31449005
+2  prepared_phenotype_SD        beta_M  0.14093766 0.03914054  0.06422361
+3  prepared_phenotype_SD        beta_P -0.01965675 0.03733298 -0.09282805
+4  prepared_phenotype_SD rho_corrected  0.43326934 0.04313681  0.34872274
+5  prepared_phenotype_SD        beta_D  0.35951251 0.03785273  0.28532252
+6  prepared_phenotype_SD        beta_M  0.14093766 0.03914054  0.06422361
+7  prepared_phenotype_SD        beta_P -0.01965675 0.03733298 -0.09282805
+8  prepared_phenotype_SD cov_corrected  0.43326934 0.04313681  0.34872274
+9  prepared_phenotype_SD        beta_D  0.39635943 0.04200425  0.31403261
+10 prepared_phenotype_SD        beta_M  0.13209797 0.04047082  0.05277662
+11 prepared_phenotype_SD        beta_P -0.01164858 0.03852197 -0.08715025
+12 prepared_phenotype_SD rho_corrected  0.44286630 0.04941505  0.34601459
+13 prepared_phenotype_SD        beta_D  0.35853635 0.03788602  0.28428111
+14 prepared_phenotype_SD        beta_M  0.13209797 0.04047082  0.05277662
+15 prepared_phenotype_SD        beta_P -0.01164858 0.03852197 -0.08715025
+16 prepared_phenotype_SD cov_corrected  0.44286630 0.04941505  0.34601459
+      ci_high      p_value    N         inference scenario_id hidden_fraction
+1  0.47903651 3.326043e-21 4000 lavaan_delta_wald           1             0.4
+2  0.21765171 3.172271e-04 4000 lavaan_delta_wald           1             0.4
+3  0.05351454 5.985233e-01 4000 lavaan_delta_wald           1             0.4
+4  0.51781594 9.755975e-24 4000 lavaan_delta_wald           1             0.4
+5  0.43370249 2.146511e-21 4000 lavaan_delta_wald           1             0.4
+6  0.21765171 3.172271e-04 4000 lavaan_delta_wald           1             0.4
+7  0.05351454 5.985233e-01 4000 lavaan_delta_wald           1             0.4
+8  0.51781594 9.755975e-24 4000 lavaan_delta_wald           1             0.4
+9  0.47868625 3.866401e-21 4000 lavaan_delta_wald           1             0.4
+10 0.21141932 1.098396e-03 4000 lavaan_delta_wald           1             0.4
+11 0.06385310 7.623564e-01 4000 lavaan_delta_wald           1             0.4
+12 0.53971802 3.183367e-19 4000 lavaan_delta_wald           1             0.4
+13 0.43279159 2.976573e-21 4000 lavaan_delta_wald           1             0.4
+14 0.21141932 1.098396e-03 4000 lavaan_delta_wald           1             0.4
+15 0.06385310 7.623564e-01 4000 lavaan_delta_wald           1             0.4
+16 0.53971802 3.183367e-19 4000 lavaan_delta_wald           1             0.4
+   n_generations am_correction ci_level n_boot_success uncertainty_status
+1              1         n_gen     0.95             NA                 ok
+2              1         n_gen     0.95             NA                 ok
+3              1         n_gen     0.95             NA                 ok
+4              1         n_gen     0.95             NA                 ok
+5              1         n_gen     0.95             NA                 ok
+6              1         n_gen     0.95             NA                 ok
+7              1         n_gen     0.95             NA                 ok
+8              1         n_gen     0.95             NA                 ok
+9              1         n_gen     0.95             NA                 ok
+10             1         n_gen     0.95             NA                 ok
+11             1         n_gen     0.95             NA                 ok
+12             1         n_gen     0.95             NA                 ok
+13             1         n_gen     0.95             NA                 ok
+14             1         n_gen     0.95             NA                 ok
+15             1         n_gen     0.95             NA                 ok
+16             1         n_gen     0.95             NA                 ok
+   fit_status correction_status error warning
+1          ok                ok
+2          ok                ok
+3          ok                ok
+4          ok                ok
+5          ok                ok
+6          ok                ok
+7          ok                ok
+8          ok                ok
+9          ok                ok
+10         ok                ok
+11         ok                ok
+12         ok                ok
+13         ok                ok
+14         ok                ok
+15         ok                ok
+16         ok                ok
+  residual_model status converged admissible error
+1          fixed     ok      TRUE       TRUE
+2           free     ok      TRUE       TRUE
+   outcome_variable regression           scale        outcome_scale   parameter
+1          Y_binary      RAVEL         visible SEM_probit_liability      beta_D
+2          Y_binary      RAVEL         visible SEM_probit_liability      beta_M
+3          Y_binary      RAVEL         visible SEM_probit_liability      beta_P
+4          Y_binary      RAVEL         visible SEM_probit_liability rho_visible
+5          Y_binary      RAVEL         visible SEM_probit_liability      beta_D
+6          Y_binary      RAVEL         visible SEM_probit_liability      beta_M
+7          Y_binary      RAVEL         visible SEM_probit_liability      beta_P
+8          Y_binary      RAVEL         visible SEM_probit_liability rho_visible
+9          Y_binary       PGS1 own_role_PGS_SD   probit_residual_SD      beta_D
+10         Y_binary       PGS1 own_role_PGS_SD   probit_residual_SD      beta_M
+11         Y_binary       PGS1 own_role_PGS_SD   probit_residual_SD      beta_P
+12         Y_binary       PGS2 own_role_PGS_SD   probit_residual_SD      beta_D
+13         Y_binary       PGS2 own_role_PGS_SD   probit_residual_SD      beta_M
+14         Y_binary       PGS2 own_role_PGS_SD   probit_residual_SD      beta_P
+       estimate         se      ci_low     ci_high      p_value    N
+1   0.350895232 0.05707311  0.23903399 0.462756472 7.838157e-10 4000
+2   0.126495240 0.04712063  0.03414051 0.218849975 7.263878e-03 4000
+3  -0.026554243 0.04485765 -0.11447363 0.061365143 5.538728e-01 4000
+4   0.260373619 0.02624592  0.20893255 0.311814682 3.389317e-23 4000
+5   0.346620000 0.05637454  0.23612793 0.457112068 7.820914e-10 4000
+6   0.124343827 0.04829107  0.02969507 0.218992588 1.002742e-02 4000
+7  -0.021213580 0.04402078 -0.10749273 0.065065568 6.298776e-01 4000
+8   0.267357567 0.02981511  0.20892103 0.325794103 3.041902e-19 4000
+9   0.198675548 0.04349695  0.11342308 0.283928012 4.934020e-06 4000
+10  0.091919829 0.03752308  0.01837594 0.165463716 1.429802e-02 4000
+11  0.004112105 0.03683398 -0.06808117 0.076305376 9.111097e-01 4000
+12  0.208912251 0.04275144  0.12512097 0.292703532 1.025548e-06 4000
+13  0.012156108 0.03647529 -0.05933415 0.083646368 7.389308e-01 4000
+14 -0.067112115 0.03673046 -0.13910250 0.004878268 6.767701e-02 4000
+           inference residual_model fit_status
+1  lavaan_delta_wald          fixed         ok
+2  lavaan_delta_wald          fixed         ok
+3  lavaan_delta_wald          fixed         ok
+4  lavaan_delta_wald          fixed         ok
+5  lavaan_delta_wald           free         ok
+6  lavaan_delta_wald           free         ok
+7  lavaan_delta_wald           free         ok
+8  lavaan_delta_wald           free         ok
+9    glm_probit_wald not_applicable         ok
+10   glm_probit_wald not_applicable         ok
+11   glm_probit_wald not_applicable         ok
+12   glm_probit_wald not_applicable         ok
+13   glm_probit_wald not_applicable         ok
+14   glm_probit_wald not_applicable         ok
+[ FAIL 0 | WARN 0 | SKIP 4 | PASS 4287 ]
+
+== Skipped tests (4) ===========================================================
+* On CRAN (4): 'test-interaction-r2.R:33:3', 'test-interaction-r2.R:69:3',
+  'test-interaction-r2.R:87:3', 'test-parental-sibs.R:309:3'
+
+[ FAIL 0 | WARN 0 | SKIP 4 | PASS 4287 ]
+>
+> proc.time()
+    user   system  elapsed
+ 992.975   15.496 1016.536

@@ -2489,6 +2489,11 @@ ravel_fit <- function(dat,
     boot_std_bD <- boot_std_bM <- boot_std_bF <- rep(NA_real_, n_boot)
     core_cols <- c("bD", "bm", "bf", "rhoMF", "eta_m", "eta_f", .sib_core_labels(sib_roles))
     boot_core <- matrix(NA_real_, n_boot, length(core_cols), dimnames = list(NULL, core_cols))
+    # Reduced family regressions also depend on fitted covariate/product moments.
+    # Retain their joint draws without changing the established core summaries.
+    parameter_cols <- make.unique(names(lavaan::coef(fit)))
+    boot_parameter <- matrix(NA_real_, n_boot, length(parameter_cols),
+      dimnames = list(NULL, parameter_cols))
     sib_labels <- names(.parental_sib_coef_map(sib_roles))
     boot_sib <- boot_sib_std <- boot_sib_raw <-
       matrix(NA_real_, n_boot, length(sib_labels), dimnames = list(NULL, sib_labels))
@@ -2513,6 +2518,10 @@ ravel_fit <- function(dat,
 
       ext_b <- tryCatch(.extract(fit_b, data_for_r2 = dat_b), error = function(e) NULL)
       if (is.null(ext_b)) next
+      parameter_b <- lavaan::coef(fit_b)
+      names(parameter_b) <- make.unique(names(parameter_b))
+      if (setequal(names(parameter_b), parameter_cols))
+        boot_parameter[b, ] <- parameter_b[parameter_cols]
       if (!is.null(boot_gxe)) boot_gxe[b, ] <- tryCatch(
         .ravel_interaction_theta(fit_b, interaction_spec)[gxe_labels],
         error = function(e) NA_real_)
@@ -2575,6 +2584,7 @@ ravel_fit <- function(dat,
         source = "bootstrap",
         n_successful = n_ok,
         core_draws = boot_core,
+        parameter_draws = boot_parameter,
         interaction_draws = boot_gxe,
         minimum_success = max(10L, ceiling(.8 * n_boot)),
         ci_level = ci_level,

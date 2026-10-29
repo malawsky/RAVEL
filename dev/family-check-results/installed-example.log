@@ -1,0 +1,55 @@
+Fitting mom_height|estimated_state|main|0.4
+                    regression parameter    estimate        se      ci_low
+                        mother    mother  3.82759745 0.2359067  3.36522879
+                 mother+father    mother  3.57320381 0.2559903  3.07147212
+                 mother+father    father  0.82521683 0.2417625  0.35137097
+                mother+mat_sib    mother  3.49065581 0.2769374  2.94786842
+                mother+mat_sib   mat_sib  0.60745979 0.2587696  0.10028073
+                mother+mat_sib   delta_m  2.88319603 0.4676286  1.96666080
+         mother+father+mat_sib    mother  3.24821245 0.2926694  2.67459106
+         mother+father+mat_sib    father  0.81609069 0.2422668  0.34125657
+         mother+father+mat_sib   mat_sib  0.59098718 0.2583689  0.08459336
+         mother+father+mat_sib   delta_m  2.65722527 0.4748332  1.72656922
+                mother+pat_sib    mother  3.76148663 0.2456541  3.28001339
+                mother+pat_sib   pat_sib  0.35742049 0.2316555 -0.09661596
+         mother+father+pat_sib    mother  3.57466474 0.2564343  3.07206271
+         mother+father+pat_sib    father  0.87724207 0.2719276  0.34427375
+         mother+father+pat_sib   pat_sib -0.09460636 0.2573912 -0.59908387
+         mother+father+pat_sib   delta_f  0.97184843 0.4525070  0.08495110
+        mother+mat_sib+pat_sib    mother  3.43399070 0.2830066  2.87930797
+        mother+mat_sib+pat_sib   mat_sib  0.59543071 0.2590867  0.08763011
+        mother+mat_sib+pat_sib   pat_sib  0.34242594 0.2324668 -0.11320053
+        mother+mat_sib+pat_sib   delta_m  2.83855998 0.4688294  1.91967130
+ mother+father+mat_sib+pat_sib    mother  3.24845460 0.2928101  2.67455743
+ mother+father+mat_sib+pat_sib    father  0.87592180 0.2717972  0.34320905
+ mother+father+mat_sib+pat_sib   mat_sib  0.59360416 0.2585951  0.08676702
+ mother+father+mat_sib+pat_sib   pat_sib -0.10887459 0.2573353 -0.61324254
+ mother+father+mat_sib+pat_sib   delta_m  2.65485045 0.4748211  1.72421818
+ mother+father+mat_sib+pat_sib   delta_f  0.98479639 0.4517053  0.09947032
+   ci_high inference_status
+ 4.2899661               ok
+ 4.0749355               ok
+ 1.2990627               ok
+ 4.0334432               ok
+ 1.1146388               ok
+ 3.7997313               ok
+ 3.8218338               ok
+ 1.2909248               ok
+ 1.0973810               ok
+ 3.5878813               ok
+ 4.2429599               ok
+ 0.8114569               ok
+ 4.0772668               ok
+ 1.4102104               ok
+ 0.4098712               ok
+ 1.8587458               ok
+ 3.9886734               ok
+ 1.1032313               ok
+ 0.7980524               ok
+ 3.7574487               ok
+ 3.8223518               ok
+ 1.4086346               ok
+ 1.1004413               ok
+ 0.3954934               ok
+ 3.5854827               ok
+ 1.8701225               ok

@@ -20,6 +20,7 @@ Thumbs.db
 
 # Documentation builds
 docs/*
+!docs/family-models.md
 !docs/methods.md
 !docs/reference.md
 !docs/figures/
