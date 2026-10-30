@@ -33,6 +33,8 @@ vignettes/*.pdf
 
 # Test artifacts
 tests/testthat/_snaps/
+/dev/one-factor-check/*.rds
+/dev/sem-audit-check/*.rds
 
 # Local validation and private working documents
 /audit/

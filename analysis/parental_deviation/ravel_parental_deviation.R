@@ -35,9 +35,12 @@
 ##
 ##   For each model it also runs RAVEL's one-factor test on the main fit: do
 ##   the PGS1 and PGS2 associations with the outcome agree with one shared
-##   genetic factor? (chi-square, 3 df; a small p-value is evidence against
-##   one factor.) It concerns the visible fit, so it is not repeated over the
-##   grid. It needs a cross-sectional continuous outcome without covariates.
+##   genetic factor? (3 df for a trio, plus 1 per parental sibling; a small
+##   p-value is evidence against one factor.) It concerns the full visible
+##   fit, so it is not repeated over the grid. It needs complete, independent,
+##   cross-sectional continuous observations, no covariates, and an identified
+##   score-only model. A fully free residual model is not supported. The status
+##   and reason are reported even when no valid test is available.
 ##
 ## What you need
 ##   Two polygenic scores (PGS1, PGS2) built from independent GWASs of the same
@@ -64,6 +67,7 @@
 ravel_is_current <- function() {
   requireNamespace("RAVEL", quietly = TRUE) &&
     all(c("ravel_family_fit", "ravel_family_regression") %in% getNamespaceExports("RAVEL")) &&
+    "ravel_test_score_signal" %in% getNamespaceExports("RAVEL") &&
     all(c("pi", "pi_se", "fit_constraints", "interactions", "cluster") %in%
         names(formals(RAVEL::ravel_fit))) &&
     "parent_contrasts" %in% names(formals(RAVEL::print_simple))
@@ -90,6 +94,7 @@ library(RAVEL)
 
 ## ---- SETTINGS: edit these ---------------------------------------------------
 
+if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
 data_file <- NULL                 # .csv, .tsv/.txt or .rds, e.g. "my_trios.rds"; NULL = bundled example
 design    <- "cross_sectional"    # "cross_sectional" or "longitudinal"
 
@@ -145,6 +150,7 @@ include_raw <- FALSE              # TRUE also reports corrected effects on the f
 output_csv  <- "ravel_parental_deviation.csv"   # one file per outcome, named
                                   # ravel_parental_deviation_<outcome>.csv, plus an
                                   # Excel copy ravel_parental_deviation_<outcome>_excel.csv
+}
 
 ## ---- ANALYSIS FUNCTION (no need to edit) ------------------------------------
 
@@ -323,6 +329,7 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   }
 
   # RAVEL's one-factor (score-signal) test on a fitted model, as one table row.
+  diagnostic <- list(status = "needs_fit", reason = "No successful main fit.")
   one_factor_row <- function(fit) {
     why <- if (long) "not available for the longitudinal design (repeated rows)" else
       if (binary_outcome) "not available for a binary outcome" else
@@ -330,8 +337,18 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
       if (n_multi > 0L) "not available: some families have more than one row (needs one independent trio per row)" else
       if (length(sib_used) && any(!stats::complete.cases(dat[sib_used])))
         "not available: some families lack sibling scores (the test needs every family's scores)" else NULL
-    z <- if (is.null(why)) tryCatch(suppressWarnings(ravel_test_score_signal(fit)), error = function(e) e)
+    captured_warnings <- character()
+    z <- if (is.null(why)) tryCatch(withCallingHandlers(ravel_test_score_signal(fit),
+      warning = function(w) {
+        captured_warnings <<- c(captured_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }), error = function(e) e) else list(status = if (long || n_multi > 0L) "unsupported_design" else
+        if (binary_outcome) "unsupported_outcome" else if (length(covariates)) "unsupported_covariates" else
+          "unsupported_missingness", reason = why, N = nrow(dat))
     if (is.null(why) && inherits(z, "error")) why <- paste("failed:", conditionMessage(z))
+    if (inherits(z, "error")) z <- list(status = "error", reason = conditionMessage(z), N = nrow(dat))
+    z$workflow_warnings <- unique(captured_warnings)
+    diagnostic <<- z
     if (is.null(why) && !identical(z$status, "ok")) why <- paste0("not available (", z$status, "): ", z$reason)
     note <- if (!is.null(why)) why else
       if (fit_constraints == "n_gen") paste("conditional on pi =", pi, "used in fitting") else ""
@@ -339,7 +356,9 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
       effect = if (is.null(why)) paste0("One-factor test: chi-square (", z$df, " df)") else "One-factor test",
       parameter = "one_factor_test", estimate = if (is.null(why)) z$statistic else NA_real_,
       se = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
-      p_value = if (is.null(why)) z$p_value else NA_real_, note = note, stringsAsFactors = FALSE)
+      p_value = if (is.null(why)) z$p_value else NA_real_, note = note,
+      diagnostic_status = z$status, diagnostic_df = if (is.null(z$df)) NA_real_ else z$df,
+      diagnostic_N = if (is.null(z$N)) nrow(dat) else z$N, stringsAsFactors = FALSE)
   }
 
   # One RAVEL fit at a given pi; returns the fit, its rows and any warnings.
@@ -373,18 +392,25 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   fail_row <- function(analysis, p, p_se, note)
     data.frame(model = model, analysis = analysis, pi = p, pi_se = if (is.null(p_se)) NA_real_ else p_se,
       effect = NA_character_, parameter = NA_character_, estimate = NA_real_, se = NA_real_,
-      ci_low = NA_real_, ci_high = NA_real_, p_value = NA_real_, note = note, stringsAsFactors = FALSE)
+      ci_low = NA_real_, ci_high = NA_real_, p_value = NA_real_, note = note,
+      diagnostic_status = NA_character_, diagnostic_df = NA_real_, diagnostic_N = NA_real_,
+      stringsAsFactors = FALSE)
   label_rows <- function(rows, analysis, p, p_se, note, model_label = model) {
     if (is.null(rows) || !nrow(rows)) return(NULL)
     data.frame(model = model_label, analysis = analysis, pi = p, pi_se = if (is.null(p_se)) NA_real_ else p_se,
       effect = label_for(rows$parameter), parameter = rows$parameter,
       estimate = rows$estimate, se = rows$se, ci_low = rows$ci_low, ci_high = rows$ci_high,
-      p_value = rows$p_value, note = note, stringsAsFactors = FALSE, row.names = NULL)
+      p_value = rows$p_value, note = note,
+      diagnostic_status = NA_character_, diagnostic_df = NA_real_, diagnostic_N = NA_real_,
+      stringsAsFactors = FALSE, row.names = NULL)
   }
 
   message(who, ": fitting at pi = ", pi, " ...")
   main <- fit_at(pi, pi_se)
+  fit_records <- list(main = list(kind = "main", pi = pi, pi_se = pi_se,
+    fit = main$fit, note = main$note))
   if (is.null(main$rows)) {
+    diagnostic <- list(status = "needs_fit", reason = main$note, N = nrow(dat))
     message(who, ": ", main$note)
     results <- list(fail_row("Visible (measured by the PGSs)", NA_real_, NULL, main$note),
                     fail_row("Corrected for pi", pi, pi_se, main$note))
@@ -402,6 +428,8 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   for (p in pi_grid) {
     message(who, ": fitting at grid pi = ", p, " ...")
     g <- fit_at(p, grid_pi_se)
+    fit_records[[length(fit_records) + 1L]] <- list(kind = "grid", pi = p,
+      pi_se = grid_pi_se, fit = g$fit, note = g$note)
     if (is.null(g$rows)) message(who, ": ", g$note)
     results[[length(results) + 1L]] <- if (is.null(g$rows)) fail_row("Grid", p, grid_pi_se, g$note) else rbind(label_rows(pick(g$rows, "corrected_std"), "Grid", p, grid_pi_se, g$note),
         if (include_raw) label_rows(pick(g$rows, "corrected_raw"), "Grid (founder scale)", p, grid_pi_se, g$note))
@@ -415,7 +443,11 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   table <- do.call(rbind, results)
   table <- cbind(siblings = sib_label, table, stringsAsFactors = FALSE)
   attr(table, "fit") <- main$fit
+  attr(table, "fit_records") <- fit_records
+  attr(table, "analysis_data") <- dat
+  attr(table, "one_factor") <- diagnostic
   attr(table, "settings") <- list(design = design,
+    covariates = covariates, age = age, cluster_by = cluster_by,
     age_center = if (long) age_center else NULL, N = nrow(dat), N_dropped = n_input - nrow(dat),
     dropped = dropped, outcome = outcome, outcome_sd = outcome_sd, family_note = family_note,
     clustered_cross = !long && !is.null(cluster_by), sib_info = sib_info,
@@ -551,6 +583,7 @@ identical_or_na <- function(x, y) if (is.na(y)) is.na(x) else (!is.na(x) & abs(x
 
 ## ---- RUN --------------------------------------------------------------------
 
+if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
 if (is.null(data_file)) {
   data("ravel_example", package = "RAVEL")
   dat <- ravel_example
@@ -566,7 +599,7 @@ if (is.null(data_file)) {
 sib_configs <- if (is.null(sib_columns)) "none" else c("none", "maternal", "paternal", "both")
 run_outcome <- function(y) {
   is_binary <- if (is.logical(binary_outcome)) isTRUE(binary_outcome) else y %in% binary_outcome
-  tables <- list(); fits <- list(); sib_info <- character(0); settings <- NULL
+  tables <- list(); fits <- list(); diagnostics <- list(); sib_info <- character(0); settings <- NULL
   for (ps in sib_configs) {
     parts <- tryCatch(lapply(names(models), function(m) {
       do.call(ravel_parental_deviation, c(list(dat, design = design, outcome = y,
@@ -586,6 +619,7 @@ run_outcome <- function(y) {
     if (length(comparison)) result <- rbind(result, comparison[[1]])        # one copy, last
     tables[[ps]] <- result
     fits[[ps]] <- stats::setNames(lapply(parts, attr, "fit"), names(models))
+    diagnostics[[ps]] <- stats::setNames(lapply(parts, attr, "one_factor"), names(models))
     st <- attr(parts[[1]], "settings")
     sib_info[[result$siblings[1]]] <- st$sib_info
     if (is.null(settings)) settings <- st
@@ -597,6 +631,7 @@ run_outcome <- function(y) {
   attr(result, "settings") <- settings
   attr(result, "sib_info") <- sib_info
   attr(result, "fits") <- fits      # fits[[sibling configuration]][[model]]
+  attr(result, "diagnostics") <- diagnostics
   result
 }
 
@@ -617,8 +652,11 @@ for (y in outcome) {
   utils::write.csv(res, file_y, row.names = FALSE)
   excel_y <- sub("[.]csv$", "_excel.csv", file_y)
   write_excel_csv(res, excel_y)
+  rds_y <- sub("[.]csv$", ".rds", file_y)
+  saveRDS(res, rds_y)
   message("Table for ", y, " written to ", normalizePath(file_y),
-          "\nExcel copy (opens in columns): ", normalizePath(excel_y))
+          "\nExcel copy (opens in columns): ", normalizePath(excel_y),
+          "\nFitted objects and one-factor diagnostics: ", normalizePath(rds_y))
 }
 
 message("\nDone. Analysed: ", if (length(results)) paste(names(results), collapse = ", ") else "none",
@@ -628,3 +666,4 @@ message("\nDone. Analysed: ", if (length(results)) paste(names(results), collaps
 # `results` holds one table per outcome; each keeps its fits by sibling
 # configuration ("none", "maternal", "paternal", "both") and model, e.g.:
 #   print_simple(attr(results[["Y"]], "fits")[["none"]][["Estimated state"]], parent_contrasts = TRUE)
+}

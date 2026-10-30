@@ -1,0 +1,23 @@
+During startup - Warning messages:
+1: Setting LC_CTYPE failed, using "C"
+2: Setting LC_COLLATE failed, using "C"
+3: Setting LC_TIME failed, using "C"
+4: Setting LC_MESSAGES failed, using "C"
+5: Setting LC_MONETARY failed, using "C"
+Warning message:
+package 'testthat' was built under R version 4.4.3
+PASS: all requested source tables are present and retain supplied-pi uncertainty scope
+PASS: raw parameter estimates and covariance-parameter SEs match lavaan directly
+PASS: all fit measures and the complete lower-triangle parameter sampling covariance are retained
+PASS: continuous implied observed covariance SEs agree with independent finite differences
+continuous maximum implied covariance SE difference: 6.0762506e-13
+PASS: exogenous latent covariance SEs match directly estimated covariance parameters
+PASS: nonconverged sources cannot appear successful in any inferential output table
+PASS: converged Heywood sources are explicitly labelled inadmissible
+PASS: missing source fits produce an explicit extraction status
+PASS: standardization warnings are visible and cannot taint raw parameter SEs
+PASS: binary implied observed covariance SEs agree with independent finite differences
+binary maximum implied covariance SE difference: 4.831413e-13
+PASS: binary outcome variance absent from estimated moments has no invented SE
+PASS: exporting the audit preserves each standalone CSV table
+12 SEM audit check groups passed.

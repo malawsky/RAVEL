@@ -1,0 +1,68 @@
+During startup - Warning messages:
+1: Setting LC_CTYPE failed, using "C"
+2: Setting LC_COLLATE failed, using "C"
+3: Setting LC_TIME failed, using "C"
+4: Setting LC_MESSAGES failed, using "C"
+5: Setting LC_MONETARY failed, using "C"
+Warning message:
+package 'testthat' was built under R version 4.4.3
+Checking one-factor workflow: bundled_estimated_state
+estimated_state: fitting at pi = 0.528 ...
+Checking one-factor workflow: bundled_n_gen
+n_gen: fitting at pi = 0.528 ...
+Checking one-factor workflow: bundled_equilibrium
+equilibrium: fitting at pi = 0.528 ...
+Checking one-factor workflow: bundled_free_measurement
+none: fitting at pi = 0.528 ...
+Checking one-factor workflow: named_ID_with_dummy_FID
+estimated_state: fitting at pi = 0.528 ...
+Checking one-factor workflow: maternal_phenotype_complete
+estimated_state, + both siblings: fitting at pi = 0.528 ...
+Checking one-factor workflow: maternal_phenotype_missing_sibling
+estimated_state, + both siblings: fitting at pi = 0.528 ...
+Checking one-factor workflow: retained_missing_outcome
+estimated_state: fitting at pi = 0.528 ...
+Checking one-factor workflow: repeated_family
+estimated_state: 2000 families have more than one row (e.g. siblings); SEs are clustered by family.
+estimated_state: fitting at pi = 0.528 ...
+                                case              expected_status
+1            bundled_estimated_state                           ok
+2                      bundled_n_gen                           ok
+3                bundled_equilibrium                           ok
+4           bundled_free_measurement unsupported_free_measurement
+5            named_ID_with_dummy_FID                           ok
+6        maternal_phenotype_complete                           ok
+7 maternal_phenotype_missing_sibling      unsupported_missingness
+8           retained_missing_outcome      unsupported_missingness
+9                    repeated_family           unsupported_design
+                        status
+1                           ok
+2                           ok
+3                           ok
+4 unsupported_free_measurement
+5                           ok
+6                           ok
+7      unsupported_missingness
+8      unsupported_missingness
+9           unsupported_design
+                                                                                                                    reason
+1                                           Score-phenotype compatibility test under the retained measurement assumptions.
+2                                           Score-phenotype compatibility test under the retained measurement assumptions.
+3                                           Score-phenotype compatibility test under the retained measurement assumptions.
+4 The free residual score model has an observational scale invariance; an identified alternative has not been implemented.
+5                                           Score-phenotype compatibility test under the retained measurement assumptions.
+6                                           Score-phenotype compatibility test under the retained measurement assumptions.
+7                                  not available: some families lack sibling scores (the test needs every family's scores)
+8              Incomplete or dropped observations are outside the validated scope; no rows are dropped by this diagnostic.
+9                                 not available: some families have more than one row (needs one independent trio per row)
+  statistic df   p_value    N
+1 0.7494739  3 0.8615100 4000
+2 0.8300888  3 0.8422575 4000
+3 0.7863249  3 0.8527351 4000
+4        NA NA        NA 4000
+5 0.7494739  3 0.8615100 4000
+6 5.1091382  5 0.4027067 2000
+7        NA NA        NA 2000
+8        NA NA        NA 4000
+9        NA NA        NA 4000
+One-factor workflow checks passed: 9 cases.

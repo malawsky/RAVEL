@@ -1,0 +1,243 @@
+Warning message:
+package 'testthat' was built under R version 4.4.3
+No data_file set: using synthetic adult outcomes, not real family observations.
+Estimated state, + both siblings: fitting at pi = 0.528 ...
+Estimated state, + both siblings: fitting at grid pi = 0.4 ...
+Estimated state, + both siblings: fitting at grid pi = 0.45 ...
+Estimated state, + both siblings: fitting at grid pi = 0.5 ...
+Estimated state, + both siblings: fitting at grid pi = 0.55 ...
+Estimated state, + both siblings: fitting at grid pi = 0.6 ...
+3 generations, + both siblings: fitting at pi = 0.528 ...
+3 generations, + both siblings: fitting at grid pi = 0.4 ...
+3 generations, + both siblings: fitting at grid pi = 0.45 ...
+3 generations, + both siblings: fitting at grid pi = 0.5 ...
+3 generations, + both siblings: fitting at grid pi = 0.55 ...
+3 generations, + both siblings: fitting at grid pi = 0.6 ...
+Equilibrium, + both siblings: fitting at pi = 0.528 ...
+Equilibrium, + both siblings: fitting at grid pi = 0.4 ...
+Equilibrium, + both siblings: fitting at grid pi = 0.45 ...
+Equilibrium, + both siblings: fitting at grid pi = 0.5 ...
+Equilibrium, + both siblings: fitting at grid pi = 0.55 ...
+Equilibrium, + both siblings: fitting at grid pi = 0.6 ...
+
+RAVEL parental phenotype: mom_height
+Child scores remain in the genetic block. Cells are estimate (SE); contrasts also show p.
+
+One-factor checks of the shared source models:
+  + both siblings, Estimated state: chi-square = 1.988, df = 5, p = 0.851; Full joint source model; not a test of excluding child liability
+  + both siblings, 3 generations: chi-square = 1.890, df = 5, p = 0.864; Full joint source model; not a test of excluding child liability; conditional on pi = 0.528 used in fitting
+  + both siblings, Equilibrium: chi-square = 1.912, df = 5, p = 0.861; Full joint source model; not a test of excluding child liability
+
++ both siblings: Y ~ mother
+  Model                         Analysis                          pi  pi SE      N            Mother
+  Estimated state               Visible (measured by the PGSs                 2000     0.421 (0.026)
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.591 (0.038)
+  Estimated state               Grid                           0.400          2000     0.532 (0.033)
+  Estimated state               Grid                           0.450          2000     0.553 (0.034)
+  Estimated state               Grid                           0.500          2000     0.577 (0.036)
+  Estimated state               Grid                           0.550          2000     0.604 (0.037)
+  Estimated state               Grid                           0.600          2000     0.635 (0.039)
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.364 (0.021)
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.263 (0.022)
+  3 generations                 Visible (measured by the PGSs                 2000     0.423 (0.026)
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.581 (0.037)
+  3 generations                 Grid                           0.400          2000     0.526 (0.032)
+  3 generations                 Grid                           0.450          2000     0.546 (0.033)
+  3 generations                 Grid                           0.500          2000     0.567 (0.035)
+  3 generations                 Grid                           0.550          2000     0.592 (0.036)
+  3 generations                 Grid                           0.600          2000     0.620 (0.038)
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.419 (0.026)
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.571 (0.036)
+  Equilibrium                   Grid                           0.400          2000     0.520 (0.032)
+  Equilibrium                   Grid                           0.450          2000     0.538 (0.033)
+  Equilibrium                   Grid                           0.500          2000     0.559 (0.034)
+  Equilibrium                   Grid                           0.550          2000     0.582 (0.036)
+  Equilibrium                   Grid                           0.600          2000     0.608 (0.037)
+
++ both siblings: Y ~ mother+father
+  Model                         Analysis                          pi  pi SE      N            Mother            Father                   M - F [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.395 (0.026)     0.136 (0.023)      0.259 (0.039) [<0.001]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.559 (0.045)     0.085 (0.044)      0.474 (0.080) [<0.001]
+  Estimated state               Grid                           0.400          2000     0.497 (0.036)     0.115 (0.034)      0.382 (0.059) [<0.001]
+  Estimated state               Grid                           0.450          2000     0.518 (0.038)     0.106 (0.037)      0.412 (0.064) [<0.001]
+  Estimated state               Grid                           0.500          2000     0.543 (0.041)     0.094 (0.040)      0.449 (0.072) [<0.001]
+  Estimated state               Grid                           0.550          2000     0.573 (0.045)     0.076 (0.046)      0.497 (0.082) [<0.001]
+  Estimated state               Grid                           0.600          2000     0.612 (0.052)     0.051 (0.055)      0.561 (0.098) [<0.001]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.344 (0.021)     0.135 (0.021)      0.209 (0.032) [<0.001]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.255 (0.022)     0.110 (0.022)      0.145 (0.032) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.399 (0.026)     0.139 (0.024)      0.260 (0.039) [<0.001]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.546 (0.041)     0.109 (0.038)      0.437 (0.069) [<0.001]
+  3 generations                 Grid                           0.400          2000     0.493 (0.034)     0.128 (0.032)      0.365 (0.055) [<0.001]
+  3 generations                 Grid                           0.450          2000     0.511 (0.036)     0.123 (0.034)      0.389 (0.059) [<0.001]
+  3 generations                 Grid                           0.500          2000     0.533 (0.038)     0.115 (0.036)      0.418 (0.064) [<0.001]
+  3 generations                 Grid                           0.550          2000     0.557 (0.041)     0.104 (0.040)      0.454 (0.070) [<0.001]
+  3 generations                 Grid                           0.600          2000     0.588 (0.044)     0.088 (0.044)      0.500 (0.078) [<0.001]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.401 (0.026)     0.143 (0.024)      0.258 (0.038) [<0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.539 (0.038)     0.136 (0.035)      0.403 (0.061) [<0.001]
+  Equilibrium                   Grid                           0.400          2000     0.492 (0.033)     0.144 (0.031)      0.348 (0.052) [<0.001]
+  Equilibrium                   Grid                           0.450          2000     0.509 (0.035)     0.142 (0.032)      0.367 (0.055) [<0.001]
+  Equilibrium                   Grid                           0.500          2000     0.527 (0.036)     0.139 (0.034)      0.389 (0.058) [<0.001]
+  Equilibrium                   Grid                           0.550          2000     0.549 (0.038)     0.134 (0.036)      0.415 (0.062) [<0.001]
+  Equilibrium                   Grid                           0.600          2000     0.574 (0.041)     0.127 (0.039)      0.447 (0.067) [<0.001]
+
++ both siblings: Y ~ mother+mat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother           Mat sib             M - mat sib [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.380 (0.030)     0.078 (0.027)      0.302 (0.049) [<0.001]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.543 (0.045)     0.085 (0.042)      0.458 (0.076) [<0.001]
+  Estimated state               Grid                           0.400          2000     0.485 (0.039)     0.084 (0.036)      0.401 (0.065) [<0.001]
+  Estimated state               Grid                           0.450          2000     0.506 (0.040)     0.085 (0.038)      0.421 (0.068) [<0.001]
+  Estimated state               Grid                           0.500          2000     0.529 (0.042)     0.085 (0.040)      0.443 (0.072) [<0.001]
+  Estimated state               Grid                           0.550          2000     0.555 (0.045)     0.085 (0.043)      0.470 (0.077) [<0.001]
+  Estimated state               Grid                           0.600          2000     0.586 (0.047)     0.084 (0.047)      0.502 (0.083) [<0.001]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.326 (0.024)     0.076 (0.024)      0.250 (0.042) [<0.001]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.237 (0.025)     0.052 (0.025)      0.184 (0.043) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.380 (0.030)     0.076 (0.027)      0.304 (0.050) [<0.001]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.539 (0.046)     0.068 (0.041)      0.471 (0.078) [<0.001]
+  3 generations                 Grid                           0.400          2000     0.483 (0.039)     0.074 (0.036)      0.409 (0.067) [<0.001]
+  3 generations                 Grid                           0.450          2000     0.503 (0.041)     0.072 (0.038)      0.430 (0.070) [<0.001]
+  3 generations                 Grid                           0.500          2000     0.525 (0.043)     0.070 (0.040)      0.455 (0.074) [<0.001]
+  3 generations                 Grid                           0.550          2000     0.551 (0.046)     0.067 (0.043)      0.485 (0.079) [<0.001]
+  3 generations                 Grid                           0.600          2000     0.582 (0.049)     0.062 (0.046)      0.520 (0.085) [<0.001]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.376 (0.030)     0.076 (0.027)      0.301 (0.050) [<0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.533 (0.046)     0.062 (0.042)      0.470 (0.079) [<0.001]
+  Equilibrium                   Grid                           0.400          2000     0.478 (0.039)     0.071 (0.036)      0.407 (0.068) [<0.001]
+  Equilibrium                   Grid                           0.450          2000     0.497 (0.041)     0.068 (0.038)      0.429 (0.071) [<0.001]
+  Equilibrium                   Grid                           0.500          2000     0.519 (0.043)     0.065 (0.041)      0.454 (0.076) [<0.001]
+  Equilibrium                   Grid                           0.550          2000     0.544 (0.046)     0.060 (0.043)      0.484 (0.081) [<0.001]
+  Equilibrium                   Grid                           0.600          2000     0.574 (0.049)     0.053 (0.047)      0.521 (0.087) [<0.001]
+
++ both siblings: Y ~ mother+father+mat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother            Father           Mat sib                   M - F [p]             M - mat sib [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.357 (0.030)     0.134 (0.023)     0.073 (0.027)      0.222 (0.041) [<0.001]      0.284 (0.049) [<0.001]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.512 (0.050)     0.084 (0.044)     0.084 (0.042)      0.428 (0.082) [<0.001]      0.428 (0.078) [<0.001]
+  Estimated state               Grid                           0.400          2000     0.452 (0.041)     0.113 (0.034)     0.082 (0.036)      0.338 (0.062) [<0.001]      0.370 (0.066) [<0.001]
+  Estimated state               Grid                           0.450          2000     0.472 (0.043)     0.105 (0.037)     0.083 (0.038)      0.367 (0.067) [<0.001]      0.389 (0.070) [<0.001]
+  Estimated state               Grid                           0.500          2000     0.496 (0.047)     0.093 (0.041)     0.084 (0.040)      0.403 (0.075) [<0.001]      0.412 (0.074) [<0.001]
+  Estimated state               Grid                           0.550          2000     0.526 (0.051)     0.076 (0.046)     0.084 (0.043)      0.450 (0.085) [<0.001]      0.442 (0.080) [<0.001]
+  Estimated state               Grid                           0.600          2000     0.565 (0.057)     0.050 (0.055)     0.083 (0.047)      0.514 (0.100) [<0.001]      0.481 (0.088) [<0.001]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.307 (0.024)     0.134 (0.021)     0.072 (0.024)      0.174 (0.034) [<0.001]      0.236 (0.042) [<0.001]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.231 (0.025)     0.109 (0.022)     0.048 (0.025)      0.122 (0.034) [<0.001]      0.183 (0.043) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.360 (0.030)     0.137 (0.024)     0.071 (0.027)      0.223 (0.041) [<0.001]      0.289 (0.049) [<0.001]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.506 (0.049)     0.109 (0.038)     0.067 (0.041)      0.397 (0.074) [<0.001]      0.439 (0.079) [<0.001]
+  3 generations                 Grid                           0.400          2000     0.452 (0.040)     0.127 (0.032)     0.072 (0.036)      0.324 (0.059) [<0.001]      0.380 (0.067) [<0.001]
+  3 generations                 Grid                           0.450          2000     0.470 (0.043)     0.122 (0.034)     0.070 (0.038)      0.348 (0.063) [<0.001]      0.400 (0.071) [<0.001]
+  3 generations                 Grid                           0.500          2000     0.492 (0.046)     0.114 (0.036)     0.068 (0.040)      0.377 (0.069) [<0.001]      0.423 (0.075) [<0.001]
+  3 generations                 Grid                           0.550          2000     0.518 (0.049)     0.103 (0.040)     0.065 (0.042)      0.415 (0.076) [<0.001]      0.452 (0.081) [<0.001]
+  3 generations                 Grid                           0.600          2000     0.550 (0.054)     0.087 (0.044)     0.061 (0.045)      0.463 (0.085) [<0.001]      0.490 (0.088) [<0.001]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.362 (0.030)     0.141 (0.024)     0.070 (0.027)      0.221 (0.041) [<0.001]      0.292 (0.050) [<0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.502 (0.047)     0.136 (0.035)     0.060 (0.042)      0.366 (0.067) [<0.001]      0.442 (0.080) [<0.001]
+  Equilibrium                   Grid                           0.400          2000     0.451 (0.040)     0.143 (0.031)     0.068 (0.036)      0.309 (0.056) [<0.001]      0.384 (0.067) [<0.001]
+  Equilibrium                   Grid                           0.450          2000     0.469 (0.042)     0.141 (0.032)     0.066 (0.038)      0.328 (0.060) [<0.001]      0.403 (0.071) [<0.001]
+  Equilibrium                   Grid                           0.500          2000     0.489 (0.045)     0.138 (0.034)     0.063 (0.041)      0.351 (0.064) [<0.001]      0.426 (0.076) [<0.001]
+  Equilibrium                   Grid                           0.550          2000     0.513 (0.048)     0.134 (0.036)     0.058 (0.043)      0.379 (0.069) [<0.001]      0.455 (0.081) [<0.001]
+  Equilibrium                   Grid                           0.600          2000     0.541 (0.051)     0.127 (0.039)     0.052 (0.047)      0.414 (0.075) [<0.001]      0.489 (0.088) [<0.001]
+
++ both siblings: Y ~ mother+pat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother           Pat sib
+  Estimated state               Visible (measured by the PGSs                 2000     0.413 (0.026)     0.066 (0.024)
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.585 (0.041)     0.030 (0.038)
+  Estimated state               Grid                           0.400          2000     0.523 (0.034)     0.050 (0.032)
+  Estimated state               Grid                           0.450          2000     0.545 (0.036)     0.044 (0.034)
+  Estimated state               Grid                           0.500          2000     0.569 (0.038)     0.036 (0.037)
+  Estimated state               Grid                           0.550          2000     0.598 (0.041)     0.024 (0.040)
+  Estimated state               Grid                           0.600          2000     0.633 (0.044)     0.009 (0.044)
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.357 (0.021)     0.077 (0.021)
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.260 (0.022)     0.035 (0.022)
+  3 generations                 Visible (measured by the PGSs                 2000     0.414 (0.026)     0.071 (0.024)
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.572 (0.039)     0.045 (0.036)
+  3 generations                 Grid                           0.400          2000     0.517 (0.033)     0.060 (0.031)
+  3 generations                 Grid                           0.450          2000     0.536 (0.035)     0.056 (0.033)
+  3 generations                 Grid                           0.500          2000     0.558 (0.036)     0.050 (0.035)
+  3 generations                 Grid                           0.550          2000     0.583 (0.038)     0.041 (0.037)
+  3 generations                 Grid                           0.600          2000     0.613 (0.041)     0.029 (0.040)
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.412 (0.026)     0.074 (0.024)
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.561 (0.038)     0.064 (0.034)
+  Equilibrium                   Grid                           0.400          2000     0.511 (0.033)     0.071 (0.030)
+  Equilibrium                   Grid                           0.450          2000     0.529 (0.034)     0.069 (0.032)
+  Equilibrium                   Grid                           0.500          2000     0.549 (0.035)     0.066 (0.033)
+  Equilibrium                   Grid                           0.550          2000     0.572 (0.037)     0.062 (0.035)
+  Equilibrium                   Grid                           0.600          2000     0.598 (0.039)     0.056 (0.037)
+
++ both siblings: Y ~ mother+father+pat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother            Father           Pat sib                   M - F [p]             F - pat sib [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.395 (0.027)     0.140 (0.027)    -0.006 (0.028)      0.256 (0.040) [<0.001]       0.145 (0.047) [0.002]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.559 (0.045)     0.095 (0.048)    -0.019 (0.041)      0.464 (0.081) [<0.001]       0.114 (0.075) [0.128]
+  Estimated state               Grid                           0.400          2000     0.497 (0.036)     0.122 (0.038)    -0.013 (0.036)      0.375 (0.060) [<0.001]       0.135 (0.063) [0.032]
+  Estimated state               Grid                           0.450          2000     0.518 (0.038)     0.114 (0.041)    -0.015 (0.037)      0.404 (0.066) [<0.001]       0.129 (0.067) [0.053]
+  Estimated state               Grid                           0.500          2000     0.543 (0.041)     0.103 (0.045)    -0.017 (0.039)      0.440 (0.073) [<0.001]       0.121 (0.071) [0.092]
+  Estimated state               Grid                           0.550          2000     0.574 (0.045)     0.088 (0.051)    -0.020 (0.042)      0.486 (0.084) [<0.001]       0.108 (0.078) [0.166]
+  Estimated state               Grid                           0.600          2000     0.613 (0.052)     0.065 (0.059)    -0.024 (0.045)      0.548 (0.100) [<0.001]       0.088 (0.087) [0.309]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.344 (0.021)     0.131 (0.025)     0.008 (0.024)      0.213 (0.034) [<0.001]       0.123 (0.043) [0.004]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.256 (0.022)     0.123 (0.025)    -0.026 (0.025)      0.133 (0.033) [<0.001]      0.148 (0.043) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.399 (0.026)     0.143 (0.027)    -0.007 (0.028)      0.256 (0.040) [<0.001]       0.150 (0.048) [0.002]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.546 (0.041)     0.124 (0.044)    -0.025 (0.042)      0.422 (0.071) [<0.001]       0.149 (0.075) [0.046]
+  3 generations                 Grid                           0.400          2000     0.493 (0.034)     0.138 (0.037)    -0.017 (0.036)      0.355 (0.057) [<0.001]       0.156 (0.064) [0.015]
+  3 generations                 Grid                           0.450          2000     0.512 (0.036)     0.134 (0.039)    -0.020 (0.038)      0.377 (0.061) [<0.001]       0.154 (0.068) [0.023]
+  3 generations                 Grid                           0.500          2000     0.533 (0.038)     0.129 (0.042)    -0.023 (0.040)      0.404 (0.066) [<0.001]       0.151 (0.072) [0.035]
+  3 generations                 Grid                           0.550          2000     0.558 (0.041)     0.120 (0.046)    -0.027 (0.043)      0.438 (0.072) [<0.001]       0.146 (0.077) [0.057]
+  3 generations                 Grid                           0.600          2000     0.588 (0.044)     0.107 (0.051)    -0.031 (0.046)      0.481 (0.081) [<0.001]       0.138 (0.083) [0.097]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.401 (0.026)     0.147 (0.027)    -0.007 (0.028)      0.254 (0.040) [<0.001]       0.154 (0.048) [0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.539 (0.039)     0.153 (0.043)    -0.027 (0.042)      0.386 (0.065) [<0.001]       0.180 (0.075) [0.016]
+  Equilibrium                   Grid                           0.400          2000     0.492 (0.033)     0.155 (0.037)    -0.019 (0.037)      0.337 (0.055) [<0.001]       0.173 (0.065) [0.007]
+  Equilibrium                   Grid                           0.450          2000     0.509 (0.035)     0.155 (0.039)    -0.021 (0.039)      0.354 (0.058) [<0.001]       0.176 (0.068) [0.010]
+  Equilibrium                   Grid                           0.500          2000     0.528 (0.036)     0.154 (0.041)    -0.025 (0.041)      0.374 (0.061) [<0.001]       0.178 (0.072) [0.014]
+  Equilibrium                   Grid                           0.550          2000     0.549 (0.038)     0.152 (0.044)    -0.029 (0.043)      0.397 (0.066) [<0.001]       0.181 (0.077) [0.019]
+  Equilibrium                   Grid                           0.600          2000     0.574 (0.041)     0.149 (0.048)    -0.034 (0.046)      0.425 (0.071) [<0.001]       0.184 (0.083) [0.028]
+
++ both siblings: Y ~ mother+mat_sib+pat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother           Mat sib           Pat sib             M - mat sib [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.374 (0.030)     0.074 (0.027)     0.063 (0.024)      0.300 (0.049) [<0.001]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.537 (0.047)     0.084 (0.042)     0.028 (0.038)      0.453 (0.076) [<0.001]
+  Estimated state               Grid                           0.400          2000     0.478 (0.039)     0.083 (0.036)     0.048 (0.032)      0.395 (0.065) [<0.001]
+  Estimated state               Grid                           0.450          2000     0.498 (0.041)     0.084 (0.038)     0.042 (0.034)      0.414 (0.069) [<0.001]
+  Estimated state               Grid                           0.500          2000     0.522 (0.044)     0.084 (0.040)     0.034 (0.037)      0.438 (0.073) [<0.001]
+  Estimated state               Grid                           0.550          2000     0.550 (0.047)     0.084 (0.043)     0.023 (0.040)      0.466 (0.078) [<0.001]
+  Estimated state               Grid                           0.600          2000     0.584 (0.051)     0.084 (0.047)     0.007 (0.044)      0.501 (0.084) [<0.001]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.320 (0.024)     0.072 (0.024)     0.074 (0.021)      0.249 (0.042) [<0.001]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.234 (0.025)     0.052 (0.025)     0.035 (0.022)      0.182 (0.043) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.375 (0.030)     0.072 (0.027)     0.067 (0.024)      0.303 (0.050) [<0.001]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.531 (0.047)     0.067 (0.041)     0.044 (0.036)      0.464 (0.078) [<0.001]
+  3 generations                 Grid                           0.400          2000     0.475 (0.040)     0.072 (0.036)     0.059 (0.031)      0.403 (0.067) [<0.001]
+  3 generations                 Grid                           0.450          2000     0.494 (0.042)     0.071 (0.038)     0.054 (0.033)      0.424 (0.070) [<0.001]
+  3 generations                 Grid                           0.500          2000     0.517 (0.044)     0.069 (0.040)     0.048 (0.035)      0.448 (0.075) [<0.001]
+  3 generations                 Grid                           0.550          2000     0.544 (0.047)     0.066 (0.042)     0.040 (0.037)      0.478 (0.080) [<0.001]
+  3 generations                 Grid                           0.600          2000     0.576 (0.051)     0.061 (0.046)     0.028 (0.040)      0.515 (0.086) [<0.001]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.372 (0.030)     0.071 (0.028)     0.071 (0.024)      0.301 (0.050) [<0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.524 (0.047)     0.061 (0.042)     0.063 (0.034)      0.463 (0.079) [<0.001]
+  Equilibrium                   Grid                           0.400          2000     0.470 (0.040)     0.068 (0.036)     0.070 (0.030)      0.402 (0.067) [<0.001]
+  Equilibrium                   Grid                           0.450          2000     0.489 (0.042)     0.066 (0.038)     0.068 (0.032)      0.423 (0.071) [<0.001]
+  Equilibrium                   Grid                           0.500          2000     0.510 (0.044)     0.063 (0.041)     0.065 (0.033)      0.447 (0.076) [<0.001]
+  Equilibrium                   Grid                           0.550          2000     0.536 (0.047)     0.059 (0.043)     0.061 (0.035)      0.477 (0.081) [<0.001]
+  Equilibrium                   Grid                           0.600          2000     0.565 (0.050)     0.052 (0.047)     0.055 (0.037)      0.513 (0.087) [<0.001]
+
++ both siblings: Y ~ mother+father+mat_sib+pat_sib
+  Model                         Analysis                          pi  pi SE      N            Mother            Father           Mat sib           Pat sib                   M - F [p]             M - mat sib [p]             F - pat sib [p]
+  Estimated state               Visible (measured by the PGSs                 2000     0.357 (0.030)     0.139 (0.027)     0.073 (0.027)    -0.009 (0.028)      0.218 (0.042) [<0.001]      0.284 (0.049) [<0.001]       0.148 (0.047) [0.002]
+  Estimated state               Corrected for pi               0.528  0.021   2000     0.512 (0.050)     0.095 (0.048)     0.084 (0.042)    -0.020 (0.041)      0.417 (0.084) [<0.001]      0.427 (0.078) [<0.001]       0.115 (0.075) [0.123]
+  Estimated state               Grid                           0.400          2000     0.452 (0.041)     0.122 (0.038)     0.083 (0.036)    -0.015 (0.036)      0.330 (0.063) [<0.001]      0.369 (0.066) [<0.001]       0.137 (0.063) [0.029]
+  Estimated state               Grid                           0.450          2000     0.472 (0.043)     0.114 (0.041)     0.083 (0.038)    -0.017 (0.037)      0.358 (0.069) [<0.001]      0.388 (0.070) [<0.001]       0.131 (0.067) [0.049]
+  Estimated state               Grid                           0.500          2000     0.496 (0.047)     0.103 (0.045)     0.084 (0.040)    -0.019 (0.039)      0.393 (0.076) [<0.001]      0.412 (0.074) [<0.001]       0.122 (0.071) [0.087]
+  Estimated state               Grid                           0.550          2000     0.526 (0.051)     0.088 (0.051)     0.084 (0.043)    -0.021 (0.042)      0.438 (0.086) [<0.001]      0.441 (0.080) [<0.001]       0.109 (0.078) [0.160]
+  Estimated state               Grid                           0.600          2000     0.565 (0.057)     0.065 (0.059)     0.084 (0.047)    -0.025 (0.044)      0.500 (0.102) [<0.001]      0.481 (0.088) [<0.001]       0.089 (0.086) [0.301]
+  Plain PGS regressions (compar Plain PGS1 regression                         2000     0.307 (0.024)     0.131 (0.025)     0.072 (0.024)     0.005 (0.024)      0.176 (0.036) [<0.001]      0.236 (0.042) [<0.001]       0.126 (0.043) [0.003]
+  Plain PGS regressions (compar Plain PGS2 regression                         2000     0.232 (0.025)     0.121 (0.025)     0.047 (0.025)    -0.025 (0.025)       0.111 (0.035) [0.002]      0.184 (0.043) [<0.001]      0.146 (0.043) [<0.001]
+  3 generations                 Visible (measured by the PGSs                 2000     0.360 (0.030)     0.143 (0.027)     0.071 (0.027)    -0.010 (0.028)      0.218 (0.043) [<0.001]      0.289 (0.049) [<0.001]       0.153 (0.048) [0.001]
+  3 generations                 Corrected for pi               0.528  0.021   2000     0.506 (0.049)     0.124 (0.044)     0.067 (0.041)    -0.026 (0.042)      0.381 (0.076) [<0.001]      0.438 (0.079) [<0.001]       0.150 (0.075) [0.044]
+  3 generations                 Grid                           0.400          2000     0.452 (0.040)     0.138 (0.037)     0.072 (0.036)    -0.019 (0.036)      0.313 (0.061) [<0.001]      0.380 (0.067) [<0.001]       0.157 (0.064) [0.014]
+  3 generations                 Grid                           0.450          2000     0.470 (0.043)     0.134 (0.039)     0.071 (0.038)    -0.021 (0.038)      0.336 (0.066) [<0.001]      0.399 (0.071) [<0.001]       0.156 (0.068) [0.021]
+  3 generations                 Grid                           0.500          2000     0.492 (0.046)     0.129 (0.042)     0.069 (0.040)    -0.024 (0.040)      0.363 (0.071) [<0.001]      0.423 (0.075) [<0.001]       0.153 (0.072) [0.033]
+  3 generations                 Grid                           0.550          2000     0.518 (0.049)     0.120 (0.046)     0.066 (0.042)    -0.028 (0.043)      0.398 (0.078) [<0.001]      0.452 (0.081) [<0.001]       0.148 (0.077) [0.055]
+  3 generations                 Grid                           0.600          2000     0.550 (0.054)     0.107 (0.051)     0.061 (0.046)    -0.032 (0.046)      0.443 (0.088) [<0.001]      0.489 (0.088) [<0.001]       0.139 (0.083) [0.095]
+  Equilibrium                   Visible (measured by the PGSs                 2000     0.362 (0.030)     0.147 (0.027)     0.070 (0.027)    -0.010 (0.028)      0.215 (0.042) [<0.001]      0.291 (0.050) [<0.001]       0.157 (0.048) [0.001]
+  Equilibrium                   Corrected for pi               0.528  0.021   2000     0.502 (0.047)     0.153 (0.043)     0.061 (0.042)    -0.028 (0.042)      0.349 (0.071) [<0.001]      0.441 (0.080) [<0.001]       0.181 (0.075) [0.016]
+  Equilibrium                   Grid                           0.400          2000     0.451 (0.040)     0.155 (0.037)     0.068 (0.036)    -0.020 (0.037)      0.297 (0.059) [<0.001]      0.383 (0.067) [<0.001]       0.175 (0.065) [0.007]
+  Equilibrium                   Grid                           0.450          2000     0.469 (0.042)     0.155 (0.039)     0.066 (0.038)    -0.023 (0.038)      0.314 (0.063) [<0.001]      0.403 (0.071) [<0.001]       0.177 (0.068) [0.009]
+  Equilibrium                   Grid                           0.500          2000     0.489 (0.045)     0.154 (0.041)     0.063 (0.041)    -0.026 (0.041)      0.335 (0.067) [<0.001]      0.426 (0.076) [<0.001]       0.180 (0.072) [0.013]
+  Equilibrium                   Grid                           0.550          2000     0.513 (0.048)     0.152 (0.044)     0.059 (0.043)    -0.030 (0.043)      0.361 (0.072) [<0.001]      0.454 (0.081) [<0.001]       0.182 (0.077) [0.018]
+  Equilibrium                   Grid                           0.600          2000     0.541 (0.051)     0.149 (0.048)     0.052 (0.047)    -0.035 (0.046)      0.392 (0.079) [<0.001]      0.489 (0.088) [<0.001]       0.184 (0.083) [0.027]
+
+CSV tables also contain parental midpoint, reverse contrasts, variance summaries and source spouse correlations.
+Saved table, Excel copy, 7 SEM audit tables and fitted objects/diagnostics for mom_height at /private/tmp/ravel-parental-demo-d54d55a0f0/ravel_parental_phenotypes_mom_height.csv
+Done. Analysed: mom_height
+
+DEFAULT DEMO PASSED: 1570 primary rows; 18 source fits; seven SEM audit CSVs; files in /tmp/ravel-parental-demo-d54d55a0f0

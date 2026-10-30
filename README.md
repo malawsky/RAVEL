@@ -2,10 +2,11 @@
 
 **Recovering Assortment-Adjusted Variance Explained by Genetic Liabilities**
 
-RAVEL estimates offspring, maternal and paternal genetic-liability coefficients
-using two independently constructed polygenic scores (PGSs) per person. It
-accounts for PGS measurement error and can correct for assortative mating and
-hidden genetic variation.
+RAVEL estimates genetic-liability associations with outcomes in children or
+adults, using two independently constructed polygenic scores (PGSs) per person.
+Fit trios, full-sibling pairs, or partners with either or both partners' siblings.
+RAVEL accounts for PGS measurement error and can correct for assortative mating
+and hidden genetic variation.
 
 **Author:** Daniel Malawsky (<d.malawsky@gmail.com>), Wellcome Sanger Institute
 
@@ -20,6 +21,9 @@ Requires R >= 4.0, lavaan >= 0.6-12 and MASS. To install a local checkout,
 run `devtools::install()` from its directory, or use
 `devtools::load_all(".")` while developing.
 
+Use `ref = "dev"` to install the family-regression functions and other APIs
+documented below; the default branch may contain an older release.
+
 ## Quick start
 
 Try the bundled simulated data, or replace `dat` with your own trio data:
@@ -28,12 +32,30 @@ Try the bundled simulated data, or replace `dat` with your own trio data:
 data("ravel_example", package = "RAVEL")
 dat <- ravel_example
 names(dat) <- sub("^pgs", "PGS", names(dat))
+dat$Y <- as.numeric(scale(dat$Y))  # omit to keep the outcome's original units
 
 fit <- ravel_fit(dat, pi = .40, pi_se = .05,
                  fit_constraints = "estimated_state")
 print_simple(fit)
-results <- as.data.frame(fit, include_vanilla = FALSE)
+results <- as.data.frame(fit)
 ```
+
+For coefficient rows, the `scale` column means:
+
+- `visible`: effect per 1 SD of that person's score-indexed genetic liability,
+  with PGS measurement error accounted for.
+- `corrected_std`: effect per 1 present-day SD of that person's total genetic
+  liability, including the assumed hidden component.
+- `corrected_raw`: effect per 1 founder/random-mating SD of total genetic
+  liability; add `include_raw = TRUE` to include these rows.
+- `vanilla`: ordinary regression using one PGS version at a time across the
+  included relatives, without measurement-error or pi correction. Each role's
+  PGS and continuous `Y` are standardized for this comparator.
+
+The SEM scale labels describe the **genetic predictor**, not the outcome.
+Direct fits keep continuous `Y` in its supplied units; the example standardizes
+it so SEM and vanilla slopes both use phenotype-SD units. Binary fits use a
+probit-liability outcome scale.
 
 This estimates the assortment variance state without specifying a generation
 count. It returns visible and total corrected effects, with uncertainty in pi
@@ -46,20 +68,26 @@ to treat pi as fixed. The values above are examples; choose them for your trait.
 The bundled data have founder pi 0.4, one generation of assortment and founder
 PGS reliabilities 0.5 and 0.3. See `?ravel_example`.
 
+For an adult outcome or a model without children, use the
+[family-regression examples](#adult-outcomes-and-selected-family-regressions).
+
 ## Which workflow fits your data?
 
 ```mermaid
 flowchart TD
-    A{"Two PGS versions from independent GWASs<br/>for child, mother and father?"}
-    A -->|No| B[Current RAVEL requires this trio score design]
-    A -->|Yes| C{"Repeated observations<br/>within families?"}
+    A{"Which outcome regression?"}
+    A -->|Selected family members| B[ravel_family_fit<br/>Trio-assisted or child-free]
+    B --> N[Choose genetic_roles and outcome_roles<br/>Inspect as.data.frame]
+    N --> O[Reuse ravel_family_regression<br/>for another predictor subset]
+    O --> I[Save tables and fit<br/>write.csv / saveRDS]
+    A -->|Full trio model| C{"Repeated observations<br/>within families?"}
     C -->|No| D[Continuous or binary outcome<br/>ravel_fit]
     C -->|Yes| E[Continuous outcome in long format<br/>ravel_fit with cluster]
     D --> F[Optional sibling scores: parental_sibs<br/>Optional continuous-outcome moderator: interactions]
     E --> F
     F --> G[Choose assortment assumptions and pi<br/>Add pi_se for external uncertainty]
     G --> H[Inspect fit and estimates<br/>print_simple / as.data.frame]
-    H --> I[Save tables and fit<br/>write.csv / saveRDS]
+    H --> I
     H --> J[Plot coefficient tables<br/>ravel_plot_report]
     H --> K[Scan pi values<br/>ravel_correct_pi or refit interactions]
     D -.-> L[Independent-row dataframe workflow<br/>ravel_dataframe_report then ravel_correct_grid]
@@ -77,20 +105,35 @@ Use two PGS versions targeting the same trait, with independent GWAS estimation
 errors. Apply each version's weights to every included family member and orient
 both scores toward the same genetic target.
 
-| Person | Default columns in `ravel_fit()` |
+| Person | Default score columns |
 |---|---|
 | Child | `PGS1_child`, `PGS2_child` |
 | Mother | `PGS1_mother`, `PGS2_mother` |
 | Father | `PGS1_father`, `PGS2_father` |
+| Mother's full sibling, if included | `PGS1_mat_sib`, `PGS2_mat_sib` |
+| Father's full sibling, if included | `PGS1_pat_sib`, `PGS2_pat_sib` |
 
 The outcome defaults to `Y`. Map other names with `col_outcome`,
 `col_pgs1_child`, `col_pgs2_child` and the corresponding parent arguments.
-Raw or separately standardized scores are accepted; reliability is estimated
-separately for the two PGS versions.
+Supply scores only for the members in your genetic model; reliability is
+estimated separately for the two PGS versions.
+
+`ravel_fit()` accepts raw or separately standardized PGS columns: with the default
+residual settings or any constrained mode, you do not need to scale parents
+against the child, but continuous `Y` stays in its input units unless you
+standardize it yourself. `ravel_dataframe_report()` applies each PGS version's
+child mean and SD to all included roles and automatically standardizes the
+prepared continuous outcome.
+
+Custom covariance-scale restrictions, such as `crossperson = "equal_pc"` or
+nonzero `fixed_crossperson` values, depend on the PGS units; keep the input
+scaling consistent with those restrictions.
 
 For repeated measurements, use one row per child-occasion, repeat the family
 scores, and supply a family identifier through `cluster`. Otherwise, use one
 independent trio per row.
+For a cross-sectional adult outcome, use one row per focal adult; repeating the
+same parent once per child changes their weight even with clustered SEs.
 
 ## Choose the assortment assumptions
 
@@ -264,33 +307,63 @@ contrasts. [Sibling assumptions and missing-data handling](docs/methods.md#paren
 
 ## Adult outcomes and selected family regressions
 
-Use `genetic_roles` to choose the members whose scores identify the joint model,
-and `outcome_roles` to choose the predictors in the reported regression. For
-example, retain the child's scores for identification while analysing maternal
-height on the four adult liabilities:
+Use `ravel_family_fit()` for adult outcomes or selected-relative regressions:
+
+- `genetic_roles`: whose two scores help identify the joint genetic model.
+- `outcome_roles`: whose liabilities enter the reported regression; defaults to
+  all `genetic_roles`.
+
+For your own `family_dat` containing the five sets of scores above and maternal
+height, keep the child for identification while regressing height on the four
+adults' liabilities:
 
 ```r
-fit_adults <- ravel_family_fit(dat,
+fit_adults <- ravel_family_fit(family_dat,
   genetic_roles = c("child", "mother", "father", "mat_sib", "pat_sib"),
   outcome_roles = c("mother", "mat_sib", "father", "pat_sib"),
   col_outcome = "mom_height", pi = .4, fit_constraints = "estimated_state")
-fit_adults$regression$table
+adult_results <- as.data.frame(fit_adults)
 
 # A different regression using the same fitted genetic model:
-ravel_family_regression(fit_adults, c("mother", "mat_sib"))
+pair_results <- as.data.frame(
+  ravel_family_regression(fit_adults, c("mother", "mat_sib")))
 ```
 
-These are reduced regressions derived from the corrected joint moments, so
-omitted liabilities are marginalized rather than held fixed. The child needs no
-phenotype and is not an outcome predictor unless selected. Existing `ravel_fit()`
-calls retain their previous meaning and output.
+The child needs no phenotype and is not an outcome predictor unless selected.
+Changing `outcome_roles` gives the requested reduced regression; it does not
+just hide rows from the full model. Family tables use `visible`, `total_std`
+and `total_raw` for the predictor scales defined above, retain the supplied
+outcome units, and include the available parent-minus-sibling contrasts.
 
-Child-free full-sibling pairs and partners with either or both siblings are also
-supported. Partners alone need a history assumption or an externally supplied
-state. See [identification and correction assumptions](docs/family-models.md) and
-the [analysis companion](analysis/parental_deviation/README.md), which enumerates
-all eight maternal regressions, runs pi sensitivity analyses and records sample
-counts and failures.
+With a full-sibling pair only, no child or partner columns are required:
+
+```r
+fit_pair <- ravel_family_fit(sib_dat,
+  genetic_roles = c("mother", "mat_sib"),
+  col_outcome = "mom_height", pi = .4, fit_constraints = "estimated_state")
+as.data.frame(fit_pair)
+```
+
+Here `mother` is the focal adult and `mat_sib` their full sibling. For partners
+with one sibling, use `c("mother", "father", "mat_sib")` or
+`c("mother", "father", "pat_sib")`; include all four adult roles for both
+siblings. The pedigree roles describe the genetic relationships, not who must
+have the outcome. Partners alone need a history assumption or a supplied
+`parent_visible_variance` for an estimated-state fit.
+
+Use the family tables above for selected regressions; legacy trio helpers such
+as `print_simple()` describe the full source model. Existing `ravel_fit()` calls
+retain their previous meaning and output. The
+[analysis companion](analysis/parental_deviation/README.md) includes a runnable
+synthetic example and runs all eight maternal regressions and pi grids.
+For the original editable-settings workflow with parental phenotypes, use
+[`ravel_parental_phenotypes.R`](analysis/parental_deviation/ravel_parental_phenotypes.R):
+it retains the child for identification and runs every adult predictor subset
+containing the focal parent,
+with plain-PGS comparisons and saved one-factor diagnostics.
+Separate tables expose SEM fit statistics, all parameters and covariance
+estimates with SEs, while keeping the primary regression table unchanged.
+[Identification, covariate assumptions and uncertainty](docs/family-models.md).
 
 ## Optional: interactions and growth
 
@@ -332,6 +405,9 @@ curvature, create `age2 = (age - 10)^2`, then use
 For independent rows without interactions, `ravel_dataframe_report()` prepares
 covariates and generates comparison tables, plots and reusable correction
 packets. Its default score names are lowercase `pgs1_` / `pgs2_`.
+Supply your outcome and PGS columns directly: this workflow performs its own
+scaling. Its SEM coefficients use prepared phenotype-SD units for continuous
+outcomes, unlike a direct `ravel_fit()` call on unstandardized `Y`.
 
 ```r
 out <- ravel_dataframe_report(ravel_example, outcome = "Y",
@@ -352,6 +428,11 @@ The initial report compares visible-scale effects. The grid supplies total
 corrections and flags incompatible scenarios; inspect `correction_status`,
 `error` and `warning`. Add `out_dir = "results"` to the report call to save
 outputs. [Column mapping, packets and generation grids](docs/reference.md).
+
+In dataframe-report summaries, the ordinary PGS comparisons are labeled
+`regression = "PGS1"` / `"PGS2"` and `scale = "own_role_PGS_SD"`, rather than
+`"vanilla"`. Additional comparator tables expose other predictor/outcome units;
+check both `scale` and `outcome_scale` before comparing coefficients.
 
 ## Optional: score-association diagnostic
 
@@ -374,7 +455,8 @@ or corrections, and non-rejection does not establish unbiased effects.
 [Methods and assumptions](docs/methods.md) contains the theory;
 [API and workflow reference](docs/reference.md) covers options and output fields.
 Installed help is available through `?ravel_fit`, `?ravel_correct_pi`,
-`?ravel_dataframe_report`, `?ravel_correct_grid` and `?ravel_test_score_signal`.
+`?ravel_family_fit`, `?ravel_family_regression`, `?ravel_dataframe_report`,
+`?ravel_correct_grid` and `?ravel_test_score_signal`.
 
 MIT licensed. Please cite:
 

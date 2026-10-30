@@ -1,0 +1,10 @@
+"case","expected_status","status","reason","statistic","df","p_value","N"
+"bundled_estimated_state","ok","ok","Score-phenotype compatibility test under the retained measurement assumptions.",0.74947386397792,3,0.861510008248415,4000
+"bundled_n_gen","ok","ok","Score-phenotype compatibility test under the retained measurement assumptions.",0.83008879158008,3,0.84225747469456,4000
+"bundled_equilibrium","ok","ok","Score-phenotype compatibility test under the retained measurement assumptions.",0.786324928667142,3,0.852735056134105,4000
+"bundled_free_measurement","unsupported_free_measurement","unsupported_free_measurement","The free residual score model has an observational scale invariance; an identified alternative has not been implemented.",NA,NA,NA,4000
+"named_ID_with_dummy_FID","ok","ok","Score-phenotype compatibility test under the retained measurement assumptions.",0.74947386397792,3,0.861510008248415,4000
+"maternal_phenotype_complete","ok","ok","Score-phenotype compatibility test under the retained measurement assumptions.",5.1091382112451,5,0.402706651006306,2000
+"maternal_phenotype_missing_sibling","unsupported_missingness","unsupported_missingness","not available: some families lack sibling scores (the test needs every family's scores)",NA,NA,NA,2000
+"retained_missing_outcome","unsupported_missingness","unsupported_missingness","Incomplete or dropped observations are outside the validated scope; no rows are dropped by this diagnostic.",NA,NA,NA,4000
+"repeated_family","unsupported_design","unsupported_design","not available: some families have more than one row (needs one independent trio per row)",NA,NA,NA,4000

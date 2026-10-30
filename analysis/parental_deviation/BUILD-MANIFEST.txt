@@ -5,3 +5,11 @@ Local branch: codex/family-outcome-subsets
 SHA256 RAVEL_0.2.0.9001.tar.gz: 3caf92fdf8d986bcf9d4e2b8cd6ac1604ceec16c75f8de88d58b75aae4356fa8
 All example observations are synthetic.
 See README.md for installation and usage; package-validation.md and validation-report.md for checks.
+
+Parental-phenotype workflow update: 2026-10-29
+Package statistical core unchanged; new scripts use the same checked 0.2.0.9001 archive.
+Focal parent always included; child retained in the genetic model.
+See parental-workflow-validation.md for the new workflow and SEM export checks.
+SHA256 ravel_parental_deviation.R: beb2f71c12b0cdde14830dd8331eb80f4756867ee96a035add3f9b1b2d6e8188
+SHA256 ravel_parental_phenotypes.R: d6813570b3faa159451f09d0c085057cd5899e7be4507aac3a13478cc8faa5cc
+SHA256 ravel_sem_audit.R: bb1cfc56f7b30de87ecb56e45ff0167de542cf3703369bfb1e031ac2cd5f7bf7
