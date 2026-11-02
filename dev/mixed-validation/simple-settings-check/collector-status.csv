@@ -1,0 +1,3 @@
+"scenario","N","maternal_families","extended_families","converged","inference_status","diagnostic_status","maternal_id","subject_id","sandwich_cluster","diagnostic_cluster"
+"cross_sectional_family_only",500,250,250,TRUE,"ok","ok","Nuclear","Person","Extended","BroadDiagnostic"
+"longitudinal_individual_only",1500,250,250,TRUE,"ok","ok","Nuclear","Person","Extended","BroadDiagnostic"

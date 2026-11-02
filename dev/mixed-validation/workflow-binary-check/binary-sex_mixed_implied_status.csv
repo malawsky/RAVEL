@@ -1,0 +1,2 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","status","reason"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"ok","One of 4 retained covariance-design groups; fixed-effect means do not enter this covariance."

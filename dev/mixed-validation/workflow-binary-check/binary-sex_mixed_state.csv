@@ -1,0 +1,8 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","block","lhs","rhs","estimate","se","uncertainty_conditions","ci_low","ci_high"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","rho","",0.368858889668038,0.101684440216369,"FID sandwich; conditional on supplied pi",0.169561049055837,0.568156730280238
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","parent","",1.59091959873576,0.308848095922335,"FID sandwich; conditional on supplied pi",0.985588454034212,2.19625074343731
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","child","",1.58887221773828,0.225690885684042,"FID sandwich; conditional on supplied pi",1.14652621015861,2.03121822531795
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","visible_parent","",1.35455175924146,0.185308857552144,"FID sandwich; conditional on supplied pi",0.991353072422991,1.71775044605992
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","visible_child","",1.35332333064297,0.135414531410242,"FID sandwich; conditional on supplied pi",1.08791572609552,1.61873093519041
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","rho_visible","",0.259934623865276,0.0730662754009811,"FID sandwich; conditional on supplied pi",0.116727355594868,0.403141892135684
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","eta","",0.630253161703857,0.0321869022959416,"FID sandwich; conditional on supplied pi",0.567167992429902,0.693338330977812

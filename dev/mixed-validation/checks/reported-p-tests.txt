@@ -1,0 +1,20 @@
+Completed full new-module test run, 2026-11-02.
+32 tests / 318 passing assertions; no test failures, errors, warnings or skips.
+Suite counts are recorded from the complete testthat summary reporter below.
+The initial per-test CSV writer failed after all tests completed because a list column was included.
+The earlier per-test new-tests.csv is preserved as its original historical run.
+
+Warning message:
+package 'testthat' was built under R version 4.4.3
+binary-score-signal: .........................
+mixed-audit: .............
+mixed-fit: ..............................................................................
+mixed-scaling: .................
+mixed-validation: ............................................................................................................................
+score-diagnostic: .............................................................
+
+== DONE ========================================================================
+Error in utils::write.table(d, "dev/mixed-validation/checks/new-tests.csv",  :
+  unimplemented type 'list' in 'EncodeElement'
+Calls: write.csv -> eval.parent -> eval -> eval -> <Anonymous>
+Execution halted

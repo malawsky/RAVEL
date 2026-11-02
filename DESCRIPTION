@@ -27,6 +27,7 @@ Imports:
     tools,
     utils
 Suggests:
+    mvtnorm,
     testthat (>= 3.0.0)
 URL: https://github.com/malawsky/RAVEL
 BugReports: https://github.com/malawsky/RAVEL/issues

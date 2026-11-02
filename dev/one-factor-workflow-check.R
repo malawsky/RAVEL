@@ -45,13 +45,15 @@ local({
   run_case("bundled_free_measurement", example, "unsupported_free_measurement",
     fit_constraints = "none")
 
-  # An explicitly selected independent-family ID takes precedence over a
-  # dummy PLINK FID. The workflow must remove the unused FID before fitting.
+  # Explicitly identify a known dummy FID for the auxiliary diagnostic. Auto
+  # mode must preserve a genuine extended-family FID even when main family_id
+  # uses a different column; group size cannot distinguish these situations.
   alias <- example
   alias$independent_family <- alias$FID
   alias$FID <- 0L
   aliased <- run_case("named_ID_with_dummy_FID", alias, "ok",
-    fit_constraints = "estimated_state", family_id = "independent_family")
+    fit_constraints = "estimated_state", family_id = "independent_family",
+    diagnostic_cluster = "independent_family")
   stopifnot(!isTRUE(attr(aliased, "fit")$score_signal_input$dependent_families),
     !"FID" %in% names(attr(aliased, "analysis_data")))
 
@@ -67,24 +69,39 @@ local({
     fit_constraints = "estimated_state", parental_sibs = "both", sib_columns = sib_cols)
   missing_sib <- parent
   missing_sib$PGS1_mat_sib[seq_len(40L)] <- NA_real_
-  run_case("maternal_phenotype_missing_sibling", missing_sib, "unsupported_missingness",
+  missing_sib_result <- run_case("maternal_phenotype_missing_sibling", missing_sib, "ok",
     outcome = "mom_height", fit_constraints = "estimated_state",
     parental_sibs = "both", sib_columns = sib_cols)
+  stopifnot(attr(missing_sib_result, "one_factor")$selection$N_incomplete_selected == 40L,
+    attr(missing_sib_result, "one_factor")$selection$N_used == nrow(parent) - 40L)
   missing_y <- example
   missing_y$Y[seq_len(20L)] <- NA_real_
-  run_case("retained_missing_outcome", missing_y, "unsupported_missingness",
+  missing_y_result <- run_case("retained_missing_outcome", missing_y, "ok",
     fit_constraints = "estimated_state", drop_missing_outcome = FALSE)
+  stopifnot(attr(missing_y_result, "one_factor")$selection$N_incomplete_selected == 20L,
+    nrow(attr(missing_y_result, "analysis_data")) == nrow(example))
   repeated <- example
   repeated$FID <- rep(seq_len(ceiling(nrow(repeated) / 2)), each = 2L)[seq_len(nrow(repeated))]
-  run_case("repeated_family", repeated, "unsupported_design",
-    fit_constraints = "estimated_state")
+  repeated$IID <- sprintf("I%07d", seq_len(nrow(repeated)))
+  repeated_result <- run_case("repeated_family", repeated, "ok",
+    fit_constraints = "estimated_state", subject_id = "IID")
+  repeated_diagnostic <- attr(repeated_result, "one_factor")
+  stopifnot(repeated_diagnostic$selection$N_selected == length(unique(repeated$FID)),
+    !anyDuplicated(repeated_diagnostic$selection$clusters_used))
+  adjusted <- example
+  set.seed(8201L)
+  adjusted$sex <- stats::rbinom(nrow(adjusted), 1L, .5)
+  adjusted_result <- run_case("covariates_omitted", adjusted, "ok",
+    fit_constraints = "estimated_state", covariates = "sex")
+  diagnostic_row <- adjusted_result[adjusted_result$parameter == "one_factor_test", , drop = FALSE]
+  stopifnot(grepl("Covariates were not used to compute the one-factor test", diagnostic_row$note, fixed = TRUE),
+    identical(attr(adjusted_result, "one_factor")$auxiliary$covariates_omitted, "sex"))
 
   summary <- do.call(rbind, answers)
   rownames(summary) <- NULL
   utils::write.csv(summary, "dev/one-factor-check/workflow-summary.csv", row.names = FALSE)
-  saveRDS(diagnostics, "dev/one-factor-check/workflow-diagnostics.rds")
   writeLines(c(capture.output(sessionInfo()), "", "Source hashes:",
-    capture.output(tools::md5sum(c("R/ravel_score_signal.R",
+    capture.output(tools::md5sum(c("R/ravel_score_signal.R", "R/ravel_score_diagnostic.R",
       "analysis/parental_deviation/ravel_parental_deviation.R",
       "dev/one-factor-workflow-check.R")))),
     "dev/one-factor-check/workflow-session.txt")

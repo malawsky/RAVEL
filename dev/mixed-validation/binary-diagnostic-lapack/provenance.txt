@@ -1,0 +1,31 @@
+Norm-pivoted LAPACK QR-basis null calibration; one independently generated dataset per replicate.
+500 samples of N = 1500 unrelated trios; seeds 620001 through 620500; binary threshold = 0.6.
+Genetic covariance: spouse 0.2, child-parent 0.6. GWAS errors: spouse 0, child-parent 0.5; noise variances 0.6 and 1.3.
+Binary latent outcome = 0.4 Gc + 0.1 Gm + 0.05 Gf + independent N(0,1).
+Both genotypes and outcomes were independently regenerated in every replicate; no fixed-genotype repeated outcomes.
+The selected 500 seeds match the discarded default-QR experiment so numerical behavior can be compared on identical regenerated data.
+This exploratory run loaded a local LAPACK-only change before the final explicit singular-value rank guard and basis audit metadata were added.
+The tested Wald basis and influence calculations equal the reviewed implementation; the final rank guard is an additional rejection check.
+This is not represented as an exact archived-source run of the final guard. Original starting-source hashes were not captured.
+Current-source tests cover the formerly failing seed, scaling, fixed-path/dependence restrictions and covariance calculations.
+The portable driver records all source hashes for new runs: Rscript dev/run-binary-score-calibration.R --replicates=500 --basis=lapack
+Interpret rejection rates with their Monte Carlo uncertainty and the separate failed-fit denominator. This scenario does not calibrate rare outcomes or all genetic models.
+R version 4.4.1 (2024-06-14)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] C
+
+time zone: Europe/London
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+loaded via a namespace (and not attached):
+[1] compiler_4.4.1

@@ -400,6 +400,30 @@ curvature, create `age2 = (age - 10)^2`, then use
 
 [Interaction equations, assumptions and validation](docs/methods.md#genetic-x-covariate-interactions).
 
+For optional family and individual random effects, the development interface
+`ravel_mixed_fit()` keeps maternal families (`M_ID`) separate from extended-family
+SE clusters (`FID`). It supports continuous repeated outcomes, genetic-by-age
+and genetic-by-sex terms, and cross-sectional binary sibling outcomes:
+
+```r
+mixed <- ravel_mixed_fit(long_dat, pi = .4,
+  family_id = "M_ID", subject_id = "IID", cluster = "FID",
+  family_random = TRUE, individual_random = TRUE, random_slope = "age",
+  interactions = c("age", "sex"), interaction_center = c(age = 10, sex = 0),
+  covariate_mapping_confirmed = TRUE)
+as.data.frame(mixed)
+mixed$variance_components
+ravel_mixed_audit(mixed)$genetic_covariances
+```
+
+This separate interface assumes full siblings and constrained genetic models.
+Check the independence assumption before setting `covariate_mapping_confirmed`.
+Existing fitting scripts retain their current estimator by default.
+[Quick start, supported designs, output scales and diagnostics](docs/mixed-family-models.md).
+The child-outcome script exposes this through optional `random_family`,
+`random_individual` and `random_slope` settings, with separate maternal, child
+and sandwich-cluster IDs; see its [workflow quick start](analysis/parental_deviation/README.md#optional-random-effects-for-child-outcomes).
+
 ## Dataframe reports and pi grids
 
 For independent rows without interactions, `ravel_dataframe_report()` prepares
@@ -449,6 +473,13 @@ as a supported constrained fit; the fully free default is unsupported. Check
 the returned status before interpreting a p value. It does not change effects
 or corrections, and non-rejection does not establish unbiased effects.
 [Scope and interpretation](docs/reference.md#score-specific-phenotype-association-test).
+
+For covariate-adjusted or repeated data, `ravel_score_diagnostic(dat,
+primary_fit = fit, subject_id = "IID", cluster = "FID")` attempts a separate
+unadjusted diagnostic and warns that covariates were omitted. It selects one
+individual per extended family and one occasion, records the auxiliary sample,
+and returns an explicit status when no valid test is available. This does not
+test the adjusted model's random effects or genetic interactions.
 
 ## Documentation and citation
 

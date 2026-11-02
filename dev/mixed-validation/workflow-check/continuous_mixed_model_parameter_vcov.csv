@@ -1,0 +1,969 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","parameter_i","parameter_j","covariance"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state_rho","state_rho",0.0358827441480493
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state_variance","state_rho",-0.0154840800496979
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_mother","state_rho",-0.00326774496681573
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_father","state_rho",-0.00344899768069091
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_child","state_rho",-0.00471532680130291
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","state_rho",0.00833189551544468
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","state_rho",0.00814302184781673
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","state_rho",0.00776642758544959
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","state_rho",0.0214400024488963
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","state_rho",-0.0113354088476012
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","state_rho",0.00417305645902151
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","state_rho",0.000294826151934018
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","state_rho",-0.00394658556846743
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","state_rho",-0.000542729052671293
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","state_rho",-0.000250708748506331
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","state_rho",-2.3887255296859e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","state_rho",-4.59120202241414e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","state_rho",-3.1286424722185e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","state_rho",-1.29500782764028e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","state_rho",-1.50442550802205e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","state_rho",-7.44583444164382e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","state_rho",-2.34396928092041e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state_variance","state_variance",0.119427422050506
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_mother","state_variance",-0.014884825612546
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_father","state_variance",-0.0143222903262669
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_child","state_variance",-0.00954185394340103
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","state_variance",-0.0124957369739489
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","state_variance",-0.0124205973261536
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","state_variance",-0.0100178105198613
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","state_variance",0.0134269793131206
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","state_variance",0.010948538818181
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","state_variance",0.00596775963328967
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","state_variance",-0.00554044676305465
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","state_variance",-0.00265393110489229
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","state_variance",-5.70471368865546e-06
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","state_variance",0.00171398688412594
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","state_variance",3.90075899937121e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","state_variance",1.73895913867133e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","state_variance",1.7894517885447e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","state_variance",6.49552799749524e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","state_variance",1.62043756139588e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","state_variance",4.09775447884768e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","state_variance",7.5145233459625e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_mother","loading1_mother",0.00922123347073108
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_father","loading1_mother",0.00801407516442076
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_child","loading1_mother",0.00791565022222641
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","loading1_mother",-0.00332421991593926
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","loading1_mother",-0.00345480967627726
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading1_mother",-0.00385221291501174
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading1_mother",-0.0247178588657598
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading1_mother",0.00689392245494666
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading1_mother",-0.00406205035673574
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading1_mother",0.00172582406516798
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading1_mother",0.00259466480570888
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading1_mother",0.000504510486178097
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading1_mother",-8.97811934951097e-05
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading1_mother",-6.85499002871391e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading1_mother",1.63154338542299e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading1_mother",2.43956866321596e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading1_mother",-1.51055597253043e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading1_mother",4.23226095152127e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading1_mother",-1.27133800833044e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading1_mother",-3.07110128309338e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_father","loading1_father",0.00910832919052924
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_child","loading1_father",0.00782481737479322
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","loading1_father",-0.0035405095199362
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","loading1_father",-0.00325498659866169
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading1_father",-0.00383802534705115
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading1_father",-0.0245712541584645
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading1_father",0.0068613797935746
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading1_father",-0.00402628522033206
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading1_father",0.00160494411743979
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading1_father",0.00262650197378951
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading1_father",0.000502433384160942
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading1_father",-6.23515955843319e-05
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading1_father",-6.71561447995172e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading1_father",1.63512917978509e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading1_father",2.38624447611992e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading1_father",-1.44570330385587e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading1_father",4.74569396519075e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading1_father",-1.2412054280747e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading1_father",-3.03313810833665e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading1_child","loading1_child",0.00808180320933635
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","loading1_child",-0.00427825340505678
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","loading1_child",-0.00420847836401193
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading1_child",-0.00440537672613746
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading1_child",-0.0250232578485695
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading1_child",0.00769116886398585
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading1_child",-0.00385813105568083
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading1_child",0.00142513447031974
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading1_child",0.00261429787584037
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading1_child",0.000515187255974485
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading1_child",-1.20662953716076e-05
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading1_child",-5.48610679376619e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading1_child",1.77388431663358e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading1_child",3.13680345079436e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading1_child",-1.25770375250232e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading1_child",9.70287204846728e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading1_child",-1.14687565701512e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading1_child",-2.94087392374963e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_mother","loading2_mother",0.0101599234736447
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","loading2_mother",0.00899632848043477
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading2_mother",0.00905162970924971
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading2_mother",0.0194022900209201
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading2_mother",-0.0127277972063328
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading2_mother",0.00295049793064149
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading2_mother",-0.000267272533661811
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading2_mother",-0.00209831408400134
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading2_mother",-0.000508154068892075
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading2_mother",-0.000335358462312201
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading2_mother",-3.04115214435627e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading2_mother",-2.42691955343215e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading2_mother",-8.4705646125362e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading2_mother",-3.66559789013084e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading2_mother",-7.39662392586634e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading2_mother",2.02656663941563e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading2_mother",6.45665083763931e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_father","loading2_father",0.0102072977715177
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading2_father",0.00902133957228072
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading2_father",0.0191076952927995
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading2_father",-0.0126948976842675
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading2_father",0.00290270040920569
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading2_father",-0.000324848293880056
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading2_father",-0.00200505734846545
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading2_father",-0.00050136400459633
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading2_father",-0.000323573423024669
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading2_father",-2.87555040904783e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading2_father",-2.45005372308253e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading2_father",-8.55040441684429e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading2_father",1.69316578827609e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading2_father",-7.48184910403602e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading2_father",2.18456041144971e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading2_father",6.22597700760215e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"loading2_child","loading2_child",0.00935027605204563
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","loading2_child",0.0197440436447744
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","loading2_child",-0.0126418031563366
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","loading2_child",0.00312348642107749
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","loading2_child",-0.000440840389898346
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","loading2_child",-0.00212997774792551
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","loading2_child",-0.000514029560966089
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","loading2_child",-0.000300453019617753
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","loading2_child",-2.10997895273178e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","loading2_child",-2.3828626733563e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","loading2_child",-7.96847982332417e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","loading2_child",1.16607923345773e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","loading2_child",-7.00746410170744e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","loading2_child",3.01782670098111e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","loading2_child",8.27569856910786e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise1","noise1",0.0880884455689081
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","noise1",-0.0319209007502409
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","noise1",0.0138317736590022
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","noise1",-0.00420688963828599
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","noise1",-0.00926761980380475
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","noise1",-0.00194932267242899
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","noise1",-0.000401069969439212
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","noise1",1.23138116766747e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","noise1",-7.06852206846151e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","noise1",-1.62100502427633e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","noise1",3.43695636560231e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","noise1",-9.0340788060401e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","noise1",3.36266817666152e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","noise1",8.93463704891464e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"noise2","noise2",0.0186068104821294
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","noise2",-0.00501554630899807
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","noise2",0.000927317543428239
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","noise2",0.00343230686622793
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","noise2",0.00080001215661992
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","noise2",0.000378309181047501
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","noise2",1.39116243804699e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","noise2",3.56430983599288e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","noise2",1.12294585863992e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","noise2",-4.74378720757244e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","noise2",9.35531301181555e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","noise2",-6.86032454742415e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","noise2",-1.79943869978289e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_child_main","genetic_child_main",0.0135051666129718
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","genetic_child_main",-0.00609416121700665
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","genetic_child_main",-0.00618790528689812
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","genetic_child_main",-0.00148854513731624
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","genetic_child_main",0.000500498172694185
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","genetic_child_main",-3.14783851101355e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","genetic_child_main",-9.97278684184408e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","genetic_child_main",-4.52231484426856e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","genetic_child_main",5.9308637251438e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","genetic_child_main",3.22443256586366e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","genetic_child_main",7.21056733724332e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","genetic_child_main",-3.05423678392488e-17
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_mother_main","genetic_mother_main",0.0134062764400811
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","genetic_mother_main",-0.00575807761601183
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","genetic_mother_main",0.000647612127163734
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","genetic_mother_main",-0.00176135887840541
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","genetic_mother_main",8.27652235234859e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","genetic_mother_main",1.57327626271655e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","genetic_mother_main",5.69832939185099e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","genetic_mother_main",1.5724310492251e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","genetic_mother_main",3.8960584404426e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","genetic_mother_main",2.92399847328258e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","genetic_mother_main",-1.1432612191471e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"genetic_father_main","genetic_father_main",0.0144470096813516
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","genetic_father_main",0.000695122817785408
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","genetic_father_main",-0.000376234332751802
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","genetic_father_main",-6.25995262534773e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","genetic_father_main",6.4859194540322e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","genetic_father_main",-2.79930475694373e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","genetic_father_main",-6.89583127945206e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","genetic_father_main",-4.32185354125322e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","genetic_father_main",-9.43895041378192e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","genetic_father_main",8.7853210789508e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual_sd","residual_sd",0.00228821674608864
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","residual_sd",-0.00248818626631081
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","residual_sd",2.19646422634374e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","residual_sd",1.04389856941554e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","residual_sd",-2.10049570411946e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","residual_sd",-1.87576971033366e-16
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","residual_sd",-1.11875588968291e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","residual_sd",-1.13997498773718e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","residual_sd",1.1071499184129e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_sd","family_sd",0.0140109354924424
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","family_sd",-5.22824398914477e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","family_sd",-4.02366376594168e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","family_sd",-6.75404644468106e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","family_sd",-1.03989508491968e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","family_sd",-6.97772143321408e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","family_sd",-1.21662077702957e-14
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","family_sd",-8.19410709042932e-15
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_mother","score_mean1_mother",0.00375153684894759
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","score_mean1_mother",0.00113212070931253
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","score_mean1_mother",0.00241124577585583
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","score_mean1_mother",0.00206821598081632
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","score_mean1_mother",0.000831191194589178
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean1_mother",0.00145084736980803
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean1_mother",0.00069281596986461
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_father","score_mean1_father",0.00423920780820948
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","score_mean1_father",0.00256318070261237
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","score_mean1_father",0.000833375575431801
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","score_mean1_father",0.00233094241799197
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean1_father",0.00154226666479402
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean1_father",0.000643092096467045
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean1_child","score_mean1_child",0.00325899259195603
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","score_mean1_child",0.00142785539639981
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","score_mean1_child",0.00151384753468793
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean1_child",0.00190793704420718
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean1_child",0.000804978672577444
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_mother","score_mean2_mother",0.0039633316414435
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","score_mean2_mother",0.000611855639055693
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean2_mother",0.00230961739244625
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean2_mother",0.000509995005660543
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_father","score_mean2_father",0.00445508747613847
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean2_father",0.00244871336722398
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean2_father",0.000472151497182568
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"score_mean2_child","score_mean2_child",0.00332183984477805
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","score_mean2_child",0.000602101774106875
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"mean_intercept","mean_intercept",0.00269246486689302
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state_rho","state_rho",0.0497460772944853
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state_variance","state_rho",-0.024384252155038
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_mother","state_rho",-0.00313773631630483
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_father","state_rho",-0.00337156068867115
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_child","state_rho",-0.0050418201058397
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","state_rho",0.0101731441596584
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","state_rho",0.00995149729101553
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","state_rho",0.00941251820240184
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","state_rho",0.0242149170926252
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","state_rho",-0.0135797517845613
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","state_rho",0.00486815926366764
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","state_rho",0.00150489958913162
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","state_rho",-0.00554285969146798
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","state_rho",-0.000694383217090762
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","state_rho",-0.000439187488328362
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","state_rho",-9.91149498763793e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","state_rho",-9.65302882735624e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","state_rho",-1.03550402621917e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","state_rho",-6.30475578564299e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","state_rho",-7.20901685925569e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","state_rho",-7.34631767534704e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","state_rho",-2.02098096144565e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state_variance","state_variance",0.133660563759559
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_mother","state_variance",-0.0157467948785825
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_father","state_variance",-0.0151516780253882
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_child","state_variance",-0.0100943556691869
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","state_variance",-0.0132195330390484
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","state_variance",-0.0131400390430459
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","state_variance",-0.0105980938300381
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","state_variance",0.0142041950628167
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","state_variance",0.0115827811549857
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","state_variance",0.00714652901001011
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","state_variance",-0.00753614370729898
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","state_variance",-0.00259191969745904
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","state_variance",8.43674720141481e-06
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","state_variance",0.00232527332851512
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","state_variance",1.07710049680241e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","state_variance",1.58077546585972e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","state_variance",1.4422123150511e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","state_variance",9.86427635189583e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","state_variance",1.17502204964068e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","state_variance",1.19087468562656e-13
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","state_variance",6.11948684898874e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_mother","loading1_mother",0.00922128282524434
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_father","loading1_mother",0.0080141228256413
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_child","loading1_mother",0.00791569163169844
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","loading1_mother",-0.00332427248401186
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","loading1_mother",-0.00345486126531891
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading1_mother",-0.00385226313869456
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading1_mother",-0.0247181103987798
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading1_mother",0.00689399561590523
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading1_mother",-0.00437394660224993
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading1_mother",0.00185906993452984
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading1_mother",0.00282040750576474
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading1_mother",0.000552666123898331
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading1_mother",-0.000152621191017903
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading1_mother",1.29912959055909e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading1_mother",-2.71454726179096e-16
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading1_mother",5.64012945627975e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading1_mother",2.89766142207792e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading1_mother",4.00916469369572e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading1_mother",4.54295419643026e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading1_mother",-1.11911291282531e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_father","loading1_father",0.00910837565113384
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_child","loading1_father",0.00782485775085395
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","loading1_father",-0.00354056187022903
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","loading1_father",-0.00325503807457665
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading1_father",-0.00383807527320847
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading1_father",-0.0245715023865647
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading1_father",0.0068614523510117
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading1_father",-0.00433430816998911
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading1_father",0.00171895914062489
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading1_father",0.00286462924345828
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading1_father",0.000550452698188576
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading1_father",-0.000119560530560781
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading1_father",1.34192394908938e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading1_father",1.62500192550689e-16
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading1_father",6.1496471089293e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading1_father",3.2762853495388e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading1_father",4.03862100522701e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading1_father",4.79333505319567e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading1_father",-1.0908399593517e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading1_child","loading1_child",0.00808184070809711
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","loading1_child",-0.00427831212999786
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","loading1_child",-0.00420853600860627
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading1_child",-0.00440543144197552
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading1_child",-0.0250235079961989
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading1_child",0.00769124685124273
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading1_child",-0.00414065515049642
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading1_child",0.00146683942398762
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading1_child",0.00287609253071002
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading1_child",0.000564465446085308
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading1_child",-5.33371115872354e-05
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading1_child",1.92904973380653e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading1_child",7.60788359782516e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading1_child",1.32903539185613e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading1_child",8.01352033582278e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading1_child",9.72705515427883e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading1_child",1.04938876216324e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading1_child",-8.56717452400993e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_mother","loading2_mother",0.0101600223016258
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","loading2_mother",0.00899642561827342
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading2_mother",0.00905172165640784
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading2_mother",0.0194026248142613
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading2_mother",-0.0127279265577255
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading2_mother",0.00310142131433165
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading2_mother",-3.76058161459435e-06
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading2_mother",-0.00242040444753035
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading2_mother",-0.00056238699807026
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading2_mother",-0.000397135931306134
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading2_mother",-4.55027781553124e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading2_mother",-4.32539649934283e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading2_mother",-4.63947981866551e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading2_mother",-3.40685657509339e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading2_mother",-3.71446141978434e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading2_mother",-4.04145635088928e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading2_mother",-5.85541499988973e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_father","loading2_father",0.0102073932427598
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading2_father",0.00902142992651858
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading2_father",0.0191080243493847
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading2_father",-0.0126950246729723
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading2_father",0.00305052818676057
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading2_father",-7.39843686560711e-05
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading2_father",-0.00231218066472769
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading2_father",-0.000554885135315778
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading2_father",-0.000383249374495846
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading2_father",-4.50802686222612e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading2_father",-4.29621977855109e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading2_father",-4.59930848979828e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading2_father",-3.37021766977402e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading2_father",-3.76092943012533e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading2_father",-4.04172510486265e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading2_father",-5.86900418758908e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"loading2_child","loading2_child",0.00935036153972393
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","loading2_child",0.0197443616690478
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","loading2_child",-0.0126419230682252
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","loading2_child",0.00329303164470824
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","loading2_child",-0.000220081599338369
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","loading2_child",-0.00243937549436248
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","loading2_child",-0.000568925796684211
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","loading2_child",-0.000352038912180612
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","loading2_child",-4.34790674729839e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","loading2_child",-4.00621717103602e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","loading2_child",-4.35565204982113e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","loading2_child",-3.24240401730342e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","loading2_child",-3.53684216416229e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","loading2_child",-3.85922201209226e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","loading2_child",-4.64172643072992e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise1","noise1",0.0880897850269345
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","noise1",-0.0319213659488851
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","noise1",0.014775135337018
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","noise1",-0.00406240900764605
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","noise1",-0.01031429915276
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","noise1",-0.00214357485950854
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","noise1",-0.000360595500589336
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","noise1",-9.57929452007868e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","noise1",-6.20370872653245e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","noise1",-8.03274569881284e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","noise1",-5.30013046110524e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","noise1",-6.2336501659465e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","noise1",-6.6353299041299e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","noise1",1.84274512106188e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"noise2","noise2",0.0186069784307015
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","noise2",-0.00530495053470788
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","noise2",0.000646350074351248
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","noise2",0.00390136469657793
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","noise2",0.000883825391108296
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","noise2",0.000435235440609856
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","noise2",6.13776301051846e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","noise2",5.42239346176327e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","noise2",6.00676285674114e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","noise2",4.42202314550272e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","noise2",4.85556363224074e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","noise2",5.28596130385418e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","noise2",3.9632707383319e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_child_main","genetic_child_main",0.0152530841997703
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","genetic_child_main",-0.0068402541430492
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","genetic_child_main",-0.00701617404092527
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","genetic_child_main",-0.00179785834259937
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","genetic_child_main",0.000564467013167238
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","genetic_child_main",-2.55996532959123e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","genetic_child_main",-1.3015471461307e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","genetic_child_main",-2.18588234478477e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","genetic_child_main",-1.58490874869064e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","genetic_child_main",-1.71415175886262e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","genetic_child_main",-2.07806087618107e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","genetic_child_main",2.6865260380156e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_mother_main","genetic_mother_main",0.0168846419258966
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","genetic_mother_main",-0.00855396077840232
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","genetic_mother_main",0.000770844842847467
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","genetic_mother_main",-0.00227304366462106
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","genetic_mother_main",8.42343015886327e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","genetic_mother_main",6.46117860676739e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","genetic_mother_main",1.04566294430252e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","genetic_mother_main",-1.55736431170383e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","genetic_mother_main",9.23182195422285e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","genetic_mother_main",5.58680467396034e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","genetic_mother_main",-3.67873559612619e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"genetic_father_main","genetic_father_main",0.0181030171325941
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","genetic_father_main",0.000842830522736006
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","genetic_father_main",-0.000169513186550512
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","genetic_father_main",1.5087035791039e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","genetic_father_main",2.80460506434415e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","genetic_father_main",8.4667750228408e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","genetic_father_main",1.63029574405642e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","genetic_father_main",3.92108628751393e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","genetic_father_main",1.27476532596248e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","genetic_father_main",3.13913855428743e-16
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual_sd","residual_sd",0.00235854148060714
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","residual_sd",-0.00253753324899187
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","residual_sd",2.70558227739035e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","residual_sd",2.27731045853243e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","residual_sd",2.35625255004715e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","residual_sd",1.93285056165122e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","residual_sd",2.96826120024529e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","residual_sd",2.77589856460945e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","residual_sd",-4.09662139032555e-16
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_sd","family_sd",0.0145578190891331
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","family_sd",1.03678661311407e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","family_sd",5.19008831308702e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","family_sd",1.00208824866284e-14
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","family_sd",6.38900962811905e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","family_sd",3.24249490032627e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","family_sd",6.0466640794378e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","family_sd",2.98860686700737e-15
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_mother","score_mean1_mother",0.00375153379064846
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","score_mean1_mother",0.00113212133068883
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","score_mean1_mother",0.00241124328811989
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","score_mean1_mother",0.00206821252984628
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","score_mean1_mother",0.000831190420944447
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean1_mother",0.00145084495262779
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean1_mother",0.00069281628765939
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_father","score_mean1_father",0.00423920373471655
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","score_mean1_father",0.00256317787139838
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","score_mean1_father",0.000833374750966899
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","score_mean1_father",0.00233093832549003
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean1_father",0.00154226398295346
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean1_father",0.000643089928915836
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean1_child","score_mean1_child",0.00325898959422998
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","score_mean1_child",0.00142785254629187
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","score_mean1_child",0.00151384449127475
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean1_child",0.00190793457673771
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean1_child",0.000804977892557042
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_mother","score_mean2_mother",0.00396332889885194
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","score_mean2_mother",0.000611854128425607
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean2_mother",0.00230961480513758
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean2_mother",0.000509994455137292
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_father","score_mean2_father",0.00445508426577938
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean2_father",0.00244871058906206
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean2_father",0.000472149207183878
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"score_mean2_child","score_mean2_child",0.00332183716204452
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","score_mean2_child",0.000602100463251632
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"mean_intercept","mean_intercept",0.00269246547543406
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state_rho","state_rho",0.00821051823993737
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_mother","state_rho",-0.00486395764423202
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_father","state_rho",-0.00481560120503782
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_child","state_rho",-0.0043177285844915
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_mother","state_rho",0.000346056431426149
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","state_rho",0.000303916087495675
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","state_rho",0.000756472993680493
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","state_rho",0.0130039351508387
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","state_rho",-0.00191439732341197
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","state_rho",0.00324134829621938
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","state_rho",-0.00152008985330378
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","state_rho",-0.00203752549607644
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","state_rho",-0.000229738854501227
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","state_rho",0.000188644078825596
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","state_rho",-1.4599111228001e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","state_rho",5.90637415964489e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","state_rho",-5.9929796590045e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","state_rho",-1.40068248228696e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","state_rho",3.93198117129011e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","state_rho",-7.00016673527514e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","state_rho",-8.19091262560678e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_mother","loading1_mother",0.00983307913603899
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_father","loading1_mother",0.00870562202024669
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_child","loading1_mother",0.00918894132543769
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_mother","loading1_mother",-0.00464390012610133
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","loading1_mother",-0.00477764558408125
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading1_mother",-0.0052471782716135
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading1_mother",-0.0317214199065896
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading1_mother",0.00873558959531728
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading1_mother",-0.00518941861473445
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading1_mother",0.00239189488502076
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading1_mother",0.00318327851871679
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading1_mother",0.00062543416775352
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading1_mother",8.70337485345572e-05
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading1_mother",1.87624049917578e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading1_mother",-1.01909571412309e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading1_mother",1.75581394986695e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading1_mother",1.59459146776907e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading1_mother",-6.44677938896724e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading1_mother",3.64514441146904e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading1_mother",1.71066408729929e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_father","loading1_father",0.00987152585928441
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_child","loading1_father",0.00914937790994808
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_mother","loading1_father",-0.00483225231101305
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","loading1_father",-0.00453945579537047
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading1_father",-0.00521069968666532
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading1_father",-0.0316787737751555
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading1_father",0.00868710888632153
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading1_father",-0.00517520341605271
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading1_father",0.00230547965313051
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading1_father",0.00320943495765734
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading1_father",0.000624692689470488
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading1_father",0.000105156934963439
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading1_father",1.9315951038569e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading1_father",-1.07026496494163e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading1_father",1.94164987776735e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading1_father",1.64731125482545e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading1_father",-6.72731015594511e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading1_father",3.96969045232614e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading1_father",1.71491413434612e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading1_child","loading1_child",0.00981681471771629
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_mother","loading1_child",-0.00529293224110092
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","loading1_child",-0.00522880808468027
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading1_child",-0.00560735974318082
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading1_child",-0.0330816375009569
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading1_child",0.00936755068398918
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading1_child",-0.00519385888518187
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading1_child",0.00234859118846656
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading1_child",0.00323350405129097
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading1_child",0.000648350127991572
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading1_child",0.000118641336533038
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading1_child",1.95803407274741e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading1_child",-1.1025765583944e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading1_child",1.77613062134525e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading1_child",1.63280415246007e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading1_child",-6.98921918401019e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading1_child",3.60279447167333e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading1_child",1.78839215427365e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_mother","loading2_mother",0.00827587801314128
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","loading2_mother",0.00716413608540388
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading2_mother",0.00761703516352429
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading2_mother",0.0217508011007984
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading2_mother",-0.0107743981224412
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading2_mother",0.0034799545463225
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading2_mother",-0.00136032099885227
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading2_mother",-0.00199437674329347
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading2_mother",-0.000488350106090346
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading2_mother",-0.000216847014449503
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading2_mother",-3.51887454272037e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading2_mother",5.64180005405968e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading2_mother",3.88908166761138e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading2_mother",-2.2629448057969e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading2_mother",4.41553073028398e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading2_mother",3.11135242737534e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading2_mother",-1.11830151486213e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_father","loading2_father",0.00841441881903853
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading2_father",0.0076272542841941
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading2_father",0.0214973424988327
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading2_father",-0.010796287226997
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading2_father",0.00343619244945511
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading2_father",-0.00138642584948199
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading2_father",-0.0019303798195434
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading2_father",-0.000483367238304685
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading2_father",-0.000210089407572143
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading2_father",-4.25353579115941e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading2_father",4.73175425549119e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading2_father",2.89731710858249e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading2_father",-2.8595289127749e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading2_father",3.69953852204736e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading2_father",2.31910458593963e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading2_father",-1.13335679031322e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"loading2_child","loading2_child",0.00833021179061764
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","loading2_child",0.0231084464333686
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","loading2_child",-0.0112603924087615
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","loading2_child",0.0037914966746982
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","loading2_child",-0.00151974243755061
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","loading2_child",-0.00215421577346125
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","loading2_child",-0.000518425728470091
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","loading2_child",-0.000214029347713839
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","loading2_child",-4.70404223359335e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","loading2_child",5.34566437708534e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","loading2_child",3.20280825308801e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","loading2_child",-3.33909792793952e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","loading2_child",4.24646412435603e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","loading2_child",2.50525032304392e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","loading2_child",-1.20919530459991e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise1","noise1",0.120822642536022
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","noise1",-0.0370578990559889
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","noise1",0.01935458205679
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","noise1",-0.00842045728926914
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","noise1",-0.011666879704143
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","noise1",-0.00246132718102453
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","noise1",-0.000676366648472134
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","noise1",-6.35671029387899e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","noise1",4.02503119992044e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","noise1",-1.42828510958516e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","noise1",-5.25185682698065e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","noise1",2.5711386478189e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","noise1",-8.29031779580456e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","noise1",-6.44080082942694e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"noise2","noise2",0.016699020783135
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","noise2",-0.00602121765070706
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","noise2",0.00248343772805587
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","noise2",0.00349575640161054
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","noise2",0.000812270794977634
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","noise2",0.000291254123213398
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","noise2",1.11423727272032e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","noise2",-9.14389604153583e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","noise2",-3.16460721224633e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","noise2",8.56700268421158e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","noise2",-6.62483033677402e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","noise2",-1.74809839952491e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","noise2",1.972014546243e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_child_main","genetic_child_main",0.0150335222626407
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","genetic_child_main",-0.0073331608825646
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","genetic_child_main",-0.00734112969156626
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","genetic_child_main",-0.00153735392575784
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","genetic_child_main",0.000411487580059778
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","genetic_child_main",-1.57927938413394e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","genetic_child_main",4.56013129862326e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","genetic_child_main",-5.13854456951529e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","genetic_child_main",-1.51557744080392e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","genetic_child_main",3.67024240693277e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","genetic_child_main",-5.98661065209215e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","genetic_child_main",-1.10913398398354e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_mother_main","genetic_mother_main",0.00982500007846753
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","genetic_mother_main",-0.00034905209917386
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","genetic_mother_main",0.000744193252079799
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","genetic_mother_main",-0.00119937477312915
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","genetic_mother_main",3.59384353931209e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","genetic_mother_main",-1.27207074263136e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","genetic_mother_main",-6.05496457793281e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","genetic_mother_main",4.11940128363058e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","genetic_mother_main",-8.55757703458516e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","genetic_mother_main",-3.27281348318216e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","genetic_mother_main",2.17080567653357e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"genetic_father_main","genetic_father_main",0.0106430918059923
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","genetic_father_main",0.000756527123514988
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","genetic_father_main",-0.000675775361784112
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","genetic_father_main",1.75055500301172e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","genetic_father_main",7.72337283190618e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","genetic_father_main",1.48355560347574e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","genetic_father_main",1.58228743190622e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","genetic_father_main",4.57127159260096e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","genetic_father_main",1.23795344466792e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","genetic_father_main",1.04703653648234e-14
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual_sd","residual_sd",0.00226922345179273
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","residual_sd",-0.00244809318494414
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","residual_sd",1.59956585862696e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","residual_sd",-9.89197276420973e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","residual_sd",5.85451433774163e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","residual_sd",2.61784985215984e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","residual_sd",-6.94866280023446e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","residual_sd",1.58906835480148e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","residual_sd",1.40542764856692e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_sd","family_sd",0.0135185031686699
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","family_sd",-4.09304060202777e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","family_sd",1.29282246583138e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","family_sd",-3.10336923677931e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","family_sd",-5.46348734052068e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","family_sd",6.62794293642454e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","family_sd",-4.57033661313517e-15
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","family_sd",6.2071802016708e-16
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_mother","score_mean1_mother",0.00391699036399958
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","score_mean1_mother",0.000945911799034174
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","score_mean1_mother",0.00246852402019573
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","score_mean1_mother",0.00221591641511654
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","score_mean1_mother",0.00067635071843178
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean1_mother",0.00146742744360562
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean1_mother",0.000713705211976422
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_father","score_mean1_father",0.00445556941776025
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","score_mean1_father",0.00263276874222754
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","score_mean1_father",0.000679576016531829
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","score_mean1_father",0.00250863800922467
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean1_father",0.00156506360618901
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean1_father",0.00065557870209643
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean1_child","score_mean1_child",0.00333704660996979
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","score_mean1_child",0.00146609031557551
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","score_mean1_child",0.00155621641813974
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean1_child",0.00192534962814584
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean1_child",0.000827454935775524
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_mother","score_mean2_mother",0.00404672332994164
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","score_mean2_mother",0.000485913937726137
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean2_mother",0.00231678799563381
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean2_mother",0.000512750708288203
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_father","score_mean2_father",0.00455955069632678
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean2_father",0.00245920969387148
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean2_father",0.000468755254564147
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"score_mean2_child","score_mean2_child",0.00333257373037756
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","score_mean2_child",0.000595014656513772
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"mean_intercept","mean_intercept",0.00269656275404273
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state_rho","state_rho",0.00882663257589235
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_mother","state_rho",-0.00504317052510155
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_father","state_rho",-0.00499303242618393
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_child","state_rho",-0.00447681680074827
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_mother","state_rho",0.00035882654796804
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","state_rho",0.000315133723950597
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","state_rho",0.000784362936591286
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","state_rho",0.013483156259216
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","state_rho",-0.00198495273949694
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","state_rho",0.00367945649329906
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","state_rho",-0.00176156730262936
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","state_rho",-0.00235063937087968
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","state_rho",-0.000259507675418236
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","state_rho",0.00026740795123151
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","state_rho",6.2482648183666e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","state_rho",9.42236687104219e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","state_rho",8.7333311848712e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","state_rho",4.91639616709636e-16
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","state_rho",4.76395937690978e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","state_rho",3.00975049922767e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","state_rho",5.74861000121437e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_mother","loading1_mother",0.00983309088260093
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_father","loading1_mother",0.00870563329323188
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_child","loading1_mother",0.00918894975732369
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_mother","loading1_mother",-0.00464390940721338
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","loading1_mother",-0.00477765481655289
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading1_mother",-0.00524718672478267
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading1_mother",-0.0317216219239956
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading1_mother",0.00873559080205618
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading1_mother",-0.00557873902692021
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading1_mother",0.00258717205865023
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading1_mother",0.00343933110189057
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading1_mother",0.000684935041057407
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading1_mother",4.46766992945456e-05
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading1_mother",-1.9966599916764e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading1_mother",-1.90495974493582e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading1_mother",-2.22782808093907e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading1_mother",-1.36041725292868e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading1_mother",-1.10816518983444e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading1_mother",-1.32619825503728e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading1_mother",-1.39683349350513e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_father","loading1_father",0.00987153691231038
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_child","loading1_father",0.00914938601631809
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_mother","loading1_father",-0.00483226127874578
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","loading1_father",-0.00453946480375918
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading1_father",-0.0052107078574134
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading1_father",-0.0316789744326243
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading1_father",0.00868710972323452
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading1_father",-0.00556302217937295
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading1_father",0.0024959553745973
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading1_father",0.00346771949618521
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading1_father",0.000684142551558872
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading1_father",6.53715283934513e-05
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading1_father",-1.98539674732079e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading1_father",-1.81341358266041e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading1_father",-2.18011437115996e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading1_father",-1.31065751893335e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading1_father",-1.06204941290208e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading1_father",-1.28035629046435e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading1_father",-1.39433015987819e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading1_child","loading1_child",0.00981681986844212
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_mother","loading1_child",-0.00529293898020224
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","loading1_child",-0.0052288148154084
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading1_child",-0.00560736551282765
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading1_child",-0.0330818353041079
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading1_child",0.00936754701769086
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading1_child",-0.00557667934820422
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading1_child",0.00253501040704585
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading1_child",0.00348543807837957
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading1_child",0.000709692945137398
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading1_child",8.10847168554393e-05
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading1_child",-2.0171988597192e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading1_child",-1.87340522291691e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading1_child",-2.23365071337506e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading1_child",-1.40001520716508e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading1_child",-1.09885560893946e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading1_child",-1.34035231854731e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading1_child",-1.44047622173843e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_mother","loading2_mother",0.00827588499189073
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","loading2_mother",0.0071641429501595
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading2_mother",0.00761704182671192
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading2_mother",0.0217509418566484
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading2_mother",-0.0107743954504833
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading2_mother",0.00370484289405963
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading2_mother",-0.00145367586902499
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading2_mother",-0.00212868398492465
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading2_mother",-0.00053752211568997
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading2_mother",-0.000223837629382059
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading2_mother",1.76527963475833e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading2_mother",9.90771737208443e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading2_mother",1.57140415740225e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading2_mother",1.67297886027354e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading2_mother",7.25785353410839e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading2_mother",1.27399580154481e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading2_mother",1.23440883010059e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_father","loading2_father",0.00841442575013539
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading2_father",0.00762726095591724
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading2_father",0.0214974818060494
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading2_father",-0.0107962845626396
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading2_father",0.00365778391822266
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading2_father",-0.00148081472648676
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading2_father",-0.00205991745669176
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading2_father",-0.000532042230674157
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading2_father",-0.000216639983930382
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading2_father",1.74700805594477e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading2_father",9.04606276157746e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading2_father",1.5205963371976e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading2_father",1.67257724906807e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading2_father",6.58826505471339e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading2_father",1.24075245446336e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading2_father",1.21628216644013e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"loading2_child","loading2_child",0.00833021811131127
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","loading2_child",0.0231085910212893
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","loading2_child",-0.0112603884430233
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","loading2_child",0.00404122580134011
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","loading2_child",-0.00162754086075865
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","loading2_child",-0.00230388778164511
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","loading2_child",-0.000570772632280384
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","loading2_child",-0.00021772797685892
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","loading2_child",1.85003739946214e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","loading2_child",1.04492534806983e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","loading2_child",1.64960883985701e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","loading2_child",1.71848438126081e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","loading2_child",7.50405935298274e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","loading2_child",1.31257518344782e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","loading2_child",1.30756092224436e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise1","noise1",0.120824018749525
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","noise1",-0.0370580815094961
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","noise1",0.0207429525667195
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","noise1",-0.00907884202960657
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","noise1",-0.0125594500500946
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","noise1",-0.00269962298489878
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","noise1",-0.00058301193479656
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","noise1",7.75721467031977e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","noise1",6.87426903895926e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","noise1",8.38604666582822e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","noise1",5.75276601993779e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","noise1",4.22583676188936e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","noise1",5.3561227957567e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","noise1",5.43764111754842e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"noise2","noise2",0.0166989946313333
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","noise2",-0.00642664984269855
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","noise2",0.00266314137247537
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","noise2",0.00374381131532408
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","noise2",0.00089315911606028
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","noise2",0.000286995639180758
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","noise2",-2.84884010177572e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","noise2",-1.81407358051266e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","noise2",-2.65999942700511e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","noise2",-2.53038717462418e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","noise2",-1.25740966922864e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","noise2",-2.01654302327852e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","noise2",-2.00230404369236e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_child_main","genetic_child_main",0.0170865821380713
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","genetic_child_main",-0.00836155938296196
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","genetic_child_main",-0.00838514258137552
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","genetic_child_main",-0.00185540888922233
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","genetic_child_main",0.000458933029025139
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","genetic_child_main",1.42869373561033e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","genetic_child_main",1.25408040056972e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","genetic_child_main",1.51693033069976e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","genetic_child_main",9.92852006801815e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","genetic_child_main",7.58958820179989e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","genetic_child_main",8.95186640177883e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","genetic_child_main",1.10197497595414e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_mother_main","genetic_mother_main",0.0110303001654619
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","genetic_mother_main",-0.000487315126234607
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","genetic_mother_main",0.000901527818740046
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","genetic_mother_main",-0.00138967770557336
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","genetic_mother_main",1.15120249200531e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","genetic_mother_main",-2.08013095361495e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","genetic_mother_main",6.55657309651348e-16
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","genetic_mother_main",1.88131377991675e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","genetic_mother_main",2.24055949791409e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","genetic_mother_main",4.18070899777211e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","genetic_mother_main",-7.5766975211148e-16
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"genetic_father_main","genetic_father_main",0.0119320172045962
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","genetic_father_main",0.000913671802560005
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","genetic_father_main",-0.00073209556549015
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","genetic_father_main",-1.49762138451696e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","genetic_father_main",-1.1264113948247e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","genetic_father_main",-1.61365139813156e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","genetic_father_main",-1.10105376379089e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","genetic_father_main",-1.04835636218285e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","genetic_father_main",-1.31738967766381e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","genetic_father_main",-1.13054163551728e-14
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual_sd","residual_sd",0.00233311475792739
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","residual_sd",-0.00248913670179311
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","residual_sd",-2.13827559840884e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","residual_sd",-1.49718434844352e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","residual_sd",-2.13135726014519e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","residual_sd",-6.8988425586151e-16
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","residual_sd",6.13934026893937e-17
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","residual_sd",-7.24130049437306e-17
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","residual_sd",-1.99020308417119e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_sd","family_sd",0.0138956990738862
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","family_sd",-4.421102396796e-16
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","family_sd",-3.37394138359008e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","family_sd",-2.60173576541288e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","family_sd",-4.42985714692509e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","family_sd",-7.49019245598563e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","family_sd",-8.06523982037847e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","family_sd",4.38632890377496e-15
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_mother","score_mean1_mother",0.0039169895119665
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","score_mean1_mother",0.000945910888706061
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","score_mean1_mother",0.00246852307475389
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","score_mean1_mother",0.00221591435971119
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","score_mean1_mother",0.000676348600956916
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean1_mother",0.00146742521373494
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean1_mother",0.00071370665037632
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_father","score_mean1_father",0.00445556824040698
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","score_mean1_father",0.00263276767237781
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","score_mean1_father",0.00067957388847981
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","score_mean1_father",0.00250863556686644
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean1_father",0.0015650611913922
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean1_father",0.000655579441778489
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean1_child","score_mean1_child",0.00333704549973307
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","score_mean1_child",0.0014660881944209
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","score_mean1_child",0.00155621413133434
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean1_child",0.00192534721068256
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean1_child",0.000827455907686144
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_mother","score_mean2_mother",0.00404672154471024
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","score_mean2_mother",0.00048591136248459
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean2_mother",0.00231678559160679
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean2_mother",0.000512750629494925
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_father","score_mean2_father",0.00455954847826959
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean2_father",0.00245920708634749
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean2_father",0.000468754767026244
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"score_mean2_child","score_mean2_child",0.00333257097447
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","score_mean2_child",0.000595014021482411
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"mean_intercept","mean_intercept",0.00269656175541559

@@ -1,0 +1,3 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","design_group","response","child","moderator:sex"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,1,"Y1","child1",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,1,"Y2","child2",0

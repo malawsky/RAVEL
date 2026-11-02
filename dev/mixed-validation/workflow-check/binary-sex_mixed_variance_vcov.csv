@@ -1,0 +1,4 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","parameter_i","parameter_j","covariance"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual","residual",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_intercept","residual",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_intercept","family_intercept",0.0694771018066001

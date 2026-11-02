@@ -1,0 +1,3 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","stage","status","note"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"source_fit","error","Controlled primary fit failure"
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"source_fit","error","Controlled primary fit failure"

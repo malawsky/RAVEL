@@ -1,0 +1,9 @@
+Discarded default-QR implementation: failure evidence, not successful calibration.
+500 freshly generated samples, N=1500 independent trios per sample; seeds620001 through620500.
+Visible genetic covariance: spouse.2, child-parent.6. GWAS errors: spouse0, child-parent.5; noise variances.6 and1.3.
+Binary latent outcome=.4Gc+.1Gm+.05Gf+independent N(0,1), threshold.6.
+Both genotypes and outcomes were regenerated every replicate. No fixed-genotype replications.
+The original run used two sequential-seed batches; all attempted results are retained.
+The initial exploratory run did not record source hashes. Current driver --basis=legacy reconstructs the QR behavior; it does not claim an archived source snapshot.
+basis-regressions.csv compares six previously failed seeds and six valid seeds under default and LAPACK QR.
+Reproduce: Rscript dev/run-binary-score-calibration.R --replicates=500 --basis=legacy

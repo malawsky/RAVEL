@@ -1,0 +1,4 @@
+"scenario","replicate","seed","N_families","N_rows","N_FIDs","pi_supplied","error","converged","optimizer_converged","inference_status","projected_gradient_max","elapsed_seconds","note"
+"pi_uncertainty",1,328001,500,1000,500,0.41417538803238,FALSE,TRUE,TRUE,"ok",0.000163074000781194,7.381,""
+"pi_uncertainty_equilibrium",1,358001,500,1000,500,0.395672618856425,FALSE,TRUE,TRUE,"ok",0.000158345437969665,4.675,""
+"pi_uncertainty_n_gen",1,368001,500,1000,500,0.426032580863725,FALSE,TRUE,TRUE,"ok",0.000232185856365419,4.42,""

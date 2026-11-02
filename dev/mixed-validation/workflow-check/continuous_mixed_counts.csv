@@ -1,0 +1,5 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","outcomes","individuals","maternal_families","extended_families"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,500,500,250,250
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,500,500,250,250
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,500,500,250,250
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,500,500,250,250

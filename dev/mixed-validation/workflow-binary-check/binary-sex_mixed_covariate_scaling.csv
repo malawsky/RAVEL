@@ -1,0 +1,2 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","covariate","center","scale"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"sex",0,0.500392166739472

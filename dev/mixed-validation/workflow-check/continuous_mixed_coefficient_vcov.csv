@@ -1,0 +1,73 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","parameter_i","parameter_j","covariance"
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_D","beta_D",0.007619932946594
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_M","beta_D",-0.00366150284450537
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_F","beta_D",-0.00357963359733056
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_M","beta_M",0.00515613785852912
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_F","beta_M",0.000503689028550047
+"none|Estimated state|main","visible","Estimated state","Y","main",0.4,0,"beta_F","beta_F",0.00505643329642033
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_D","beta_D",0.0148881168979376
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_M","beta_D",-0.00688268519293841
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_F","beta_D",-0.00701224452132623
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_M","beta_M",0.0122840278179702
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_F","beta_M",-0.00317361834861862
+"none|Estimated state|main","corrected_std","Estimated state","Y","main",0.4,0,"beta_F","beta_F",0.0121352840304286
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_D","beta_D",0.00964362210639636
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_M","beta_D",-0.00461137017583211
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_F","beta_D",-0.0050576616501993
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_M","beta_M",0.0098889281370806
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_F","beta_M",-0.00257991127218319
+"none|Estimated state|main","corrected_raw","Estimated state","Y","main",0.4,0,"beta_F","beta_F",0.00963859383426749
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_D","beta_D",0.00761996018981968
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_M","beta_D",-0.00366149944042489
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_F","beta_D",-0.00357965928163017
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_M","beta_M",0.00515612062399295
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_F","beta_M",0.000503697959180729
+"none|Estimated state|grid_1","visible","Estimated state","Y","grid",0.45,0,"beta_F","beta_F",0.0050564422125469
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_D","beta_D",0.0167960649264695
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_M","beta_D",-0.00765883220883661
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_F","beta_D",-0.00795662236328955
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_M","beta_M",0.0151634250893438
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_F","beta_M",-0.00522630312414514
+"none|Estimated state|grid_1","corrected_std","Estimated state","Y","grid",0.45,0,"beta_F","beta_F",0.0150346770776534
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_D","beta_D",0.010520374536189
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_M","beta_D",-0.00492848383025973
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_F","beta_D",-0.00561706390065432
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_M","beta_M",0.0119965210445438
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_F","beta_M",-0.00418460725915644
+"none|Estimated state|grid_1","corrected_raw","Estimated state","Y","grid",0.45,0,"beta_F","beta_F",0.011743307914829
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_D","beta_D",0.00831599716478953
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_M","beta_D",-0.00403468880245635
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_F","beta_D",-0.0041319207579085
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_M","beta_M",0.00524593562415236
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_F","beta_M",0.00102710493474733
+"none|Equilibrium|main","visible","Equilibrium","Y","main",0.4,0,"beta_F","beta_F",0.00529074473930577
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_D","beta_D",0.0169297512188817
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_M","beta_D",-0.00838003040667688
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_F","beta_D",-0.00856159606586752
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_M","beta_M",0.00976695255247233
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_F","beta_M",0.00137201954513451
+"none|Equilibrium|main","corrected_std","Equilibrium","Y","main",0.4,0,"beta_F","beta_F",0.00980786708400832
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_D","beta_D",0.00943149557045703
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_M","beta_D",-0.00473955614057023
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_F","beta_D",-0.00490327776562976
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_M","beta_M",0.00589349569461923
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_F","beta_M",0.000811220430219703
+"none|Equilibrium|main","corrected_raw","Equilibrium","Y","main",0.4,0,"beta_F","beta_F",0.00583183530569765
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_D","beta_D",0.00831598891521168
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_M","beta_D",-0.00403467877575936
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_F","beta_D",-0.00413191289137299
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_M","beta_M",0.00524592826779373
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_F","beta_M",0.00102709830776283
+"none|Equilibrium|grid_1","visible","Equilibrium","Y","grid",0.45,0,"beta_F","beta_F",0.00529073541592956
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_D","beta_D",0.0192381348963473
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_M","beta_D",-0.00954701199563614
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_F","beta_D",-0.00975137595097082
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_M","beta_M",0.0109457765359923
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_F","beta_M",0.00145372962936875
+"none|Equilibrium|grid_1","corrected_std","Equilibrium","Y","grid",0.45,0,"beta_F","beta_F",0.0109905409225593
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_D","beta_D",0.0102888999665779
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_M","beta_D",-0.00517684657642626
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_F","beta_D",-0.00535545272502513
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_M","beta_M",0.00635953318029893
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_F","beta_M",0.000813802187427123
+"none|Equilibrium|grid_1","corrected_raw","Equilibrium","Y","grid",0.45,0,"beta_F","beta_F",0.00628941084933359

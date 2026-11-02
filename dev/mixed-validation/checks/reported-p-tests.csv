@@ -1,0 +1,7 @@
+suite,tests,passed,failed,errors,warnings,skipped
+binary-score-signal,6,25,0,0,0,0
+mixed-audit,1,13,0,0,0,0
+mixed-fit,9,78,0,0,0,0
+mixed-scaling,1,17,0,0,0,0
+mixed-validation,8,124,0,0,0,0
+score-diagnostic,7,61,0,0,0,0

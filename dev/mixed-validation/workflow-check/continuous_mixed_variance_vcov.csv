@@ -1,0 +1,13 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","parameter_i","parameter_j","covariance"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual","residual",0.00362489007043827
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_intercept","residual",-0.00173822113349639
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_intercept","family_intercept",0.00351031281380453
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"residual","residual",0.00371651393854479
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_intercept","residual",-0.00171752658578436
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"family_intercept","family_intercept",0.00356224206323042
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"residual","residual",0.00364693984616575
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_intercept","residual",-0.00177588907815769
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"family_intercept","family_intercept",0.00347143336050017
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"residual","residual",0.00373375105700832
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_intercept","residual",-0.00176621132115618
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"family_intercept","family_intercept",0.00350638271088072

@@ -1,3 +1,12 @@
+Current bundle update (2026-11-02): the archive now includes the optional mixed-family
+estimator, updated auxiliary diagnostics and workflow integration. The original
+estimator implementation is unchanged. The current package check has no errors
+or warnings and one pre-existing CPU-runtime NOTE; legacy and new-module tests
+passed separately. See [current validation](../../docs/mixed-family-validation.md)
+and BUILD-MANIFEST.txt for checksums and limits, including the calibration
+warning accompanying nominal binary one-factor p-values. The report below
+records the earlier family-model release.
+
 # Final package validation — 29 October 2026
 
 Package: RAVEL 0.2.0.9001. Base commit: `09383e8`.

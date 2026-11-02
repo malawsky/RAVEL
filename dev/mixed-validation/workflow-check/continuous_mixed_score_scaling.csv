@@ -1,0 +1,25 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","column","center","scale"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_child",-0.0577111681435264,1.29298192720436
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_child",-0.220380274112496,1.61895611509948
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_mother",-0.0279554032584129,1.32790381034312
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_mother",-0.0709624871555056,1.60948217442454
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_father",-0.0666969822885281,1.22911353792966
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_father",-0.196251557934887,1.4692761190348
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS1_child",-0.0577111681435264,1.29298192720436
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS2_child",-0.220380274112496,1.61895611509948
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS1_mother",-0.0279554032584129,1.32790381034312
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS2_mother",-0.0709624871555056,1.60948217442454
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS1_father",-0.0666969822885281,1.22911353792966
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PGS2_father",-0.196251557934887,1.4692761190348
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS1_child",-0.0577111681435264,1.29298192720436
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS2_child",-0.220380274112496,1.61895611509948
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS1_mother",-0.0279554032584129,1.32790381034312
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS2_mother",-0.0709624871555056,1.60948217442454
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS1_father",-0.0666969822885281,1.22911353792966
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"PGS2_father",-0.196251557934887,1.4692761190348
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS1_child",-0.0577111681435264,1.29298192720436
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS2_child",-0.220380274112496,1.61895611509948
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS1_mother",-0.0279554032584129,1.32790381034312
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS2_mother",-0.0709624871555056,1.60948217442454
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS1_father",-0.0666969822885281,1.22911353792966
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"PGS2_father",-0.196251557934887,1.4692761190348

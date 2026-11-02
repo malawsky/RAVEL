@@ -1,0 +1,7 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","column","center","scale"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_child",0.00516112913315245,1.3541936194728
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_child",-0.0813316745783657,1.65613805201178
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_mother",0.0590138852512324,1.33753758274975
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_mother",-0.139134253378875,1.6330162289569
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS1_father",-0.033945892716549,1.31075647949603
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PGS2_father",-0.0702480135875091,1.69842320672967

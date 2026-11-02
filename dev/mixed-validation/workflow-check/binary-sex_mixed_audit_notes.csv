@@ -1,0 +1,6 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","note"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"Genetic tables describe an exchangeable full-sibling reference family, not a particular observed family."
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"State, genetic covariance and internal parameter SEs condition on pi, even if pi_se was supplied. Coefficient and residual variance tables retain the fit's external-pi adjustment."
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"Founder covariance uses founder genetic units; correlations use present-day role SDs. Residual random-effect variances are in the separate variance_components table."
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"Implied covariances describe one retained covariance-design group, in input score and outcome units (binary Y denotes the conditional-probit latent response). They include the genetic and residual random-effect contributions and condition on pi."
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"Likelihood and AIC use internal numerical units. Compare only fits of the same observations with the same scaling; with dependent maternal families within FID, these are working-independence quantities."

@@ -1,0 +1,5 @@
+"scenario","evidence_directory","attempted","errors","optimizer_converged","converged","finite_inference","boundary","other_unavailable","total_fit_seconds","median_fit_seconds"
+"cross_state","mc-continuous",500,0,500,500,500,0,0,1634.961,2.91299999999998
+"extended_family","mc-continuous",500,0,500,500,500,0,0,3113.88099999999,1.43000000000006
+"long_age_sex_random_slope","pilot-interactions",50,0,50,50,49,1,0,704.662,11.996
+"binary_siblings","pilot-binary",20,0,20,20,20,0,0,1459.041,63.5145

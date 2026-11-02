@@ -33,14 +33,14 @@
 ##   delta_F = beta_F - beta_FS. Families without a sibling stay in the RAVEL
 ##   fits, which use all available scores (full-information ML).
 ##
-##   For each model it also runs RAVEL's one-factor test on the main fit: do
-##   the PGS1 and PGS2 associations with the outcome agree with one shared
-##   genetic factor? (3 df for a trio, plus 1 per parental sibling; a small
-##   p-value is evidence against one factor.) It concerns the full visible
-##   fit, so it is not repeated over the grid. It needs complete, independent,
-##   cross-sectional continuous observations, no covariates, and an identified
-##   score-only model. A fully free residual model is not supported. The status
-##   and reason are reported even when no valid test is available.
+##   For each model it attempts a separate unadjusted one-factor diagnostic.
+##   Covariates and genetic interactions are omitted with a warning. One
+##   individual per original FID and one prespecified/nearest-age occasion are
+##   selected before missing scores/outcomes are removed; IDs and sample counts
+##   are saved. This does not validate adjusted effects or longitudinal slopes.
+##   Continuous outcomes use the score-signal likelihood test; binary outcomes
+##   use a separate conditional-probit Wald test. Fully free score models can
+##   remain unidentified. Every attempt retains its status and reason.
 ##
 ## What you need
 ##   Two polygenic scores (PGS1, PGS2) built from independent GWASs of the same
@@ -64,10 +64,14 @@
 ## ---- Load RAVEL, installing the bundled version if needed ------------------
 # Older RAVEL releases (e.g. 0.2.0) lack pi, fit_constraints, interactions and
 # parental contrasts, so the bundled version replaces any older install.
+# When replacing the archive with a newer development build of the SAME version,
+# reinstall it explicitly with install.packages("RAVEL_<version>.tar.gz",
+# repos = NULL, type = "source"), then restart R. API checks cannot detect every
+# reporting change within the same development version.
 ravel_is_current <- function() {
   requireNamespace("RAVEL", quietly = TRUE) &&
     all(c("ravel_family_fit", "ravel_family_regression") %in% getNamespaceExports("RAVEL")) &&
-    "ravel_test_score_signal" %in% getNamespaceExports("RAVEL") &&
+    all(c("ravel_score_diagnostic", "ravel_mixed_fit", "ravel_mixed_audit") %in% getNamespaceExports("RAVEL")) &&
     all(c("pi", "pi_se", "fit_constraints", "interactions", "cluster") %in%
         names(formals(RAVEL::ravel_fit))) &&
     "parent_contrasts" %in% names(formals(RAVEL::print_simple))
@@ -125,13 +129,31 @@ sib_columns <- NULL
 
 covariates <- NULL                # numeric covariates, e.g. c("sex", "PC1", "PC2")
 
-family_id  <- "FID"               # family identifier (rows of a family share it). Required
-                                  # for longitudinal data. Cross-sectional: families with more
-                                  # than one row (e.g. siblings) get SEs clustered by family;
+family_id  <- "FID"               # extended-family column for sandwich SEs; change to your ID column.
+                                  # Required for longitudinal data. Cross-sectional: families with more
+                                  # than one row (e.g. siblings) get SEs clustered by this column;
                                   # NULL = rows are independent trios (no family handling).
+subject_id <- "IID"               # individual ID; needed to select one person per FID
+                                  # and one occasion for the auxiliary one-factor test.
+diagnostic_cluster <- "auto"       # "auto": original FID if present, otherwise family_id;
+                                  # name another outer-family column if needed. NULL only
+                                  # when the supplied individuals are independent.
 # Longitudinal design only
 age        <- "age"               # age at measurement
 age_center <- 10                  # main effects are reported at this age
+
+# Optional mixed model for child outcomes. All effects off + NULL interactions keeps the existing estimator.
+maternal_id <- "M_ID"             # nuclear genetic family, also required for individual-only models.
+random_family <- FALSE           # TRUE adds a shared maternal-family intercept.
+random_individual <- FALSE       # TRUE adds an individual intercept using subject_id; longitudinal only.
+random_slope <- NULL             # e.g. "age" for an individual age slope; longitudinal only.
+genetic_interactions <- NULL     # explicit c("age", "sex") opts into mixed fitting even without random effects.
+                                  # NULL keeps automatic longitudinal age; character(0) requests no interactions.
+covariate_mapping_confirmed <- FALSE # mixed models with covariates/moderators require the stated genetic independence assumption.
+# The family effect and the sandwich SEs use different IDs: maternal_id versus family_id.
+# Full siblings are assumed. Advanced controls, including a paternal-ID check,
+# remain available through mixed_settings; do not combine active simple options with it.
+mixed_settings <- NULL
 
 # Hidden-fraction correction
 pi         <- 0.528               # assumed fraction of genetic variance the PGSs miss
@@ -154,6 +176,41 @@ output_csv  <- "ravel_parental_deviation.csv"   # one file per outcome, named
 
 ## ---- ANALYSIS FUNCTION (no need to edit) ------------------------------------
 
+.ravel_parental_mixed_settings <- function(dat, design, subject_id, maternal_id,
+    random_family, random_individual, random_slope, genetic_interactions,
+    covariate_mapping_confirmed, mixed_settings) {
+  for (flag in list(random_family, random_individual, covariate_mapping_confirmed))
+    if (!is.logical(flag) || length(flag) != 1L || is.na(flag))
+      stop("random_family, random_individual and covariate_mapping_confirmed must be TRUE or FALSE.")
+  if (!is.null(random_slope) && (!is.character(random_slope) || length(random_slope) != 1L ||
+      is.na(random_slope) || !nzchar(random_slope))) stop("random_slope must name one numeric time column, or be NULL.")
+  if (!is.null(genetic_interactions) && (!is.character(genetic_interactions) ||
+      anyNA(genetic_interactions) || any(!nzchar(genetic_interactions)) || anyDuplicated(genetic_interactions)))
+    stop("genetic_interactions must name distinct numeric moderator columns, or be NULL.")
+  requested <- random_family || random_individual || !is.null(random_slope) || !is.null(genetic_interactions)
+  if (!is.null(mixed_settings)) {
+    if (requested || !is.null(genetic_interactions) || covariate_mapping_confirmed)
+      stop("Use either the simple random-effect/interaction options or advanced mixed_settings, not both; put all mixed controls in one place.")
+    if (!identical(maternal_id, "M_ID") && !identical(maternal_id, mixed_settings$maternal_id))
+      stop("maternal_id conflicts with advanced mixed_settings$maternal_id.")
+    if (!identical(subject_id, "IID") && !identical(subject_id, mixed_settings$subject_id))
+      stop("subject_id conflicts with advanced mixed_settings$subject_id.")
+    return(mixed_settings)
+  }
+  if (!requested) return(NULL)
+  design <- match.arg(design, c("cross_sectional", "longitudinal"))
+  if (design != "longitudinal" && (random_individual || !is.null(random_slope)))
+    stop("Individual random effects require design='longitudinal'.")
+  if (!is.character(maternal_id) || length(maternal_id) != 1L || is.na(maternal_id) ||
+      !nzchar(maternal_id) || !maternal_id %in% names(dat))
+    stop("maternal_id must name the nuclear-family column, including when only individual random effects are requested; it must not be replaced by an extended-family FID.")
+  answer <- list(maternal_id = maternal_id, subject_id = subject_id,
+    family_random = random_family, individual_random = random_individual,
+    random_slope = random_slope, covariate_mapping_confirmed = covariate_mapping_confirmed)
+  if (!is.null(genetic_interactions)) answer$interactions <- genetic_interactions
+  answer
+}
+
 ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitudinal"),
                                      outcome = "Y", pgs_columns, covariates = NULL,
                                      binary_outcome = FALSE, family_id = "FID",
@@ -163,9 +220,34 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
                                      am_n_generations = NULL, model = fit_constraints,
                                      include_comparison = TRUE, include_raw = FALSE,
                                      drop_missing_outcome = TRUE, parental_sibs = "none",
-                                     sib_columns = NULL) {
+                                     sib_columns = NULL, subject_id = "IID",
+                                     diagnostic_cluster = "auto", mixed_settings = NULL,
+                                     maternal_id = "M_ID", random_family = FALSE,
+                                     random_individual = FALSE, random_slope = NULL,
+                                     genetic_interactions = NULL, covariate_mapping_confirmed = FALSE) {
+  resolved_mixed <- .ravel_parental_mixed_settings(dat, design, subject_id, maternal_id,
+    random_family, random_individual, random_slope, genetic_interactions,
+    covariate_mapping_confirmed, mixed_settings)
+  if (!is.null(resolved_mixed)) return(ravel_parental_deviation_mixed(
+    dat = dat, design = design, outcome = outcome, pgs_columns = pgs_columns,
+    covariates = covariates, binary_outcome = binary_outcome, family_id = family_id,
+    age = age, age_center = age_center, pi = pi, pi_se = pi_se, pi_grid = pi_grid,
+    grid_pi_se = grid_pi_se, fit_constraints = fit_constraints,
+    am_n_generations = am_n_generations, model = model,
+    include_comparison = include_comparison, include_raw = include_raw,
+    drop_missing_outcome = drop_missing_outcome, parental_sibs = parental_sibs,
+    sib_columns = sib_columns, mixed_settings = resolved_mixed, diagnostic_cluster = diagnostic_cluster))
   design <- match.arg(design)
   long <- design == "longitudinal"
+  # Preserve original IDs/missing records separately from legacy preprocessing.
+  # The auxiliary sample is selected before exclusions, using the same score
+  # and outcome units as the main analysis but none of its covariates.
+  diagnostic_data <- dat
+  diagnostic_covariates <- covariates
+  diagnostic_age <- if (long) age else NULL
+  if (identical(diagnostic_cluster, "auto")) diagnostic_cluster <-
+    if ("FID" %in% names(dat)) "FID" else
+      if (!is.null(family_id) && family_id %in% names(dat)) family_id else NULL
   sib_label <- c(none = "Trio only", maternal = "+ maternal sibling", paternal = "+ paternal sibling",
                  both = "+ both siblings")[[parental_sibs]]
   who <- if (parental_sibs == "none") model else paste0(model, ", ", sib_label)
@@ -188,6 +270,10 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   if (length(not_numeric))
     stop("Column(s) must be numeric: ", paste(not_numeric, collapse = ", "),
          ". Check for text entries (e.g. 'NA' strings or decimal commas).")
+
+  diagnostic_target_age <- if (long) {
+    if (is.null(age_center)) mean(dat[[age]], na.rm = TRUE) else age_center
+  } else NULL
 
   # Only complete trios are analysed: drop rows missing any of the six scores.
   # Also drop rows without an outcome (and, longitudinally, without age).
@@ -227,20 +313,15 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   use_family <- !long && !is.null(family_id) && family_id %in% names(dat)
   if (use_family) {
     ids <- dat[[family_id]]
-    if (anyNA(ids)) {
-      k <- sum(is.na(ids))
-      ids <- as.character(ids)
-      ids[is.na(ids)] <- paste0(".no_family_id_", seq_len(k))
-      dat[[family_id]] <- ids
-      message(who, ": ", k, " row(s) have no family ID; each is treated as its own family.")
-    }
+    if (anyNA(ids) || any(!nzchar(as.character(ids))))
+      stop("Supplied family IDs in '", family_id,
+        "' must be observed and nonempty; missing IDs cannot be treated as independent families.")
     sizes <- table(dat[[family_id]])
-    if (length(sizes) < 2L || max(sizes) > 20L) {   # e.g. a constant PLINK-style FID
-      family_note <- paste0("Column '", family_id, "' does not look like a family ID (one value covers ",
-        max(sizes), " rows), so it is ignored and rows are treated as independent trios")
-      message(who, ": ", family_note, ".")
-      use_family <- FALSE
-    } else {
+    if (length(sizes) < 2L)
+      stop("Family clustering requires at least two distinct IDs in '", family_id,
+        "'. A single family is not treated as independent trios; supply valid family IDs,",
+        " or set family_id = NULL only when the observations are independent.")
+    {
       n_multi <- sum(sizes > 1L)
       if (n_multi > 0L) {
         if (binary_outcome) {
@@ -281,7 +362,9 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
     x <- unlist(dat[v])
     if (!is.finite(stats::sd(x)) || stats::sd(x) == 0) stop("PGS", k, " has no variation.")
     v_all <- c(v, if (length(sib_roles)) unname(sib_columns[paste0(sib_roles, k)]))   # siblings: same constant
-    dat[v_all] <- (dat[v_all] - mean(x)) / stats::sd(x)
+    pgs_center <- mean(x); pgs_scale <- stats::sd(x)
+    dat[v_all] <- (dat[v_all] - pgs_center) / pgs_scale
+    diagnostic_data[v_all] <- (diagnostic_data[v_all] - pgs_center) / pgs_scale
   }
   for (v in covariates) {
     sv <- stats::sd(dat[[v]], na.rm = TRUE)
@@ -291,7 +374,9 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   if (!binary_outcome) {
     outcome_sd <- stats::sd(dat[[outcome]], na.rm = TRUE)
     if (!is.finite(outcome_sd) || outcome_sd == 0) stop("The outcome has no variation.")
-    dat[[outcome]] <- (dat[[outcome]] - mean(dat[[outcome]], na.rm = TRUE)) / outcome_sd
+    outcome_center <- mean(dat[[outcome]], na.rm = TRUE)
+    dat[[outcome]] <- (dat[[outcome]] - outcome_center) / outcome_sd
+    diagnostic_data[[outcome]] <- (diagnostic_data[[outcome]] - outcome_center) / outcome_sd
   }
 
   base_args <- list(dat,
@@ -328,37 +413,49 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
     ifelse(is.na(out), par, out)
   }
 
-  # RAVEL's one-factor (score-signal) test on a fitted model, as one table row.
-  diagnostic <- list(status = "needs_fit", reason = "No successful main fit.")
+  # An auxiliary unadjusted diagnostic; the primary fit is unchanged.
+  diagnostic <- list(status = "not_run", reason = "Auxiliary diagnostic has not run.")
   one_factor_row <- function(fit) {
-    why <- if (long) "not available for the longitudinal design (repeated rows)" else
-      if (binary_outcome) "not available for a binary outcome" else
-      if (length(covariates)) "not available with covariates" else
-      if (n_multi > 0L) "not available: some families have more than one row (needs one independent trio per row)" else
-      if (length(sib_used) && any(!stats::complete.cases(dat[sib_used])))
-        "not available: some families lack sibling scores (the test needs every family's scores)" else NULL
+    args <- base_args
+    args[[1L]] <- diagnostic_data
+    names(args)[1L] <- "dat"
+    args[c("fixed_effects", "interactions", "interaction_center", "cluster")] <- NULL
+    args$pi <- pi
+    args["family_id"] <- list(family_id)
+    args["subject_id"] <- list(subject_id)
+    args["cluster"] <- list(diagnostic_cluster)
+    args$covariates <- diagnostic_covariates
+    args$interactions <- if (long) diagnostic_age else NULL
+    args$age <- diagnostic_age
+    args$target_age <- diagnostic_target_age
     captured_warnings <- character()
-    z <- if (is.null(why)) tryCatch(withCallingHandlers(ravel_test_score_signal(fit),
+    z <- tryCatch(withCallingHandlers(do.call(ravel_score_diagnostic, args),
       warning = function(w) {
         captured_warnings <<- c(captured_warnings, conditionMessage(w))
         invokeRestart("muffleWarning")
-      }), error = function(e) e) else list(status = if (long || n_multi > 0L) "unsupported_design" else
-        if (binary_outcome) "unsupported_outcome" else if (length(covariates)) "unsupported_covariates" else
-          "unsupported_missingness", reason = why, N = nrow(dat))
-    if (is.null(why) && inherits(z, "error")) why <- paste("failed:", conditionMessage(z))
-    if (inherits(z, "error")) z <- list(status = "error", reason = conditionMessage(z), N = nrow(dat))
+      }), error = function(e) list(status = "error", reason = conditionMessage(e), N = NA_integer_))
     z$workflow_warnings <- unique(captured_warnings)
+    z$workflow <- list(primary_fit_converged = isTRUE(fit$converged),
+      N_input = n_input, N_primary = nrow(dat), primary_excluded_rows = which(drop),
+      original_cluster = diagnostic_cluster, subject_id = subject_id,
+      score_and_outcome_units = "Main analysis scaling constants, applied before auxiliary selection")
     diagnostic <<- z
-    if (is.null(why) && !identical(z$status, "ok")) why <- paste0("not available (", z$status, "): ", z$reason)
-    note <- if (!is.null(why)) why else
-      if (fit_constraints == "n_gen") paste("conditional on pi =", pi, "used in fitting") else ""
+    valid <- identical(z$status, "ok")
+    why <- if (!valid) paste0("not available (", z$status, "): ", z$reason) else ""
+    sample_note <- if (!is.null(z$selection$N_used)) paste0(
+      "Unadjusted independent auxiliary sample: N = ", z$selection$N_used,
+      " from ", z$selection$N_input, " input rows; ", z$selection$rule) else
+      "Unadjusted auxiliary diagnostic; sample selection was not completed"
+    note <- paste(unique(c(why[nzchar(why)], sample_note, captured_warnings,
+      if (fit_constraints == "n_gen") paste("conditional on pi =", pi, "used in fitting"),
+      if (binary_outcome) "Binary conditional-probit Wald test; not the continuous likelihood-ratio test")), collapse = "; ")
     data.frame(model = model, analysis = "One-factor test (visible fit)", pi = NA_real_, pi_se = NA_real_,
-      effect = if (is.null(why)) paste0("One-factor test: chi-square (", z$df, " df)") else "One-factor test",
-      parameter = "one_factor_test", estimate = if (is.null(why)) z$statistic else NA_real_,
+      effect = if (valid) paste0("One-factor test: chi-square (", z$df, " df)") else "One-factor test",
+      parameter = "one_factor_test", estimate = if (valid) z$statistic else NA_real_,
       se = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
-      p_value = if (is.null(why)) z$p_value else NA_real_, note = note,
+      p_value = if (valid) z$p_value else NA_real_, note = note,
       diagnostic_status = z$status, diagnostic_df = if (is.null(z$df)) NA_real_ else z$df,
-      diagnostic_N = if (is.null(z$N)) nrow(dat) else z$N, stringsAsFactors = FALSE)
+      diagnostic_N = if (is.null(z$N)) NA_real_ else z$N, stringsAsFactors = FALSE)
   }
 
   # One RAVEL fit at a given pi; returns the fit, its rows and any warnings.
@@ -410,9 +507,9 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   fit_records <- list(main = list(kind = "main", pi = pi, pi_se = pi_se,
     fit = main$fit, note = main$note))
   if (is.null(main$rows)) {
-    diagnostic <- list(status = "needs_fit", reason = main$note, N = nrow(dat))
     message(who, ": ", main$note)
     results <- list(fail_row("Visible (measured by the PGSs)", NA_real_, NULL, main$note),
+                    one_factor_row(main$fit),
                     fail_row("Corrected for pi", pi, pi_se, main$note))
   } else {
     # In the n_gen model the measurement fit itself depends on pi.
@@ -448,12 +545,355 @@ ravel_parental_deviation <- function(dat, design = c("cross_sectional", "longitu
   attr(table, "one_factor") <- diagnostic
   attr(table, "settings") <- list(design = design,
     covariates = covariates, age = age, cluster_by = cluster_by,
+    subject_id = subject_id, diagnostic_cluster = diagnostic_cluster,
     age_center = if (long) age_center else NULL, N = nrow(dat), N_dropped = n_input - nrow(dat),
     dropped = dropped, outcome = outcome, outcome_sd = outcome_sd, family_note = family_note,
     clustered_cross = !long && !is.null(cluster_by), sib_info = sib_info,
     N_families = if (long) length(unique(dat[[family_id]])) else NULL,
     missing_outcome_kept = !long && !drop_missing_outcome && any(is.na(dat[[outcome]])))
   table
+}
+
+# Optional family likelihood; activated through resolved simple or advanced controls.
+ravel_parental_deviation_mixed <- function(dat, design = c("cross_sectional", "longitudinal"),
+    outcome = "Y", pgs_columns, covariates = NULL, binary_outcome = FALSE,
+    family_id = "FID", age = "age", age_center = NULL, pi = .4, pi_se = .05,
+    pi_grid = NULL, grid_pi_se = pi_se, fit_constraints = "estimated_state",
+    am_n_generations = NULL, model = fit_constraints, include_comparison = TRUE,
+    include_raw = FALSE, drop_missing_outcome = TRUE, parental_sibs = "none",
+    sib_columns = NULL, mixed_settings, diagnostic_cluster = "auto") {
+  design <- match.arg(design); long <- design == "longitudinal"
+  if (!all(c("ravel_mixed_fit", "ravel_mixed_audit", "ravel_score_diagnostic") %in% getNamespaceExports("RAVEL")))
+    stop("The explicit mixed workflow requires a RAVEL build exporting mixed fitting, audits and score diagnostics.")
+  if (!identical(parental_sibs, "none") || !is.null(sib_columns))
+    stop("The optional mixed workflow does not implement parental-sibling latent blocks.")
+  if (!fit_constraints %in% c("estimated_state", "equilibrium", "n_gen"))
+    stop("The optional mixed workflow requires estimated_state, equilibrium or n_gen.")
+  if (long && binary_outcome) stop("Binary longitudinal mixed outcomes are not supported.")
+  allowed <- c("maternal_id", "subject_id", "paternal_id", "family_random", "individual_random",
+    "random_slope", "interactions", "interaction_center", "covariate_mapping_confirmed",
+    "diagnostic_control", "control")
+  if (!is.list(mixed_settings) || is.null(names(mixed_settings)) ||
+      anyDuplicated(names(mixed_settings)) || any(!names(mixed_settings) %in% allowed))
+    stop("mixed_settings must be a named list containing only documented mixed-model settings.")
+  if (!all(c("maternal_id", "subject_id") %in% names(mixed_settings)))
+    stop("mixed_settings must explicitly supply maternal_id and subject_id column names.")
+  ms <- utils::modifyList(list(paternal_id = NULL, family_random = TRUE,
+    individual_random = FALSE, random_slope = NULL, interactions = if (long) age else NULL,
+    interaction_center = NULL, covariate_mapping_confirmed = FALSE,
+    diagnostic_control = list(), control = list()), mixed_settings, keep.null = TRUE)
+  dc <- ms$diagnostic_control
+  if (!is.list(dc) || (length(dc) && (is.null(names(dc)) || anyDuplicated(names(dc)) ||
+      any(!names(dc) %in% c("age", "target_age", "occasion", "occasion_value", "selection_seed")))))
+    stop("diagnostic_control must contain only named age, target_age, occasion, occasion_value or selection_seed settings.")
+  if (!long && (isTRUE(ms$individual_random) || !is.null(ms$random_slope)))
+    stop("Individual random effects require design = 'longitudinal'.")
+  for (id in c("maternal_id", "subject_id"))
+    if (!is.character(ms[[id]]) || length(ms[[id]]) != 1L || is.na(ms[[id]]) || !nzchar(ms[[id]]))
+      stop("maternal_id and subject_id must name single nonmissing columns.")
+  if (!is.character(family_id) || length(family_id) != 1L || is.na(family_id) || !nzchar(family_id))
+    stop("family_id must explicitly name the extended-family FID column for mixed inference.")
+  if (identical(diagnostic_cluster, "auto")) diagnostic_cluster <-
+    if ("FID" %in% names(dat)) "FID" else family_id
+  if (!is.null(diagnostic_cluster) && (!is.character(diagnostic_cluster) ||
+      length(diagnostic_cluster) != 1L || is.na(diagnostic_cluster) ||
+      !nzchar(diagnostic_cluster) || !diagnostic_cluster %in% names(dat)))
+    stop("diagnostic_cluster must name an existing outer-family column, be 'auto', or be NULL for independent diagnostic subjects.")
+  score_keys <- paste0(rep(c("child", "mother", "father"), each = 2L), 1:2)
+  if (length(pgs_columns) != 6L || !setequal(names(pgs_columns), score_keys) ||
+      anyNA(pgs_columns) || anyDuplicated(unname(pgs_columns)))
+    stop("pgs_columns must name six distinct child1/2, mother1/2 and father1/2 columns.")
+  if (!is.numeric(pi) || length(pi) != 1L || !is.finite(pi) || pi <= 0 || pi >= 1 ||
+      (length(pi_grid) && (!is.numeric(pi_grid) || any(!is.finite(pi_grid) | pi_grid <= 0 | pi_grid >= 1))))
+    stop("pi and pi_grid values must lie in (0, 1).")
+  needed <- unique(c(outcome, unname(pgs_columns), covariates, family_id,
+    ms$maternal_id, ms$subject_id, ms$paternal_id, ms$interactions, ms$random_slope, if (long) age))
+  if (length(setdiff(needed, names(dat))))
+    stop("Missing column(s): ", paste(setdiff(needed, names(dat)), collapse = ", "))
+  numeric_columns <- unique(c(outcome, unname(pgs_columns), covariates,
+    ms$interactions, ms$random_slope, if (long) age))
+  if (any(!vapply(dat[numeric_columns], is.numeric, logical(1))))
+    stop("Outcome, PGSs, covariates and moderators must be numeric.")
+  # Keep every original row and ID for diagnostic selection. Neither missing
+  # outcomes/scores nor an outcome-dependent fitted sample can choose a replacement.
+  diagnostic_data <- dat
+  diagnostic_age <- if ("age" %in% names(dc)) dc$age else if (long) age else NULL
+  diagnostic_target <- if ("target_age" %in% names(dc)) dc$target_age else
+    if (!is.null(diagnostic_age) && diagnostic_age %in% names(dat)) {
+      if (diagnostic_age %in% names(ms$interaction_center)) unname(ms$interaction_center[[diagnostic_age]]) else
+        if (identical(diagnostic_age, age) && !is.null(age_center)) age_center else
+          mean(dat[[diagnostic_age]], na.rm = TRUE)
+    } else NULL
+
+  # Match the existing workflow's explicit score/outcome/age row exclusions.
+  # Identification and ID nesting are then checked by the new fitter, with no
+  # upper-size heuristic or fallback that silently discards extended FIDs.
+  n_input <- nrow(dat)
+  miss_pgs <- !stats::complete.cases(dat[unname(pgs_columns)])
+  miss_y <- is.na(dat[[outcome]]) & (drop_missing_outcome || long)
+  miss_age <- if (long) is.na(dat[[age]]) else rep(FALSE, n_input)
+  drop <- miss_pgs | miss_y | miss_age
+  dropped <- c(incomplete_trio = sum(miss_pgs), missing_outcome = sum(miss_y & !miss_pgs),
+    missing_age = sum(miss_age & !miss_pgs & !miss_y))
+  dat <- dat[!drop, , drop = FALSE]
+  if (any(drop)) message(model, ": mixed workflow dropped ", sum(drop),
+    " row(s): ", paste(names(dropped), dropped, collapse = ", "), ".")
+  if (nrow(dat) < 50L) stop("Fewer than 50 rows remain after the workflow's exclusions.")
+  outcome_sd <- NA_real_
+  if (!binary_outcome) {
+    outcome_sd <- stats::sd(dat[[outcome]], na.rm = TRUE)
+    if (!is.finite(outcome_sd) || outcome_sd <= 0) stop("The outcome has no variation.")
+    outcome_center <- mean(dat[[outcome]], na.rm = TRUE)
+    dat[[outcome]] <- (dat[[outcome]] - outcome_center) / outcome_sd
+    diagnostic_data[[outcome]] <- (diagnostic_data[[outcome]] - outcome_center) / outcome_sd
+  }
+  if (long && is.null(age_center)) age_center <- mean(dat[[age]], na.rm = TRUE)
+  centers <- ms$interaction_center
+  if (long && age %in% c(covariates, ms$interactions, ms$random_slope) && !age %in% names(centers))
+    centers <- c(centers, stats::setNames(age_center, age))
+  if (long && age %in% names(centers)) age_center <- unname(centers[[age]])
+  args <- list(dat = dat, col_outcome = outcome,
+    outcome = if (binary_outcome) "binary_liability" else "continuous",
+    family_id = ms$maternal_id, subject_id = ms$subject_id, cluster = family_id,
+    paternal_id = ms$paternal_id, fixed_effects = covariates,
+    interactions = ms$interactions, interaction_center = centers,
+    family_random = ms$family_random, individual_random = ms$individual_random,
+    random_slope = ms$random_slope, fit_constraints = fit_constraints,
+    covariate_mapping_confirmed = ms$covariate_mapping_confirmed,
+    diagnostic_control = ms$diagnostic_control, control = ms$control, keep_data = TRUE)
+  for (role in c("child", "mother", "father")) for (k in 1:2)
+    args[[paste0("col_pgs", k, "_", role)]] <- pgs_columns[[paste0(role, k)]]
+  if (!is.null(am_n_generations)) args$am_n_generations <- am_n_generations
+  base_note <- paste(c("Optional mixed family likelihood; FID-clustered CR0 SEs",
+    if (binary_outcome) "conditional probit residual SD = 1" else "effects per workflow-standardized outcome SD",
+    if (include_comparison) "Plain PGS mixed comparator is not provided"), collapse = "; ")
+  labels <- c(beta_D = "Child (beta_D)", beta_M = "Maternal (beta_M)", beta_F = "Paternal (beta_F)",
+    beta_mid = "Parental midpoint (beta_M + beta_F)",
+    delta_M_mid = "Mother - father difference (beta_M - beta_F)",
+    delta_P_mid = "Father - mother difference (beta_F - beta_M)",
+    rho_visible = "Spouse correlation", rho_corrected = "Spouse correlation",
+    cov_corrected = "Spouse covariance (founder scale)")
+  label_for <- function(parameters) {
+    stem <- sub(":.*$", "", parameters); answer <- unname(labels[stem])
+    answer[is.na(answer)] <- parameters[is.na(answer)]
+    slope <- grepl(":", parameters, fixed = TRUE)
+    answer[slope] <- paste0(answer[slope], " x ", sub("^[^:]*:", "", parameters[slope]))
+    answer
+  }
+  format_rows <- function(rows, analysis, p, p_se, note) {
+    if (is.null(rows)) rows <- data.frame(parameter = NA_character_, estimate = NA_real_, se = NA_real_,
+      ci_low = NA_real_, ci_high = NA_real_, p_value = NA_real_)
+    data.frame(siblings = "Trio only", model = model, analysis = analysis, pi = p,
+      pi_se = if (is.null(p_se)) NA_real_ else p_se, effect = label_for(rows$parameter),
+      parameter = rows$parameter, estimate = rows$estimate, se = rows$se,
+      ci_low = rows$ci_low, ci_high = rows$ci_high, p_value = rows$p_value,
+      note = note, diagnostic_status = NA_character_, diagnostic_df = NA_real_, diagnostic_N = NA_real_,
+      stringsAsFactors = FALSE, row.names = NULL)
+  }
+  contrasts <- function(fit, scale) {
+    tab <- fit$table[fit$table$scale == scale, c("parameter", "estimate", "se", "ci_low", "ci_high", "p_value")]
+    V <- fit$coefficient_vcov[[scale]]
+    suffixes <- unique(sub("^[^:]+", "", tab$parameter))
+    for (suffix in suffixes) {
+      parents <- paste0(c("beta_M", "beta_F"), suffix)
+      if (!all(parents %in% tab$parameter)) next
+      for (name in c("beta_mid", "delta_M_mid", "delta_P_mid")) {
+        weight <- switch(name, beta_mid = c(1, 1), delta_M_mid = c(1, -1), delta_P_mid = c(-1, 1))
+        estimate <- sum(weight * tab$estimate[match(parents, tab$parameter)])
+        variance <- if (is.matrix(V) && all(parents %in% rownames(V)))
+          drop(t(weight) %*% V[parents, parents, drop = FALSE] %*% weight) else NA_real_
+        se <- if (is.finite(variance) && variance >= -1e-10) sqrt(max(0, variance)) else NA_real_
+        tab <- rbind(tab, data.frame(parameter = paste0(name, suffix), estimate = estimate, se = se,
+          ci_low = estimate - stats::qnorm(.975) * se, ci_high = estimate + stats::qnorm(.975) * se,
+          p_value = 2 * stats::pnorm(-abs(estimate / se))))
+      }
+    }
+    tab[order(grepl(":", tab$parameter, fixed = TRUE),
+      match(sub(":.*$", "", tab$parameter), names(labels))), , drop = FALSE]
+  }
+  run_diagnostic <- function(fit) {
+    d <- diagnostic_data
+    invalid_design <- function(reason) list(status = "invalid_design", reason = reason,
+      statistic = NA_real_, df = NA_real_, p_value = NA_real_, N = NA_integer_,
+      workflow = list(N_input = n_input, N_primary = nrow(dat),
+        primary_excluded_rows = which(drop), primary_fit_converged = isTRUE(fit$converged),
+        original_cluster = diagnostic_cluster, subject_id = ms$subject_id))
+    primary_ids <- as.character(d[[family_id]])
+    diagnostic_ids <- as.character(d[[if (is.null(diagnostic_cluster)) ms$subject_id else diagnostic_cluster]])
+    if (anyNA(primary_ids) || any(!nzchar(primary_ids)) ||
+        anyNA(diagnostic_ids) || any(!nzchar(diagnostic_ids)))
+      return(invalid_design("Original primary and diagnostic family/individual IDs must be observed and nonempty before diagnostic selection."))
+    mapping <- unique(data.frame(primary = primary_ids, diagnostic = diagnostic_ids))
+    if (anyDuplicated(mapping$primary))
+      return(invalid_design(paste0("Diagnostic grouping would split known extended families in '", family_id,
+        "'. Choose diagnostic_cluster='", family_id,
+        "' or a coarser family column; NULL requires at most one distinct subject per known extended family.")))
+    scaling <- fit$score_scaling
+    if (is.null(scaling)) {
+      # Identical role/unique-person scaling convention, available even when
+      # a primary fit fails before returning its numerical scaling metadata.
+      scaling <- data.frame(column = unname(pgs_columns), center = 0, scale = 1)
+      for (j in seq_along(pgs_columns)) {
+        ids <- dat[[if (grepl("child", names(pgs_columns)[j])) ms$subject_id else ms$maternal_id]]
+        x <- dat[[pgs_columns[j]]][!duplicated(ids)]
+        scaling$center[j] <- mean(x); scaling$scale[j] <- stats::sd(x)
+      }
+    }
+    if (any(!is.finite(scaling$center) | !is.finite(scaling$scale) | scaling$scale <= 0))
+      return(list(status = "invalid_data", reason = "PGS scaling is undefined in the primary analysis sample.", N = n_input))
+    for (j in seq_len(nrow(scaling))) d[[scaling$column[j]]] <-
+      (d[[scaling$column[j]]] - scaling$center[j]) / scaling$scale[j]
+    diagnostic_args <- list(dat = d, col_outcome = outcome,
+      outcome = if (binary_outcome) "binary_liability" else "continuous",
+      family_id = ms$maternal_id, subject_id = ms$subject_id, cluster = diagnostic_cluster,
+      covariates = unique(c(covariates, ms$interactions, ms$random_slope)), interactions = ms$interactions,
+      age = diagnostic_age, target_age = diagnostic_target,
+      fit_constraints = fit_constraints, pi = pi, pi_se = NULL)
+    if (!is.null(am_n_generations)) diagnostic_args$am_n_generations <- am_n_generations
+    for (role in c("child", "mother", "father")) for (k in 1:2)
+      diagnostic_args[[paste0("col_pgs", k, "_", role)]] <- pgs_columns[[paste0(role, k)]]
+    diagnostic_args <- utils::modifyList(diagnostic_args, dc, keep.null = TRUE)
+    warnings <- character()
+    result <- tryCatch(withCallingHandlers(do.call(RAVEL::ravel_score_diagnostic, diagnostic_args),
+      warning = function(w) { warnings <<- c(warnings, conditionMessage(w)); invokeRestart("muffleWarning") }),
+      error = function(e) list(status = "error", reason = conditionMessage(e), N = NA_integer_))
+    result$workflow_warnings <- unique(warnings)
+    result$workflow <- list(N_input = n_input, N_primary = nrow(dat),
+      primary_excluded_rows = which(drop), primary_fit_converged = isTRUE(fit$converged),
+      original_cluster = diagnostic_cluster, subject_id = ms$subject_id,
+      score_and_outcome_units = "Primary role PGS constants and workflow outcome constants, applied before auxiliary selection")
+    result
+  }
+  fit_at <- function(p, p_se, main = FALSE) {
+    warnings <- character()
+    fit <- tryCatch(withCallingHandlers(do.call(RAVEL::ravel_mixed_fit,
+      c(args, list(pi = p, pi_se = p_se, diagnostic = FALSE))), warning = function(w) {
+        warnings <<- c(warnings, conditionMessage(w)); invokeRestart("muffleWarning")
+      }), error = identity)
+    failed <- inherits(fit, "error")
+    failure <- if (failed) conditionMessage(fit) else NULL
+    if (failed) fit <- NULL
+    diagnostic <- if (main) run_diagnostic(fit) else NULL
+    if (!is.null(fit) && main) fit$one_factor <- diagnostic
+    note <- paste(unique(c(base_note, if (failed) paste("Fit failed:", failure) else
+      paste0("inference status: ", fit$inference_status), fit$messages, warnings)), collapse = "; ")
+    audit <- if (failed) list(status = data.frame(converged = FALSE, optimizer_converged = FALSE,
+      inference_status = "fit_error"), extraction_status = data.frame(stage = "source_fit", status = "error",
+      note = failure), notes = note, one_factor = diagnostic) else
+      tryCatch(RAVEL::ravel_mixed_audit(fit), error = function(e)
+        list(extraction_status = data.frame(stage = "audit", status = "error", note = conditionMessage(e)),
+          notes = note, one_factor = diagnostic))
+    attr(audit, "source_metadata") <- data.frame(model = model, outcome = outcome,
+      assumption = if (main) "main" else "grid", pi = p,
+      supplied_pi_se = if (is.null(p_se)) 0 else p_se, stringsAsFactors = FALSE)
+    list(fit = fit, audit = audit, note = note, diagnostic = diagnostic)
+  }
+  rows_for <- function(record, scale, analysis, p, p_se) {
+    available <- !is.null(record$fit) && isTRUE(record$fit$converged)
+    rows <- format_rows(if (available) contrasts(record$fit, scale) else NULL,
+      analysis, p, p_se, record$note)
+    state <- record$audit$state
+    key <- if (scale == "visible") "rho_visible" else "rho"
+    rho <- if (is.data.frame(state)) state[state$lhs == key, , drop = FALSE] else NULL
+    if (scale == "corrected_raw") {
+      genetic <- record$audit$genetic_covariances
+      rho <- if (is.data.frame(genetic)) genetic[genetic$block == "total_founder_covariance" &
+        ((genetic$lhs == "mother" & genetic$rhs == "father") |
+         (genetic$lhs == "father" & genetic$rhs == "mother")), , drop = FALSE] else NULL
+    }
+    if (available && is.data.frame(rho) && nrow(rho)) {
+      rho_rows <- data.frame(parameter = switch(scale, visible = "rho_visible",
+        corrected_std = "rho_corrected", corrected_raw = "cov_corrected"),
+        estimate = rho$estimate, se = rho$se, ci_low = rho$ci_low, ci_high = rho$ci_high,
+        p_value = 2 * stats::pnorm(-abs(rho$estimate / rho$se)))
+      rows <- rbind(rows, format_rows(rho_rows, analysis, p, p_se,
+        paste(record$note, if (scale == "corrected_raw")
+          "Founder-scale spouse-covariance SE and CI condition on supplied pi; external pi uncertainty is not included." else
+          "Spouse-correlation SE and CI condition on supplied pi; external pi uncertainty is not included.", sep = "; ")))
+    }
+    rows
+  }
+  main <- fit_at(pi, pi_se, TRUE)
+  records <- list(main = list(kind = "main", pi = pi, pi_se = pi_se, fit = main$fit, note = main$note))
+  audits <- list(main = main$audit)
+  diagnostic <- if (!is.null(main$diagnostic)) main$diagnostic else
+    list(status = "needs_fit", reason = main$note, N = nrow(dat))
+  diagnostic_notes <- unique(c(diagnostic$test, diagnostic$reason, diagnostic$auxiliary$warnings))
+  test <- format_rows(NULL, "One-factor test (visible fit)", NA_real_, NULL,
+    paste(diagnostic_notes[!is.na(diagnostic_notes) & nzchar(diagnostic_notes)], collapse = "; "))
+  test$parameter <- "one_factor_test"; test$effect <- "One-factor test"
+  test$diagnostic_status <- diagnostic$status
+  test$diagnostic_df <- if (is.null(diagnostic$df)) NA_real_ else diagnostic$df
+  test$diagnostic_N <- if (is.null(diagnostic$N)) NA_real_ else diagnostic$N
+  if (identical(diagnostic$status, "ok")) {
+    test$effect <- paste0("One-factor test: chi-square (", diagnostic$df, " df)")
+    test$estimate <- diagnostic$statistic; test$p_value <- diagnostic$p_value
+  }
+  results <- list(rows_for(main, "visible", "Visible (measured by the PGSs)", pi, pi_se), test,
+    rows_for(main, "corrected_std", "Corrected for pi", pi, pi_se))
+  if (include_raw) results[[length(results) + 1L]] <- rows_for(main, "corrected_raw",
+    "Corrected for pi (founder scale)", pi, pi_se)
+  for (j in seq_along(pi_grid)) {
+    p <- pi_grid[j]; grid <- fit_at(p, grid_pi_se)
+    key <- paste0("grid_", j)
+    records[[key]] <- list(kind = "grid", pi = p, pi_se = grid_pi_se, fit = grid$fit, note = grid$note)
+    audits[[key]] <- grid$audit
+    results[[length(results) + 1L]] <- rows_for(grid, "corrected_std", "Grid", p, grid_pi_se)
+    if (include_raw) results[[length(results) + 1L]] <- rows_for(grid, "corrected_raw",
+      "Grid (founder scale)", p, grid_pi_se)
+  }
+  table <- do.call(rbind, results); rownames(table) <- NULL
+  attr(table, "fit") <- main$fit; attr(table, "fit_records") <- records
+  attr(table, "mixed_audits") <- audits; attr(table, "analysis_data") <- dat
+  attr(table, "one_factor") <- diagnostic
+  attr(table, "settings") <- list(engine = "mixed", design = design, covariates = covariates,
+    age = age, age_center = if (long) age_center else NULL, cluster_by = family_id,
+    diagnostic_cluster = diagnostic_cluster,
+    maternal_id = ms$maternal_id, subject_id = ms$subject_id, mixed_settings = ms,
+    N = nrow(dat), N_dropped = sum(drop), dropped = dropped, outcome = outcome,
+    outcome_sd = outcome_sd, family_note = base_note, clustered_cross = FALSE, sib_info = "",
+    N_families = length(unique(dat[[ms$maternal_id]])),
+    N_extended_families = length(unique(dat[[family_id]])),
+    missing_outcome_kept = !long && !drop_missing_outcome && any(is.na(dat[[outcome]])))
+  table
+}
+
+# Flatten audit data frames and sampling-covariance matrices for every main/grid
+# fit. Full nested objects, diagnostic details and notes also remain in the RDS.
+write_ravel_mixed_workflow_audits <- function(audits, prefix) {
+  tables <- list()
+  add <- function(kind, frame, source, scale = NA_character_) {
+    if (!is.data.frame(frame) || !nrow(frame)) return(invisible(NULL))
+    tables[[kind]][[length(tables[[kind]]) + 1L]] <<-
+      cbind(source_fit = source, covariance_scale = scale,
+        metadata[rep(1L, nrow(frame)), , drop = FALSE], frame, stringsAsFactors = FALSE)
+  }
+  matrix_table <- function(x) {
+    if (is.null(x)) return(NULL)
+    ij <- which(lower.tri(x, diag = TRUE), arr.ind = TRUE)
+    data.frame(parameter_i = rownames(x)[ij[, 1]], parameter_j = colnames(x)[ij[, 2]],
+      covariance = x[ij], stringsAsFactors = FALSE)
+  }
+  for (source in names(audits)) {
+    audit <- audits[[source]]
+    metadata <- attr(audit, "source_metadata")
+    if (is.null(metadata)) metadata <- data.frame(row.names = 1L)
+    for (name in names(audit)) {
+      value <- audit[[name]]
+      if (is.data.frame(value)) add(name, value, source)
+      else if (is.matrix(value)) add(name, matrix_table(value), source)
+      else if (name == "coefficient_vcov") for (scale in names(value))
+        add(name, matrix_table(value[[scale]]), source, scale)
+    }
+    if (length(audit$notes)) add("audit_notes", data.frame(note = audit$notes), source)
+  }
+  paths <- character()
+  for (name in names(tables)) {
+    file <- paste0(prefix, "_mixed_", name, ".csv")
+    utils::write.csv(do.call(rbind, tables[[name]]), file, row.names = FALSE)
+    paths[name] <- file
+  }
+  invisible(paths)
 }
 
 # Write a copy of the table that Excel opens straight into columns. Excel's
@@ -518,11 +958,15 @@ print_parental_deviation <- function(table, digits = 3) {
   if (!is.null(s$family_note) && nzchar(s$family_note)) cat(s$family_note, ".", if (isTRUE(s$clustered_cross))
     " The plain regressions keep ordinary SEs (rows treated as independent).", "\n", sep = "")
   if (isTRUE(s$missing_outcome_kept))
-    cat("Trios with a missing outcome are kept in the RAVEL fits (FIML) but not in the plain regressions.\n")
+    cat(if (identical(s$engine, "mixed"))
+      "Missing outcomes retain their score information in the family likelihood.\n" else
+      "Trios with a missing outcome are kept in the RAVEL fits (FIML) but not in the plain regressions.\n")
   if (is.finite(s$outcome_sd)) {
     cat("Outcome '", s$outcome, "' standardized (SD = ", signif(s$outcome_sd, 4),
         "): effects are per SD of the outcome.\n", sep = "")
-  } else cat("Outcome '", s$outcome, "' is binary: effects are on RAVEL's probit liability scale.\n", sep = "")
+  } else cat("Outcome '", s$outcome, "' is binary: effects are on ",
+    if (identical(s$engine, "mixed")) "the conditional probit scale (occasion residual SD = 1).\n" else
+      "RAVEL's probit liability scale.\n", sep = "")
   cat("Each cell is estimate (SE). Corrected rows use the standardized total-liability scale",
       if (any(grepl("founder", table$analysis))) " unless marked founder scale", ".\n", sep = "")
   line <- "  %-34s %5s %5s %15s %15s %15s %15s %15s %7s\n"
@@ -596,15 +1040,24 @@ if (is.null(data_file)) {
 }
 
 # Analyse one outcome with every model and sibling configuration; returns its table.
+if ((!is.null(mixed_settings) || random_family || random_individual ||
+     !is.null(random_slope) || !is.null(genetic_interactions)) && !is.null(sib_columns))
+  stop("The optional mixed workflow does not implement parental-sibling latent blocks; leave sib_columns=NULL.")
 sib_configs <- if (is.null(sib_columns)) "none" else c("none", "maternal", "paternal", "both")
 run_outcome <- function(y) {
   is_binary <- if (is.logical(binary_outcome)) isTRUE(binary_outcome) else y %in% binary_outcome
   tables <- list(); fits <- list(); diagnostics <- list(); sib_info <- character(0); settings <- NULL
+  mixed_fit_records <- list(); mixed_audits <- list()
   for (ps in sib_configs) {
     parts <- tryCatch(lapply(names(models), function(m) {
       do.call(ravel_parental_deviation, c(list(dat, design = design, outcome = y,
         pgs_columns = pgs_columns, covariates = covariates, binary_outcome = is_binary,
-        family_id = family_id, age = age, age_center = age_center, pi = pi, pi_se = pi_se,
+        family_id = family_id, subject_id = subject_id, diagnostic_cluster = diagnostic_cluster,
+        mixed_settings = mixed_settings, maternal_id = maternal_id,
+        random_family = random_family, random_individual = random_individual,
+        random_slope = random_slope, genetic_interactions = genetic_interactions,
+        covariate_mapping_confirmed = covariate_mapping_confirmed,
+        age = age, age_center = age_center, pi = pi, pi_se = pi_se,
         pi_grid = pi_grid, grid_pi_se = grid_pi_se, model = m, include_raw = include_raw,
         drop_missing_outcome = drop_missing_outcome, parental_sibs = ps, sib_columns = sib_columns,
         include_comparison = TRUE), models[[m]]))
@@ -618,8 +1071,17 @@ run_outcome <- function(y) {
     comparison <- Filter(nrow, lapply(parts, function(p) p[is_comp(p), ]))   # same in every model
     if (length(comparison)) result <- rbind(result, comparison[[1]])        # one copy, last
     tables[[ps]] <- result
-    fits[[ps]] <- stats::setNames(lapply(parts, attr, "fit"), names(models))
-    diagnostics[[ps]] <- stats::setNames(lapply(parts, attr, "one_factor"), names(models))
+    fits[[ps]] <- stats::setNames(lapply(parts, attr, "fit", exact = TRUE), names(models))
+    diagnostics[[ps]] <- stats::setNames(lapply(parts, attr, "one_factor", exact = TRUE), names(models))
+    for (j in seq_along(parts)) {
+      audits <- attr(parts[[j]], "mixed_audits", exact = TRUE)
+      records <- attr(parts[[j]], "fit_records", exact = TRUE)
+      if (length(audits)) for (key in names(records)) {
+        source_key <- paste(ps, names(models)[j], key, sep = "|")
+        mixed_fit_records[[source_key]] <- records[[key]]
+        mixed_audits[[source_key]] <- audits[[key]]
+      }
+    }
     st <- attr(parts[[1]], "settings")
     sib_info[[result$siblings[1]]] <- st$sib_info
     if (is.null(settings)) settings <- st
@@ -632,6 +1094,8 @@ run_outcome <- function(y) {
   attr(result, "sib_info") <- sib_info
   attr(result, "fits") <- fits      # fits[[sibling configuration]][[model]]
   attr(result, "diagnostics") <- diagnostics
+  attr(result, "mixed_fit_records") <- mixed_fit_records
+  attr(result, "mixed_audits") <- mixed_audits
   result
 }
 
@@ -654,6 +1118,12 @@ for (y in outcome) {
   write_excel_csv(res, excel_y)
   rds_y <- sub("[.]csv$", ".rds", file_y)
   saveRDS(res, rds_y)
+  if (length(attr(res, "mixed_audits", exact = TRUE))) {
+    audit_paths <- write_ravel_mixed_workflow_audits(
+      attr(res, "mixed_audits", exact = TRUE), sub("[.]csv$", "", file_y))
+    message("Mixed-model audit tables written: ", length(audit_paths),
+      "; all main/grid fits remain in the result RDS.")
+  }
   message("Table for ", y, " written to ", normalizePath(file_y),
           "\nExcel copy (opens in columns): ", normalizePath(excel_y),
           "\nFitted objects and one-factor diagnostics: ", normalizePath(rds_y))

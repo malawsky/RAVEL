@@ -1,0 +1,2 @@
+"replicate","N","cases","cutoff","status","p","statistic","elapsed","reason"
+46,1500,469,0.6,"invalid_score_model",NA,NA,6.733,"optimizer did not converge; projected gradient is too large"

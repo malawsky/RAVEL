@@ -30,7 +30,9 @@ loaded via a namespace (and not attached):
 Source hashes:
                                 R/ravel_score_signal.R
                     "90ba550840751df7accdb0e09b300067"
+                            R/ravel_score_diagnostic.R
+                    "57f79c15efbf3d5ecc9ffad81c1c56bf"
 analysis/parental_deviation/ravel_parental_deviation.R
-                    "6d1f371a0386497054885785add9c9b1"
+                    "18b08c9cef89664e7f055e71482c4da8"
                        dev/one-factor-workflow-check.R
-                    "976ae2862e0642fa9bf94f8cf2a023f3"
+                    "9ed7581e10678323caa137ce0f3f2c02"

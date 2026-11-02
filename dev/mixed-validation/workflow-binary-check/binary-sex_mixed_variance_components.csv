@@ -1,0 +1,3 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","component","estimate","se","uncertainty_conditions"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"residual",1,0,"conditional on supplied pi"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"family_intercept",0.631689440168995,0.263585094052376,"conditional on supplied pi"

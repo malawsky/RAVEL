@@ -12,7 +12,8 @@
 ## These are reduced regressions of the corrected joint moments. The child's
 ## source outcome association is a nuisance parameter, not fixed to zero.
 ##
-## The one-factor diagnostic concerns the FULL source model, once per main fit.
+## The one-factor diagnostic concerns an unadjusted auxiliary full genetic-block
+## model, once per main fit; it omits covariates/interactions with warnings.
 ## It does not test whether the child's outcome coefficient is zero, or validate
 ## every reduced regression. Full diagnostics and fits are saved in the RDS file.
 ## Separate SEM audit CSVs contain fit statistics, all parameter estimates,
@@ -77,6 +78,7 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
   # Otherwise visible estimates remain available and corrected rows explain why not.
   family_id <- "FID"              # true family ID; NULL if rows are independent
   subject_id <- "FID"             # cross-sectional: unique focal-adult ID, or NULL
+  diagnostic_cluster <- "auto"    # original FID, otherwise family_id; NULL only for independent adults
   # Choose one row per adult: clustering repeated copies once per child does not
   # remove duplicate-adult weighting. Longitudinal measurements may repeat adults.
   age <- "age"                   # longitudinal adult age column
@@ -224,7 +226,7 @@ ravel_parental_phenotypes <- function(
     covariates = NULL, covariate_mapping_confirmed = FALSE, family_id = "FID", subject_id = NULL,
     design = c("cross_sectional", "longitudinal"), age = "age", age_center = NULL,
     binary_outcome = FALSE, include_raw = FALSE, include_comparison = TRUE,
-    drop_missing_outcome = TRUE, include_sem_audit = TRUE) {
+    drop_missing_outcome = TRUE, include_sem_audit = TRUE, diagnostic_cluster = "auto") {
   design <- match.arg(design); genetic_configurations <- match.arg(genetic_configurations)
   if (!is.data.frame(dat)) stop("dat must be a data.frame.")
   if (!is.character(outcome) || length(outcome) != 1L || is.na(outcome))
@@ -336,6 +338,7 @@ ravel_parental_phenotypes <- function(
       source <- tryCatch(do.call(engine$ravel_parental_deviation,
         c(list(dat = dat, design = design, outcome = outcome, pgs_columns = pgs_columns,
           covariates = covariates, binary_outcome = binary_outcome, family_id = family_id,
+          subject_id = subject_id, diagnostic_cluster = diagnostic_cluster,
           age = age, age_center = age_center, pi = pi, pi_se = pi_se, pi_grid = pi_grid,
           grid_pi_se = grid_pi_se, model = model_name, include_comparison = FALSE,
           include_raw = include_raw, drop_missing_outcome = drop_missing_outcome,
@@ -357,7 +360,7 @@ ravel_parental_phenotypes <- function(
       for (i in which(keep)) {
         row <- source[i, , drop = FALSE]
         scope_note <- if (row$parameter == "one_factor_test")
-          "Full joint source model; not a test of excluding child liability" else "Shared genetic model"
+          "Unadjusted auxiliary full genetic-block model; not a test of excluding child liability" else "Shared genetic model"
         add(row, ps, model_name, row$analysis, row$pi, row$pi_se, genetic = genetic, N = st$N,
           note = scope_note)
       }
@@ -541,7 +544,8 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
       genetic_configurations = genetic_configurations, focal = focal, outcome_models = outcome_models,
       models = models, pi = pi, pi_se = pi_se, pi_grid = pi_grid, grid_pi_se = grid_pi_se,
       covariates = covariates, covariate_mapping_confirmed = covariate_mapping_confirmed,
-      family_id = family_id, subject_id = subject_id, design = design, age = age, age_center = age_center,
+      family_id = family_id, subject_id = subject_id, diagnostic_cluster = diagnostic_cluster,
+      design = design, age = age, age_center = age_center,
       binary_outcome = is_binary, include_raw = include_raw, drop_missing_outcome = drop_missing_outcome,
       include_sem_audit = include_sem_audit), error = identity)
     if (inherits(res, "error")) {

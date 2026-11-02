@@ -1,0 +1,7 @@
+"component","estimate","se","uncertainty_conditions","scenario","replicate","truth","is_fixed"
+"residual",0.756536135237626,0.0516609312326187,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty",1,0.75,FALSE
+"family_intercept",0.271888734803065,0.0521545408277823,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty",1,0.25,FALSE
+"residual",0.760399114810295,0.0489146524140196,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty_equilibrium",1,0.75,FALSE
+"family_intercept",0.27600232659938,0.0528711200399701,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty_equilibrium",1,0.25,FALSE
+"residual",0.793446832934493,0.0511728204030211,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty_n_gen",1,0.75,FALSE
+"family_intercept",0.18789263600922,0.0606268248668499,"includes independent external pi uncertainty when sensitivity refits succeed","pi_uncertainty_n_gen",1,0.25,FALSE

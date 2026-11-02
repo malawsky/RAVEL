@@ -214,35 +214,165 @@ Reusing the fit holds genetic-model information constant. Removing a member from
 history models also require refitting when pi changes; the companion always
 refits its pi grid to respect this requirement.
 
-## When the one-factor check is unavailable
+## Optional random effects for child outcomes
 
-The check compares the two PGS versions' phenotype associations under the full
-shared-factor model. It is run once per main source fit, not once per projected
+Keep using **`ravel_parental_deviation.R`**. The random-effect switches are off
+by default, preserving the existing estimator. No additional script is needed.
+For cross-sectional sibling outcomes, turn on the family intercept:
+
+```r
+family_id <- "FID"  # extended families for the full estimator's sandwich SEs
+maternal_id <- "M_ID"  # nuclear families sharing the same parents
+subject_id <- "IID"   # the child
+random_family <- TRUE
+```
+
+For repeated continuous outcomes with genetic age/sex interactions:
+
+```r
+design <- "longitudinal"
+random_family <- TRUE
+random_individual <- TRUE
+random_slope <- "age"  # optional; NULL keeps individual intercepts only
+genetic_interactions <- c("age", "sex")
+age_center <- 10
+covariate_mapping_confirmed <- TRUE
+```
+
+Change the three ID strings to match your columns. Set `random_family = FALSE`
+to fit individual effects without a family residual intercept; `maternal_id`
+still groups siblings and their shared parental scores in the genetic model.
+`family_id` remains the outer sandwich cluster. With `genetic_interactions = NULL`,
+the longitudinal workflow retains its usual genetic-by-age terms. Set it to
+`character(0)` to omit genetic interactions explicitly. Age effects use
+`age_center`; other moderators are centered at their sample means by default.
+Explicit `genetic_interactions` also selects the mixed estimator when both
+random-effect switches are off. Leave it `NULL` and all random effects off to
+use the original estimator.
+
+The confirmation accepts independence of the genetic components and score
+errors from the supplied covariates/moderators. Review that assumption before
+enabling it, especially for ancestry-related or genetically associated covariates.
+The random age slope includes an individual intercept–slope covariance; the
+genetic-by-age slopes are separate coefficients for child, mother and father.
+
+Maternal families must contain full siblings with the same two parents. Multiple
+maternal families can share an FID. For advanced settings, the existing
+`mixed_settings` list remains available, for example to supply `paternal_id` for
+father-ID checks, custom moderator centers or optimizer controls. Use that list
+instead of the simple random-effect switches; conflicting settings are rejected.
+For example, with the simple controls left at their defaults:
+
+```r
+mixed_settings <- list(
+  maternal_id = "M_ID", subject_id = "IID", paternal_id = "F_ID",
+  family_random = TRUE, individual_random = TRUE,
+  interactions = c("age", "sex"), interaction_center = c(age = 10, sex = 0),
+  covariate_mapping_confirmed = TRUE)
+```
+
+Always ensure the full-sibling assumption is appropriate. The mixed path
+supports the three constrained genetic modes and the three trio outcome paths.
+Parental-sibling latent blocks (`sib_columns`) and free genetic models remain
+on the existing estimator. The parental-phenotype script retains its existing
+adult-regression workflow.
+
+The main table, parental sum/difference contrasts and output filenames retain
+their format. Continuous outcomes remain standardized by this script; the direct
+package API instead returns original outcome units. Each pi-grid entry is a full
+mixed-model refit. Ordinary-PGS mixed-model comparisons are not added. For binary
+cross-sectional sibling outcomes, install `mvtnorm`; effects use conditional
+probit units with occasion residual SD fixed at one. Binary longitudinal models
+are not supported.
+
+Additional `_mixed_*.csv` files contain fit statistics, state estimates, genetic
+and implied score/outcome covariances with SEs, residual variance components,
+parameters and full sampling covariance matrices. The RDS retains every main
+and grid fit, including failures:
+
+```r
+res <- readRDS("ravel_parental_deviation_Y.rds")
+attr(res, "mixed_fit_records", exact = TRUE)
+attr(res, "mixed_audits", exact = TRUE)
+```
+
+Inspect the inference status. Boundary solutions and failed gradient or
+information checks retain explicit statuses and unavailable SEs. Genetic-state,
+spouse-correlation and implied-covariance SEs condition on pi; coefficient and
+residual-variance SEs include independent external pi uncertainty when supplied
+and successfully propagated. The implied covariance table identifies one fitted
+age/sex design pattern, and binary Y means the latent probit response. Custom
+family likelihood/AIC values are provided; SEM CFI/RMSEA are not defined here.
+
+Transfer the updated script and package archive together. If an earlier
+development bundle is already installed, restart R and reinstall the supplied
+archive once, even if its version number is the same:
+
+```r
+install.packages("RAVEL_0.2.0.9001.tar.gz", repos = NULL, type = "source")
+```
+
+[Model assumptions and package API](../../docs/mixed-family-models.md) and
+[numerical/simulation validation](../../docs/mixed-family-validation.md) give the
+supported scope. Validation currently covers up to 1,000 maternal families;
+runtime and memory on full cohort datasets have not yet been established.
+
+## The automatic one-factor check
+
+The check compares the two PGS versions' phenotype associations in a separate
+unadjusted shared-factor model. It is attempted once per main source fit, not once per projected
 adult regression or pi-grid value. It does **not** test that the child's outcome
-coefficient is zero. Degrees of freedom are 3 for a trio, 4 with one parental
-sibling and 5 with both siblings; finite-generation inference is conditional on
-the pi supplied to that fit.
+coefficient is zero. Covariates produce the explicit warning **"Covariates were
+not used to compute the one-factor test."** Interactions are omitted too. A
+valid result does not validate the adjusted model or its growth slopes.
+
+Set `subject_id` to the actual individual's ID: the child for child phenotypes,
+or the focal adult for parental phenotypes. `diagnostic_cluster = "auto"` uses
+the original `FID` when present, otherwise `family_id`. One individual per FID
+and one target-age occasion are selected reproducibly before missing-score or
+outcome exclusions. Missing selected observations are not replaced by another
+person or visit. The selected rows and original/auxiliary sample sizes are saved.
+Use `diagnostic_cluster = NULL` only for independent individuals.
+In the mixed workflow, a custom diagnostic grouping must keep each primary
+extended family together; splitting it returns an `invalid_design` diagnostic
+while preserving the primary model fit.
+
+Continuous outcomes use the established likelihood comparison. Binary outcomes
+attempt a separate exploratory conditional-probit Wald calculation. Its
+**nominal p-value is reported with a calibration warning**: null simulations
+rejected 40/499 tests (8.0%) at a nominal 5% threshold. A successful calculation
+has `status = "ok"` and `calibration_status = "uncalibrated"`; the warning appears
+in the output notes and saved diagnostic. Primary binary mixed-model inference
+is separate. Degrees of freedom are 3 for a
+trio, 4 with one parental sibling and 5 with both; inspect the returned test
+name and status. External pi is held fixed for this auxiliary test.
 
 Both editable workflows now record `diagnostic_status`, `diagnostic_df` and
 `diagnostic_N` in the CSV and preserve the full diagnostic object in the RDS.
-Removing covariates alone does not guarantee that this comparison is available:
+An auxiliary attempt can still be unavailable for substantive or numerical reasons:
 
 | Status | Meaning |
 |---|---|
-| `ok` | The validated likelihood comparison succeeded. |
+| `ok` | The named auxiliary calculation succeeded. Read its warnings; binary p-values remain nominal and uncalibrated. |
 | `unsupported_free_measurement` | The fully free residual score model has an unidentified score-only alternative; no valid test is implemented for that model. |
-| `unsupported_missingness` | An included score or outcome is missing; the diagnostic does not silently drop observations from the source fit. |
-| `unsupported_design` | Repeated or clustered families fall outside the independent-row diagnostic. |
-| `unsupported_covariates` / `unsupported_outcome` | Covariate or binary-outcome comparisons are outside its validated scope. |
+| `needs_subject_id`, `needs_occasion`, `ambiguous_occasion` | Supply enough ID/visit information to select independent observations unambiguously. |
+| `invalid_design`, `invalid_arguments` | Check supplied IDs, their nesting and the requested columns. |
+| `insufficient_data` | Fewer than 50 complete independently selected observations remain. |
 | `invalid_score_model`, `invalid_H0`, `invalid_H1` | A required fit failed identification or admissibility checks. Inspect the saved reason and rank diagnostics. |
 | `fit_warning` / `fit_error` | Inspect the saved warnings or error from the diagnostic refits. |
+| `invalid_probit_fit`, `invalid_influence`, `invalid_null_scale` | The binary diagnostic cannot provide regular inference; no p-value is substituted. |
 
 A constrained sensitivity analysis can be checked separately, but changing the
 measurement restrictions changes the model being tested. A missing p-value is
 not evidence for or against one factor. A non-significant valid test also does
-not establish unbiased genetic effects. The original Desktop bundle and the
-current checkout contain the same score-diagnostic implementation; the workflow
-now exposes and saves its results instead of retaining only a short message.
+not establish unbiased genetic effects. Transfer the newly built package archive
+with the updated scripts; older archives do not contain the auxiliary wrapper.
+
+For primary clustering, large extended-family IDs are retained: a 70-person FID
+is not a reason to discard clustering. Supplied family IDs must be observed,
+nonempty and include at least two families. Binary fits on the original estimator
+retain their stated clustering limitation; the optional mixed path has its own
+full FID sandwich implementation.
 
 [Parental-workflow validation and reproduction](parental-workflow-validation.md)
 records the independent regression checks, one-factor reproductions, covariance

@@ -1,0 +1,29 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","block","lhs","rhs","estimate","se","uncertainty_conditions","ci_low","ci_high"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","rho","",0.579415990499528,0.127230114434587,"FID sandwich; conditional on supplied pi",0.330049548458828,0.828782432540229
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","parent","",1.26128137346058,0.270621285545438,"FID sandwich; conditional on supplied pi",0.730873400341587,1.79168934657956
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","child","",1.49604398488142,0.210515470461884,"FID sandwich; conditional on supplied pi",1.08344124458762,1.90864672517522
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","visible_parent","",1.15676882407635,0.162372771324106,"FID sandwich; conditional on supplied pi",0.83852404021114,1.47501360794155
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","visible_child","",1.29762639092885,0.126309282276461,"FID sandwich; conditional on supplied pi",1.05006474675388,1.54518803510382
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","rho_visible","",0.379059280173356,0.0815784873404829,"FID sandwich; conditional on supplied pi",0.219168383072753,0.538950177273959
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"state","eta","",0.651030585766454,0.0335793212694082,"FID sandwich; conditional on supplied pi",0.585216325453114,0.716844846079794
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","rho","",0.620408528915311,0.138676374986398,"FID sandwich; conditional on supplied pi",0.3486078284354,0.892209229395222
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","parent","",1.28502579678258,0.295224311614732,"FID sandwich; conditional on supplied pi",0.706396778657079,1.86365481490809
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","child","",1.54113338049135,0.229653550035988,"FID sandwich; conditional on supplied pi",1.09102069349904,1.99124606748365
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","visible_parent","",1.15676418823042,0.16237337138852,"FID sandwich; conditional on supplied pi",0.838518228260575,1.47501014820027
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","visible_child","",1.29762335927024,0.126309452521116,"FID sandwich; conditional on supplied pi",1.05006138142188,1.5451853371186
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","rho_visible","",0.379059565269595,0.0815789977812357,"FID sandwich; conditional on supplied pi",0.2191676677235,0.53895146281569
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"state","eta","",0.651030176329639,0.033579465687058,"FID sandwich; conditional on supplied pi",0.585215632962907,0.716844719696372
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","rho","",0.402153429202654,0.0764434259838927,"FID sandwich; conditional on supplied pi",0.252327067419371,0.551979790985937
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","parent","",1.67266996056581,0.213875312801302,"FID sandwich; conditional on supplied pi",1.25348205029302,2.0918578708386
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","child","",1.67266996056581,0.213875312801302,"FID sandwich; conditional on supplied pi",1.25348205029302,2.0918578708386
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","visible_parent","",1.40360197633948,0.128325187680174,"FID sandwich; conditional on supplied pi",1.152089230177,1.65511472250197
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","visible_child","",1.40360197633948,0.128325187680174,"FID sandwich; conditional on supplied pi",1.152089230177,1.65511472250197
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","rho_visible","",0.287547312659146,0.0651364320859675,"FID sandwich; conditional on supplied pi",0.15988225168921,0.415212373629081
+"none|Equilibrium|main",NA,"Equilibrium","Y","main",0.4,0,"state","eta","",0.643773656329573,0.0325682160437431,"FID sandwich; conditional on supplied pi",0.579941125843117,0.707606186816029
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","rho","",0.423238703260238,0.0776142134024047,"FID sandwich; conditional on supplied pi",0.271117640303119,0.575359766217357
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","parent","",1.73381952924488,0.233318427771975,"FID sandwich; conditional on supplied pi",1.2765238138823,2.19111524460746
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","child","",1.73381952924488,0.233318427771975,"FID sandwich; conditional on supplied pi",1.2765238138823,2.19111524460746
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","visible_parent","",1.40360074108468,0.128325135275059,"FID sandwich; conditional on supplied pi",1.15208809763434,1.65511338453503
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","visible_child","",1.40360074108468,0.128325135275059,"FID sandwich; conditional on supplied pi",1.15208809763434,1.65511338453503
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","rho_visible","",0.287546685657052,0.0651365201331213,"FID sandwich; conditional on supplied pi",0.159881452117867,0.415211919196238
+"none|Equilibrium|grid_1",NA,"Equilibrium","Y","grid",0.45,0,"state","eta","",0.643773342828526,0.0325682600668231,"FID sandwich; conditional on supplied pi",0.579940726058419,0.707605959598634

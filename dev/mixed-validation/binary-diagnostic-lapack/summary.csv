@@ -1,0 +1,2 @@
+"attempts","valid","failed","rejected","rejection_among_valid","rejection_per_attempt","rejection_mcse","rejection_ci_low","rejection_ci_high","failure_rate","mean_prevalence"
+500,499,1,40,0.0801603206412826,0.08,0.0121558552519249,0.0578831506690397,0.107557355926228,0.002,0.295865333333333
