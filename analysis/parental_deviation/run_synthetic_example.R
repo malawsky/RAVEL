@@ -8,7 +8,7 @@ dat <- readRDS("synthetic_family_example.rds")
 results <- ravel_family_regressions(
   dat = dat, outcomes = "mom_height",
   genetic_roles = c("child", "mother", "father", "mat_sib", "pat_sib"),
-  focal = "mother", subject_id = "FID", pi = .4,
+  subject_id = "FID", pi = .4,
   models = list(estimated_state = list(fit_constraints = "estimated_state")),
   output_prefix = "synthetic_maternal_height"
 )

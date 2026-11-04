@@ -1,0 +1,4 @@
+"scenario","replicate","seed","N_families","N_rows","pi_supplied","se_requested","error","converged","optimizer_converged","inference_status","elapsed_seconds","note"
+"continuous_pc",1,491001,1500,3000,0.4,TRUE,FALSE,TRUE,TRUE,"ok",9.391,""
+"continuous_equilibrium",1,501001,1500,3000,0.4,TRUE,FALSE,TRUE,TRUE,"ok",7.464,""
+"continuous_n_gen",1,511001,1500,3000,0.4,TRUE,FALSE,TRUE,TRUE,"ok",8.121,""

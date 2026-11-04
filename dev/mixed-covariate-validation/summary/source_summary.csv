@@ -1,0 +1,9 @@
+"run","scenario","source_run_id","attempted","errors","converged","regular_inference","statuses","first_seed","last_seed"
+"mc-continuous","continuous_pc","20261103T140051Z",77,0,77,77,"ok:77",491024,491100
+"mc-continuous","extended_fid","20261103T140051Z",100,0,100,100,"ok:100",581001,581100
+"longitudinal","balanced_long_random_slope","20261103T140427Z",43,0,34,33,"boundary:9; not_converged:1; ok:33",531008,531050
+"binary-pilot","binary_pc","20261103T141637Z",5,0,5,4,"boundary:1; ok:4",541002,541006
+"binary-pilot","binary_pc","20261103T142442Z",14,0,14,12,"boundary:2; ok:12",541007,541020
+"longitudinal","balanced_long_random_slope","historical_pre_natural_polish",7,0,5,5,"not_converged:2; ok:5",531001,531007
+"binary-pilot","binary_pc","historical_pre_natural_polish",1,0,1,1,"ok:1",541001,541001
+"mc-continuous","continuous_pc","historical_pre_natural_polish",23,0,23,23,"ok:23",491001,491023

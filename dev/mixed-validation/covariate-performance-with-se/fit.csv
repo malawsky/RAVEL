@@ -1,0 +1,2 @@
+"converged","optimizer_converged","inference_status","optimizer_code","objective_evaluations","gradient_evaluations","max_gradient_per_family","rho_estimate","parent_variance_estimate","result_size_bytes"
+TRUE,TRUE,"ok",0,123,123,8.57667865255962e-07,0.307033943965699,1.21617728883255,77732992

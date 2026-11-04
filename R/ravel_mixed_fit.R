@@ -3,7 +3,8 @@
 .ravel_mixed_prepare <- function(dat, outcome, col_outcome, pgs_columns,
     family_id, subject_id, cluster, fixed_effects, interactions, interaction_center,
     family_random, individual_random, random_slope, fit_constraints,
-    am_n_generations, pi, covariate_mapping_confirmed, paternal_id = NULL) {
+    am_n_generations, pi, covariate_mapping_confirmed, paternal_id = NULL,
+    covariate_model = "independent") {
   if (!is.data.frame(dat)) stop("dat must be a data frame.")
   for (nm in c("family_id", "subject_id", "cluster")) {
     value <- get(nm)
@@ -22,7 +23,8 @@
   if (!is.null(random_slope) && (!is.character(random_slope) || length(random_slope) != 1L))
     stop("random_slope must name one numeric time variable.")
   covariates <- unique(c(fixed_effects, interactions, random_slope))
-  if (length(covariates) && !isTRUE(covariate_mapping_confirmed))
+  if (length(covariates) && identical(covariate_model, "independent") &&
+      !isTRUE(covariate_mapping_confirmed))
     stop("Set covariate_mapping_confirmed=TRUE only if the conditional genetic distribution is assumed independent of the supplied covariates/moderators. This assumption is not established by a small sample correlation.")
   if (anyDuplicated(interactions) || anyDuplicated(unname(pgs_columns)))
     stop("Interactions and PGS column mappings must be distinct.")
@@ -66,11 +68,14 @@
     stop("A cross-sectional family variance needs some families with multiple observed siblings.")
   # Shared genotypes are represented once, not as fresh measurements per visit.
   constant <- function(x) max(x) - min(x) <= 1e-10 * max(1, max(abs(x)))
-  for (id in unique(iid)) for (nm in unname(pgs_columns))
-    if (!constant(dat[iid == id, nm])) stop("PGSs must remain constant across visits for each individual: ", id)
+  individual_rows <- split(seq_len(nrow(dat)), iid)
+  family_rows <- split(seq_len(nrow(dat)), fam)
+  for (i in seq_along(individual_rows)) for (nm in unname(pgs_columns))
+    if (!constant(dat[individual_rows[[i]], nm])) stop("PGSs must remain constant across visits for each individual: ", names(individual_rows)[i])
   parent_columns <- unname(pgs_columns[grepl("mother|father", names(pgs_columns))])
-  for (id in unique(fam)) {
-    rows <- fam == id
+  for (i in seq_along(family_rows)) {
+    id <- names(family_rows)[i]
+    rows <- family_rows[[i]]
     if (!is.null(paternal_id) && (anyNA(dat[[paternal_id]][rows]) ||
         length(unique(dat[[paternal_id]][rows])) != 1L))
       stop("The current genetic block requires full siblings; maternal family ", id,
@@ -79,10 +84,10 @@
       stop("Parental PGSs differ within maternal family ", id,
            "; the current genetic block assumes full siblings with the same two parents.")
   }
-  if (!is.null(paternal_id)) for (id in unique(fathers)) {
+  if (!is.null(paternal_id)) for (rows in split(seq_len(nrow(dat)), fathers)) {
     columns <- unname(pgs_columns[grepl("father", names(pgs_columns))])
-    if (any(!vapply(dat[fathers == id, columns, drop = FALSE], constant, logical(1))))
-      stop("Paternal PGSs disagree for the same father across maternal families: ", id)
+    if (any(!vapply(dat[rows, columns, drop = FALSE], constant, logical(1))))
+      stop("Paternal PGSs disagree for the same father across maternal families: ", fathers[rows[1L]])
   }
   observed <- !is.na(dat[[col_outcome]])
   if (length(covariates)) observed <- observed & stats::complete.cases(dat[covariates])
@@ -137,10 +142,12 @@
     centers = centers, scales = scales, beta_names = beta_names,
     mean_names = c(paste0("score_mean", rep(1:2, each = 3), "_", rep(c("mother", "father", "child"), 2)),
                    "mean_intercept", if (length(covariates)) paste0("fixed_", covariates)),
-    outcome_scale = outcome_scale, outcome_center = outcome_center, outcome = outcome)
+    outcome_scale = outcome_scale, outcome_center = outcome_center, outcome = outcome,
+    covariate_model = covariate_model)
   groups <- list(); keys <- new.env(parent = emptyenv())
-  for (id in sort(unique(fam))) {
-    rows <- which(fam == id); subjects <- sort(unique(iid[rows]))
+  for (i in seq_along(family_rows)) {
+    id <- names(family_rows)[i]
+    rows <- family_rows[[i]]; subjects <- sort(unique(iid[rows]))
     first <- rows[match(subjects, iid[rows])]
     yr <- rows[observed[rows]]
     yr <- yr[order(match(iid[yr], subjects), if (!is.null(random_slope)) adjusted[[random_slope]][yr] else yr)]
@@ -155,8 +162,9 @@
     D <- matrix(0, length(p) + length(yr), length(spec$mean_names))
     D[cbind(seq_along(p), score_index)] <- 1
     if (length(yr)) D[length(p) + seq_along(yr), 6 + seq_len(ncol(X))] <- X
-    key <- paste(nchild, paste(child, collapse = ","),
-      paste(format(c(D, moderators, slope), digits = 17, scientific = TRUE, trim = TRUE), collapse = ","), sep = "|")
+    key <- if (identical(covariate_model, "joint") && length(covariates)) id else
+      paste(nchild, paste(child, collapse = ","),
+        paste(format(c(D, moderators, slope), digits = 17, scientific = TRUE, trim = TRUE), collapse = ","), sep = "|")
     if (!exists(key, keys, inherits = FALSE)) {
       at <- length(groups) + 1L; assign(key, at, keys)
       groups[[at]] <- list(nchild = as.integer(nchild), child = child, moderators = moderators,
@@ -255,8 +263,10 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
     fit_constraints = c("estimated_state", "equilibrium", "n_gen"), am_n_generations = 1L,
     pi = 0, pi_se = NULL, covariate_mapping_confirmed = FALSE,
     diagnostic = TRUE, diagnostic_control = list(), control = list(), start = NULL,
-    se = TRUE, keep_data = TRUE) {
+    se = TRUE, keep_data = TRUE, covariate_model = c("joint", "independent"),
+    person_mean_covariates = NULL) {
   outcome <- match.arg(outcome); fit_constraints <- match.arg(fit_constraints)
+  covariate_model <- match.arg(covariate_model)
   for (flag in list(diagnostic, se, keep_data))
     if (!is.logical(flag) || length(flag) != 1L || is.na(flag))
       stop("diagnostic, se and keep_data must each be TRUE or FALSE.")
@@ -268,8 +278,18 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
   prepared <- .ravel_mixed_prepare(dat, outcome, col_outcome, pgs_columns,
     family_id, subject_id, cluster, fixed_effects, interactions, interaction_center,
     family_random, individual_random, random_slope, fit_constraints,
-    am_n_generations, pi, covariate_mapping_confirmed, paternal_id)
+    am_n_generations, pi, covariate_mapping_confirmed, paternal_id, covariate_model)
   prepared$spec$pi_se <- pi_se
+  if (is.null(person_mean_covariates)) person_mean_covariates <-
+    as.character(intersect(c("age", random_slope), prepared$spec$covariates))
+  if (!is.character(person_mean_covariates) || anyNA(person_mean_covariates) ||
+      anyDuplicated(person_mean_covariates) ||
+      !all(person_mean_covariates %in% prepared$spec$covariates))
+    stop("person_mean_covariates must name distinct supplied covariates, or be NULL for age/random-slope defaults.")
+  prepared$spec$person_mean_covariates <- person_mean_covariates
+  joint_covariates <- identical(covariate_model, "joint") && length(prepared$spec$covariates) > 0L
+  if (joint_covariates) prepared <- .ravel_mixed_covariate_prepare(prepared)
+  joint_covariates <- joint_covariates && !is.null(prepared$spec[["covariate"]])
   if (outcome == "binary_liability") {
     if (!exists(".ravel_mixed_fit_binary", mode = "function"))
       stop("The binary mixed likelihood is not implemented in this prototype.")
@@ -277,7 +297,10 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
       diagnostic_control = diagnostic_control,
       control = control, start = start, se = se, keep_data = keep_data))
   }
-  prepared$groups <- .ravel_mixed_compress_means(prepared$groups)
+  prepared <- if (joint_covariates) .ravel_mixed_covariate_compress(prepared) else {
+    prepared$groups <- .ravel_mixed_compress_means(prepared$groups)
+    prepared
+  }
   spec <- prepared$spec
   par <- prepared$start
   if (!is.null(start)) {
@@ -285,13 +308,21 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
       stop("start must be a finite named vector of model parameters.")
     par[names(start)] <- start
   }
-  evaluate <- .ravel_mixed_evaluator(prepared$groups, spec)
+  make_evaluator <- function(s) if (joint_covariates)
+    .ravel_mixed_covariate_evaluator(prepared, s) else
+      .ravel_mixed_evaluator(prepared$groups, s)
+  evaluate <- make_evaluator(spec)
   initial <- evaluate(par)
   if (!isTRUE(initial$valid)) stop("Initial family likelihood is invalid: ", initial$reason)
   settings <- utils::modifyList(list(maxit = 500L, factr = 1e2, pgtol = 1e-6), control)
-  fit <- stats::optim(par, function(x) evaluate(x)$value,
-    function(x) evaluate(x, derivatives = TRUE)$gradient,
-    method = "L-BFGS-B", lower = prepared$lower, upper = prepared$upper, control = settings)
+  optimize <- function(initial, ev, fitted_spec = spec) if (joint_covariates)
+    .ravel_mixed_covariate_optimize(initial, ev, prepared$lower, prepared$upper,
+      settings, prepared$n_families,
+      certify = function(p, e) .ravel_mixed_certification(p, e, prepared, fitted_spec)) else
+        stats::optim(initial, function(x) ev(x)$value,
+          function(x) ev(x, derivatives = TRUE)$gradient,
+          method = "L-BFGS-B", lower = prepared$lower, upper = prepared$upper, control = settings)
+  fit <- optimize(par, evaluate)
   par <- fit$par
   final <- evaluate(par, derivatives = TRUE)
   if (!isTRUE(final$valid)) stop("Optimizer returned an invalid family likelihood: ", final$reason)
@@ -306,7 +337,9 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
     paste(boundary, collapse = ", "), "; ordinary Wald uncertainty is not certified."))
   uncertainty <- NULL
   if (converged && !length(boundary) && isTRUE(se)) {
-    uncertainty <- tryCatch(.ravel_mixed_inference(par, prepared$groups, spec, evaluate),
+    uncertainty <- tryCatch(if (joint_covariates)
+      .ravel_mixed_covariate_inference(par, prepared, spec, evaluate) else
+        .ravel_mixed_inference(par, prepared$groups, spec, evaluate),
       error = function(e) { messages <<- c(messages, conditionMessage(e)); NULL })
   }
   V <- if (is.null(uncertainty)) matrix(NA_real_, length(par), length(par),
@@ -323,10 +356,8 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
     values <- if (pi > step) c(pi - step, pi + step) else c(pi, pi + step)
     refits <- lapply(values, function(value) {
       s <- spec; s$pi <- value
-      ev <- .ravel_mixed_evaluator(prepared$groups, s)
-      z <- stats::optim(par, function(x) ev(x)$value,
-        function(x) ev(x, derivatives = TRUE)$gradient, method = "L-BFGS-B",
-        lower = prepared$lower, upper = prepared$upper, control = settings)
+      ev <- make_evaluator(s)
+      z <- optimize(par, ev, s)
       ez <- ev(z$par, derivatives = TRUE)
       check <- if (isTRUE(ez$valid)) .ravel_mixed_certification(z$par, ez, prepared, s) else NULL
       list(par = z$par, spec = s, valid = z$convergence == 0L && isTRUE(ez$valid) &&
@@ -395,7 +426,118 @@ ravel_mixed_fit <- function(dat, outcome = c("continuous", "binary_liability"),
       visible_scale = "Marginal trio projection, not the conditional regression on every family member's scores"),
     prepared = if (keep_data) prepared else NULL), class = "ravel_mixed_results")
   if (diagnostic) result$one_factor <- .ravel_mixed_run_diagnostic(prepared, diagnostic_control)
+  .ravel_mixed_finish_covariates(result, prepared)
+}
+
+# Keep the fitted moment estimates and joint sampling covariance, but do not
+# duplicate a potentially large family-by-moment influence matrix in each saved
+# fit. It has already been incorporated into the reported FID sandwich.
+.ravel_mixed_finish_covariates <- function(result, prepared) {
+  result$covariate_features <- prepared$covariate_features
+  cv <- result$settings[["covariate"]]
+  if (is.null(cv)) return(result)
+  result$diagnostics$covariate_model <- cv$covariance_model
+  result$diagnostics$covariate_estimation <- cv$estimation
+  result$diagnostics$shared_covariates <- cv$columns[cv$shared]
+  result$diagnostics$covariate_assumption <- cv$assumption
+  result$diagnostics$covariate_uncertainty <-
+    "First-stage child covariate moments and likelihood parameters use joint FID influence"
+  result$diagnostics$likelihood <-
+    "Conditional family likelihood for PGSs and outcomes given the complete child-covariate vector"
+  result$fit_statistics["n_covariate_moments"] <- length(cv$eta)
+  result$fit_statistics["AIC_conditional_moments_fixed"] <- result$fit_statistics[["AIC"]]
+  result$fit_statistics["AIC"] <- NA_real_
+  result$messages <- unique(c(result$messages,
+    "Genetic-covariate associations are estimated jointly with the conditional outcome model; marginal AM and pi scales are retained.",
+    "Covariate moments are estimated separately and their uncertainty is included in the FID sandwich. Ordinary joint-model AIC is unavailable; the conditional-moments-fixed criterion is descriptive only."))
+  result$settings$covariate$moment_scores <- NULL
+  if (!is.null(result$prepared)) result$prepared$spec$covariate$moment_scores <- NULL
   result
+}
+
+# Cross-covariances have a positive-definite domain. A large first L-BFGS step
+# can hit that domain and stop without moving, even with a nonzero score. Keep
+# the same likelihood and convergence certification, but retry that numerical
+# failure with a trust-region optimizer and a smaller relative tolerance.
+.ravel_mixed_covariate_optimize <- function(par, evaluate, lower, upper, control, n_families,
+                                           certify = NULL) {
+  objective <- function(x) evaluate(x)$value / n_families
+  gradient <- function(x) evaluate(x, derivatives = TRUE)$gradient / n_families
+  fit <- stats::optim(par, objective, gradient, method = "L-BFGS-B",
+    lower = lower, upper = upper, control = control)
+  attempts <- list(list(method = "L-BFGS-B", convergence = fit$convergence,
+    counts = fit$counts, value = fit$value))
+  current <- evaluate(fit$par, derivatives = TRUE)
+  projected <- if (isTRUE(current$valid)) current$gradient / n_families else Inf
+  if (length(projected) == length(par)) {
+    projected[fit$par - lower < 1e-8 & projected > 0] <- 0
+    projected[upper - fit$par < 1e-8 & projected < 0] <- 0
+  }
+  if (fit$convergence != 0L || any(!is.finite(projected)) || max(abs(projected)) > 1e-6) {
+    initial <- if (isTRUE(current$valid)) fit$par else par
+    retry <- stats::nlminb(initial, objective, gradient = gradient,
+      lower = lower, upper = upper,
+      control = list(iter.max = control$maxit %||% 500L,
+        eval.max = max(1000L, 3L * (control$maxit %||% 500L)),
+        rel.tol = 1e-12, x.tol = 1e-10))
+    attempts[[length(attempts) + 1L]] <- list(method = "nlminb",
+      convergence = retry$convergence, counts = retry$evaluations, value = retry$objective)
+    candidate <- evaluate(retry$par, derivatives = TRUE)
+    original_regular <- fit$convergence == 0L && all(is.finite(projected)) &&
+      max(abs(projected)) < 1e-5
+    if (isTRUE(candidate$valid) && (retry$convergence == 0L || !original_regular) &&
+        (!isTRUE(current$valid) ||
+        candidate$value <= current$value + 1e-8 * max(1, abs(current$value))))
+      fit <- list(par = retry$par, value = retry$objective,
+        counts = retry$evaluations, convergence = retry$convergence,
+        message = retry$message, iterations = retry$iterations,
+        method = "nlminb retry after L-BFGS-B score check")
+    # PORT can stop near a regular solution with a singular-convergence code.
+    # A final bounded quasi-Newton pass can certify that point without relaxing
+    # either the gradient check or the observed-information requirements.
+    latest <- evaluate(fit$par, derivatives = TRUE)
+    g <- if (isTRUE(latest$valid)) latest$gradient / n_families else Inf
+    if (length(g) == length(par)) {
+      g[fit$par - lower < 1e-8 & g > 0] <- 0
+      g[upper - fit$par < 1e-8 & g < 0] <- 0
+    }
+    if (fit$convergence != 0L || any(!is.finite(g)) || max(abs(g)) > 1e-6) {
+      polished <- stats::optim(fit$par, objective, gradient, method = "L-BFGS-B",
+        lower = lower, upper = upper, control = control)
+      attempts[[length(attempts) + 1L]] <- list(method = "L-BFGS-B polish",
+        convergence = polished$convergence, counts = polished$counts, value = polished$value)
+      check <- evaluate(polished$par, derivatives = TRUE)
+      if (isTRUE(check$valid) && (polished$convergence == 0L || fit$convergence != 0L) &&
+          check$value <= latest$value + 1e-8 * max(1, abs(latest$value))) {
+        fit <- polished
+        fit$method <- "L-BFGS-B after nlminb retry"
+      }
+    }
+  }
+  # A small log-SD score can hide a material score for a small, positive slope
+  # variance. Tighten numerical accuracy for that case before applying the same
+  # natural-variance certification used by the original mixed likelihood.
+  if (!is.null(certify)) {
+    latest <- evaluate(fit$par, derivatives = TRUE)
+    check <- if (isTRUE(latest$valid)) certify(fit$par, latest) else NULL
+    if (!is.null(check) && !isTRUE(check$gradient_ok) && !length(check$boundary_parameters)) {
+      tighter <- control
+      tighter$pgtol <- min(control$pgtol %||% 1e-6, 1e-8)
+      tighter$factr <- min(control$factr %||% 1e2, 1)
+      polished <- stats::optim(fit$par, objective, gradient, method = "L-BFGS-B",
+        lower = lower, upper = upper, control = tighter)
+      attempts[[length(attempts) + 1L]] <- list(method = "L-BFGS-B natural-variance polish",
+        convergence = polished$convergence, counts = polished$counts, value = polished$value)
+      candidate <- evaluate(polished$par, derivatives = TRUE)
+      if (isTRUE(candidate$valid) && (polished$convergence == 0L || fit$convergence != 0L) &&
+          candidate$value <= latest$value + 1e-8 * max(1, abs(latest$value))) {
+        fit <- polished
+        fit$method <- "L-BFGS-B natural-variance polish"
+      }
+    }
+  }
+  fit$attempts <- attempts
+  fit
 }
 
 #' @export

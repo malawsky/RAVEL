@@ -1,0 +1,4 @@
+"mode","comparisons","all_available","all_material_agreement","maximum_absolute_derivative_difference","maximum_pi_se_weighted_difference","maximum_fraction_conditional_se"
+"estimated_state",11,TRUE,TRUE,0.00413824053424128,0.000124147216027238,0.0014925493616016
+"equilibrium",11,TRUE,TRUE,0.00311290483157994,9.33871449473983e-05,0.0011172585440971
+"n_gen",11,TRUE,TRUE,0.00124600780208439,3.73802340625318e-05,0.000448874938312765

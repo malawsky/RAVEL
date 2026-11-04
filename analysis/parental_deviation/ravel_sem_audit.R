@@ -185,8 +185,17 @@ ravel_sem_audit <- function(result, level = .95) {
   lapply(tables, bind)
 }
 
-write_ravel_sem_audit <- function(audit, prefix) {
-  paths <- stats::setNames(paste0(prefix, "_", names(audit), ".csv"), names(audit))
-  for (nm in names(audit)) utils::write.csv(audit[[nm]], paths[[nm]], row.names = FALSE)
+write_ravel_sem_audit <- function(audit, prefix, decimal = getOption("OutDec", ".")) {
+  if (!decimal %in% c(".", ",")) stop("decimal must be '.' or ','.")
+  paths <- stats::setNames(paste0(prefix, "_", names(audit), "_excel.csv"), names(audit))
+  sep <- if (decimal == ",") ";" else ","
+  for (nm in names(audit)) {
+    con <- file(paths[[nm]], "w")
+    tryCatch({
+      writeLines(paste0("sep=", sep), con)
+      utils::write.table(audit[[nm]], con, sep = sep, dec = decimal,
+        row.names = FALSE, qmethod = "double", na = "")
+    }, finally = close(con))
+  }
   invisible(paths)
 }

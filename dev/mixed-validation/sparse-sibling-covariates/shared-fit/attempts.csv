@@ -1,0 +1,2 @@
+"scenario","seed","N_families","N_rows","singleton_families","sibling_families","error","converged","inference_status","elapsed_seconds","note"
+"shared",713,4000,4200,3800,200,TRUE,FALSE,"error",0.664999999999999,"At least 50 observed outcomes with complete covariates are required."

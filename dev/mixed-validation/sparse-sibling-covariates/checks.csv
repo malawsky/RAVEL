@@ -1,0 +1,11 @@
+"check","status","value"
+"old_empirical_subtraction_reproduces_failure","pass",-0.217563798883718
+"twenty_PC_within_covariance_positive_definite","pass",0.0686657012010601
+"twenty_PC_pair_mean_covariance_positive_definite","pass",1.76230623919278
+"twenty_PC_first_stage_influence_finite","pass",NA
+"twenty_PC_first_stage_scores_centered","pass",1.32938104968616e-12
+"family_weight_influence_nchild_1","pass",2.4225983922925e-09
+"family_weight_influence_nchild_2","pass",3.64611043505818e-09
+"exact_family_shared_covariate_identified","pass",NA
+"exact_family_shared_covariate_has_zero_within_variance","pass",NA
+"shared_covariate_influence_finite","pass",NA

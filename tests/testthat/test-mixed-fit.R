@@ -97,7 +97,8 @@ test_that("continuous variance scores include correlated individual slopes", {
 
 test_that("mixed family identity checks apply after missing outcome exclusions", {
   dat <- mixed_validation_data(N_families = 60L, sib_sizes = 2L, visits = 2L, pi = .4)
-  expect_error(ravel_mixed_fit(dat, fixed_effects = "age", diagnostic = FALSE), "covariate_mapping_confirmed")
+  expect_error(ravel_mixed_fit(dat, fixed_effects = "age", diagnostic = FALSE,
+    covariate_model = "independent"), "covariate_mapping_confirmed")
   broken <- dat; broken$FID[1] <- "another_extended_family"
   expect_error(ravel_mixed_fit(broken, diagnostic = FALSE), "one maternal family and one FID")
   broken <- dat; broken$PGS1_child[1] <- broken$PGS1_child[1] + .1

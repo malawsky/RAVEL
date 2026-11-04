@@ -2,7 +2,7 @@
 
 This directory contains the original parental-deviation script, a matching
 parental-phenotype workflow, and a function-based companion for adult outcomes.
-The original script retains its fitting defaults. All three use the family-model
+The child script has a short editable settings block; all three use the
 functions in the bundled package.
 
 ## Parental phenotypes: the editable-settings workflow
@@ -14,20 +14,22 @@ source("ravel_parental_phenotypes.R")
 ```
 
 Keep it alongside `ravel_parental_deviation.R`, which supplies the existing data
-preparation and fitting code, `ravel_sem_audit.R`, and the package archive below. With no data file
+preparation, fitting and reporting code, and the package archive below. With no data file
 set, it runs the included synthetic maternal-height example. To use your data,
 set `data_file`, `outcome`, the six trio `pgs_columns`, optional `sib_columns`,
 and your calibrated `pi`/`pi_se`. The workflow standardizes continuous outcomes
-and produces the same main estimates, pi-grid analyses, CSV and Excel-friendly
-CSV files as the original script, plus an RDS file retaining fits and diagnostics.
+and produces the same main estimates and pi-grid analyses, with Excel-ready
+CSV tables and an RDS file retaining fits and diagnostics.
 
 The child's two PGSs always remain in the genetic model. The reported outcome
-regressions always contain the focal parent's liability: mother alone, mother
-plus father, mother plus her sibling, and the other combinations with any
-included parental siblings. With both siblings there are **eight regressions**.
-The default is `focal = "mother"`; use `focal = "father"` for paternal outcomes.
-You can supply a named list in `outcome_models` to select specific combinations,
-but each must include the focal parent.
+regressions cover every nonempty combination of the available adult liabilities,
+including father-only and father-plus-paternal-sibling models for a maternal
+phenotype, and vice versa. There are **15 regressions** with both parental
+siblings, **seven** with one sibling, or **three** with the parents only.
+Use the same settings for maternal and paternal outcomes; no focal parent is
+required. Supply a named list in `outcome_models` to select specific combinations.
+Older function calls that supply `focal` still run, with a warning that it no
+longer restricts the predictors.
 
 By default, `genetic_configurations = "available"` uses all supplied relatives
 to identify one genetic model per outcome, assortment assumption and pi value.
@@ -35,7 +37,7 @@ Every outcome subset uses that same source fit. Set
 `genetic_configurations = "nested"` to also repeat the original trio-only,
 maternal-sibling, paternal-sibling and both-sibling genetic-block analyses,
 where scores are available. Each block runs its own adult predictor subsets,
-always retaining the focal parent.
+using every nonempty adult combination.
 
 The source fit retains nuisance outcome associations with every genetic member,
 including the child, to estimate the joint moments. Selected regressions are
@@ -44,7 +46,7 @@ regression does not assert that its source coefficient is zero. Plain PGS1/PGS2
 comparisons are separately fitted to each selected adult subset too. Midpoint,
 parent-difference and sibling-difference SEs use joint coefficient covariance.
 
-Use one row per focal adult for cross-sectional outcomes. Set `subject_id` to
+Use one row per phenotyped adult for cross-sectional outcomes. Set `subject_id` to
 check for duplicate adults; the script does not choose one child automatically.
 For covariate-adjusted corrected subsets, review the assumption below before
 setting `covariate_mapping_confirmed = TRUE`. Without it, visible results remain
@@ -58,53 +60,75 @@ source("ravel_parental_phenotypes.R")
 options(ravel.workflow_functions_only = NULL)
 ```
 
-## Detailed SEM tables
+## Reporting tables: the same layout for both workflows
 
-The parental workflow keeps its primary results CSV and adds seven separate
-audit CSVs beside it. Each row identifies the outcome, genetic block, model,
-main/grid assumption and pi. These describe each shared source fit once, rather
-than repeating the same SEM statistics for every adult predictor subset.
+Each phenotype gets the existing coefficient table plus five supporting tables.
+Every CSV uses the Excel-friendly format (a `sep=` first line); there is no
+second plain-CSV copy. Main/grid fits are identified by outcome, genetic block,
+assortment model and pi. For parental regressions, fit statistics describe the
+shared **source SEM**, once per fit, rather than each derived adult subset.
 
 | Filename suffix | Contents |
 |---|---|
-| `_sem_fit_statistics.csv` | Available lavaan fit measures, including chi-square, df, CFI/TLI, RMSEA, SRMR, likelihood/AIC/BIC where defined, convergence, admissibility and N. |
-| `_sem_parameters.csv` | Loadings, regressions, intercepts/thresholds, variances, covariances and defined parameters, with SEs, intervals, p-values and fixed/free indicators. |
-| `_sem_covariances.csv` | Latent and residual/exogenous variance/covariance parameters with their SEs and intervals. |
-| `_sem_standardized_parameters.csv` | Fully standardized estimates and their own SEs/intervals, with extraction warnings retained. |
-| `_sem_implied_covariances.csv` | Model-implied observed and latent covariance matrices in long form, with SEs where a validated derivative or direct parameter is available. |
-| `_sem_parameter_vcov.csv` | Lower triangle of the sampling covariance of the estimated SEM parameters, for reconstructing joint uncertainty. |
-| `_sem_extraction_status.csv` | Extraction status and the full warning/error text for each table-producing step. |
+| `_excel.csv` | Existing effects, contrasts, SEs, confidence intervals, p-values and pi sensitivity. |
+| `_fit_statistics_excel.csv` | Sample counts, likelihood, parameter count and available fit indices, with reasons for unavailable values. Lavaan models include ordinary/scaled/robust chi-square, CFI/TLI, RMSEA with its interval, SRMR and AIC/BIC where supplied. |
+| `_parameters_excel.csv` | Measurement and regression parameters, residual/random-effect variances, and relevant covariances. Standardized SEM rows have their own SEs and intervals; mixed-model loadings and variance components use scientific rather than log-optimizer scales. |
+| `_genetic_structure_excel.csv` | Genetic state and all pairwise implied liability correlations, including parent–child, spouse and parental-sibling pairs, with SEs/intervals. Visible and pi-corrected total liabilities are distinguished. |
+| `_diagnostics_excel.csv` | Auxiliary one-factor statistic, df, p-value, sample size and warnings. |
+| `_status_excel.csv` | Convergence, admissibility/inference status, estimation/SE method, warnings and extraction failures. |
+| `_fits.rds` | Full fitted objects, detailed diagnostics and the reporting tables. |
 
-SEM values use the prepared data's units: continuous outcomes are standardized,
-each PGS version uses the original workflow's pooled trio scaling, and genetic
-latent factors have unit variance by role. The SEM SEs use the fitted estimator
-(including robust/clustered uncertainty when applicable) **conditional on the
-supplied pi**. They do not add external `pi_se`; the corrected regression tables
-continue to propagate that uncertainty. Fixed latent variances have SE zero
-because they set the factor scale, not because their population variance was
-estimated without error. An unavailable SE or fit index is left missing, with a
-status explaining why. Warnings and inadmissible fits remain visible.
+**Mixed-model AIC:** random effects and clustered SEs do not themselves prevent
+AIC reporting. The joint-covariate model estimates covariate moments separately,
+so ordinary `AIC` is unavailable. Its numerical
+`AIC_conditional_moments_fixed` is shown as **descriptive**, treating those
+moments as fixed; random effects are integrated out. Compare only fits using
+the same observations and scaling. The custom mixed likelihood does not fit
+the reference models needed for SEM chi-square/CFI/TLI/RMSEA/SRMR, so those
+entries state why they are unavailable. Zero-df SEM fit indices are flagged as
+uninformative.
 
-All tables, source fits and one-factor objects are also in the saved RDS:
+The genetic table retains every pair among included liabilities. With child,
+mother, father and both parental siblings this gives ten visible correlations
+and ten total-liability correlations per source fit, including mother–her
+sibling, father–his sibling and cross-family pairs. Mixed child-sibling models
+label the reference children `child` and `child_sib`. Correlation SEs use joint
+parameter uncertainty conditional on pi; unavailable corrections or SEs have
+explicit statuses. These are marginal genetic correlations, not correlations
+of PGS measurements or standardized residual-covariance parameters.
+
+Continuous workflow outcomes are standardized. Parameter tables identify
+source units and standardized estimates separately. Source-SEM and genetic
+structure SEs condition on the supplied pi; the primary corrected effects
+retain their external `pi_se` adjustment. Fixed parameters, boundaries and
+unavailable uncertainty remain labelled.
+
+The large sampling-covariance and implied-observation matrices are not exported
+by default. Use the saved fit when those details are needed:
 
 ```r
 res <- readRDS("ravel_parental_phenotypes_mom_height_fits.rds")
-attr(res, "sem_audit")$sem_covariances
-attr(res, "diagnostics")[["both|Estimated state"]]
-attr(res, "fits")  # main and pi-grid fit records
+attr(res, "reporting_tables")$fit_statistics
+attr(res, "fits")  # parental source main/grid fit records
+
+child <- readRDS("ravel_parental_deviation_Y_fits.rds")
+attr(child, "report_fit_records")  # child source main/grid fit records
 ```
 
-Set `include_sem_audit = FALSE` to skip the extra tables during a quick trial.
+The optional parental setting `include_sem_audit = TRUE` additionally retains
+the full SEM audit in the RDS and requires `ravel_sem_audit.R` beside the scripts.
+It is off by default. Start with a fresh output prefix/folder when switching
+from older scripts so earlier CSVs are not mixed with the new exports.
 
 ## Install the bundled package
 
-Keep `RAVEL_0.2.0.9001.tar.gz` alongside these scripts. With this directory as your
+Keep `RAVEL_0.2.0.9003.tar.gz` alongside these scripts. With this directory as your
 working directory, install into a local library:
 
 ```r
 dir.create("library", showWarnings = FALSE)
 .libPaths(c(normalizePath("library"), .libPaths()))
-install.packages("RAVEL_0.2.0.9001.tar.gz", repos = NULL, type = "source",
+install.packages("RAVEL_0.2.0.9003.tar.gz", repos = NULL, type = "source",
                  lib = "library")
 library(RAVEL)
 source("ravel_family_regressions.R")
@@ -118,7 +142,7 @@ analysis automatically. It also supports genetic models with no children; the
 editable parental-phenotype workflow above deliberately retains the trio.
 
 For a runnable demonstration, source `run_synthetic_example.R`. It uses the
-included artificial `synthetic_family_example.rds`, runs all eight maternal
+included artificial `synthetic_family_example.rds`, runs all 15 adult
 regressions and writes tables and fitted objects locally. These observations are
 simulated and are not a sample of your data.
 
@@ -132,7 +156,6 @@ result <- ravel_family_regressions(
   dat = my_data,
   outcomes = "mom_height",
   genetic_roles = c("child", "mother", "father", "mat_sib", "pat_sib"),
-  focal = "mother",
   pi = .4, pi_se = .02,
   pi_grid = c(.3, .4, .5),
   models = list(estimated_state = list(fit_constraints = "estimated_state")),
@@ -143,8 +166,8 @@ result$failures
 result$sample_counts
 ```
 
-This fits one joint genetic model per pi assumption and derives all eight adult
-regressions containing maternal liability. The child remains available for
+This fits one joint genetic model per pi assumption and derives all 15 adult
+regressions. The child remains available for
 identification without being included in the reported outcome regressions.
 Both scores of every member in `genetic_roles` need to be supplied; partially
 missing observations are handled by the fitter. Binary models use complete
@@ -181,7 +204,7 @@ orthogonality assumption described in [family-models.md](family-models.md). With
 confirmation, visible projections are retained and corrected rows explain why
 they are unavailable.
 
-For a cross-sectional adult outcome, prepare one record per focal adult. An
+For a cross-sectional adult outcome, prepare one record per phenotyped adult. An
 optional `subject_id` checks that rule. Repeating the same mother once per child
 changes the weighting even if standard errors are clustered; the function does
 not silently choose a child or discard duplicates. With missing scores,
@@ -216,106 +239,49 @@ refits its pi grid to respect this requirement.
 
 ## Optional random effects for child outcomes
 
-Keep using **`ravel_parental_deviation.R`**. The random-effect switches are off
-by default, preserving the existing estimator. No additional script is needed.
-For cross-sectional sibling outcomes, turn on the family intercept:
+Edit the **SETTINGS** block in `ravel_parental_deviation.R`. Set your data file,
+design, phenotype names, PGS columns, covariates and pi. Then choose:
 
 ```r
-family_id <- "FID"  # extended families for the full estimator's sandwich SEs
-maternal_id <- "M_ID"  # nuclear families sharing the same parents
-subject_id <- "IID"   # the child
-random_family <- TRUE
+se_cluster <- "FID"               # Sandwich SE groups; also used for diagnostic sampling.
+iid <- "IID"                      # Person ID for diagnostics and repeated measurements.
+family_random_effect <- "M_ID"     # Nuclear-family intercept; NULL = off.
+individual_random_effect <- FALSE # TRUE adds an IID intercept in longitudinal data.
+interactions <- NULL              # c("age", "sex") fits/reports genetic interactions; NULL = none.
+nuclear_family_id <- "M_ID"        # Shared-parent ID when the family effect is off.
 ```
 
-For repeated continuous outcomes with genetic age/sex interactions:
+For repeated continuous outcomes, set `design <- "longitudinal"`, specify `age`
+and `age_center`, and turn on `individual_random_effect` if wanted. Age is
+included as a fixed covariate. `interactions` independently controls genetic
+slopes; `random_slope <- "age"` optionally adds an individual age slope and
+requires the individual intercept. Otherwise leave `random_slope <- NULL`.
+
+`family_random_effect` identifies nuclear families with the same two parents;
+`se_cluster` can group several such families into an extended FID. Mixed fits
+still need `nuclear_family_id` when the family intercept is off. Child PCs,
+sex and age can stay in `covariates`; no confirmation flag is needed.
+
+Cross-sectional runs with effects/interactions off retain the original
+estimator. The editable longitudinal trio workflow uses the mixed fitter,
+including when `interactions = NULL`. Existing direct function calls and their
+advanced settings remain available. Parental-sibling longitudinal models retain
+their existing age-only workflow: set `interactions <- age` and leave random
+effects off. Binary outcomes support cross-sectional sibling models only.
+
+The usual coefficient-table format is retained. Both workflows use the
+Excel-ready reporting files described above. The RDS preserves every main/grid
+fit and diagnostic:
 
 ```r
-design <- "longitudinal"
-random_family <- TRUE
-random_individual <- TRUE
-random_slope <- "age"  # optional; NULL keeps individual intercepts only
-genetic_interactions <- c("age", "sex")
-age_center <- 10
-covariate_mapping_confirmed <- TRUE
-```
-
-Change the three ID strings to match your columns. Set `random_family = FALSE`
-to fit individual effects without a family residual intercept; `maternal_id`
-still groups siblings and their shared parental scores in the genetic model.
-`family_id` remains the outer sandwich cluster. With `genetic_interactions = NULL`,
-the longitudinal workflow retains its usual genetic-by-age terms. Set it to
-`character(0)` to omit genetic interactions explicitly. Age effects use
-`age_center`; other moderators are centered at their sample means by default.
-Explicit `genetic_interactions` also selects the mixed estimator when both
-random-effect switches are off. Leave it `NULL` and all random effects off to
-use the original estimator.
-
-The confirmation accepts independence of the genetic components and score
-errors from the supplied covariates/moderators. Review that assumption before
-enabling it, especially for ancestry-related or genetically associated covariates.
-The random age slope includes an individual intercept–slope covariance; the
-genetic-by-age slopes are separate coefficients for child, mother and father.
-
-Maternal families must contain full siblings with the same two parents. Multiple
-maternal families can share an FID. For advanced settings, the existing
-`mixed_settings` list remains available, for example to supply `paternal_id` for
-father-ID checks, custom moderator centers or optimizer controls. Use that list
-instead of the simple random-effect switches; conflicting settings are rejected.
-For example, with the simple controls left at their defaults:
-
-```r
-mixed_settings <- list(
-  maternal_id = "M_ID", subject_id = "IID", paternal_id = "F_ID",
-  family_random = TRUE, individual_random = TRUE,
-  interactions = c("age", "sex"), interaction_center = c(age = 10, sex = 0),
-  covariate_mapping_confirmed = TRUE)
-```
-
-Always ensure the full-sibling assumption is appropriate. The mixed path
-supports the three constrained genetic modes and the three trio outcome paths.
-Parental-sibling latent blocks (`sib_columns`) and free genetic models remain
-on the existing estimator. The parental-phenotype script retains its existing
-adult-regression workflow.
-
-The main table, parental sum/difference contrasts and output filenames retain
-their format. Continuous outcomes remain standardized by this script; the direct
-package API instead returns original outcome units. Each pi-grid entry is a full
-mixed-model refit. Ordinary-PGS mixed-model comparisons are not added. For binary
-cross-sectional sibling outcomes, install `mvtnorm`; effects use conditional
-probit units with occasion residual SD fixed at one. Binary longitudinal models
-are not supported.
-
-Additional `_mixed_*.csv` files contain fit statistics, state estimates, genetic
-and implied score/outcome covariances with SEs, residual variance components,
-parameters and full sampling covariance matrices. The RDS retains every main
-and grid fit, including failures:
-
-```r
-res <- readRDS("ravel_parental_deviation_Y.rds")
+res <- readRDS("ravel_parental_deviation_Y_fits.rds")
+attr(res, "reporting_tables")$fit_statistics
 attr(res, "mixed_fit_records", exact = TRUE)
-attr(res, "mixed_audits", exact = TRUE)
 ```
 
-Inspect the inference status. Boundary solutions and failed gradient or
-information checks retain explicit statuses and unavailable SEs. Genetic-state,
-spouse-correlation and implied-covariance SEs condition on pi; coefficient and
-residual-variance SEs include independent external pi uncertainty when supplied
-and successfully propagated. The implied covariance table identifies one fitted
-age/sex design pattern, and binary Y means the latent probit response. Custom
-family likelihood/AIC values are provided; SEM CFI/RMSEA are not defined here.
-
-Transfer the updated script and package archive together. If an earlier
-development bundle is already installed, restart R and reinstall the supplied
-archive once, even if its version number is the same:
-
-```r
-install.packages("RAVEL_0.2.0.9001.tar.gz", repos = NULL, type = "source")
-```
-
-[Model assumptions and package API](../../docs/mixed-family-models.md) and
-[numerical/simulation validation](../../docs/mixed-family-validation.md) give the
-supported scope. Validation currently covers up to 1,000 maternal families;
-runtime and memory on full cohort datasets have not yet been established.
+Keep the script beside `RAVEL_0.2.0.9003.tar.gz`, restart R and run it as before.
+See [model assumptions and advanced API](../../docs/mixed-family-models.md) and
+[validation and limitations](../../docs/mixed-family-validation.md) for details.
 
 ## The automatic one-factor check
 
@@ -326,8 +292,9 @@ coefficient is zero. Covariates produce the explicit warning **"Covariates were
 not used to compute the one-factor test."** Interactions are omitted too. A
 valid result does not validate the adjusted model or its growth slopes.
 
-Set `subject_id` to the actual individual's ID: the child for child phenotypes,
-or the focal adult for parental phenotypes. `diagnostic_cluster = "auto"` uses
+The child script uses `iid` for the person and `se_cluster` for independent
+family sampling. In the parental script and direct function calls, set
+`subject_id` to the phenotyped person's ID. There, `diagnostic_cluster = "auto"` uses
 the original `FID` when present, otherwise `family_id`. One individual per FID
 and one target-age occasion are selected reproducibly before missing-score or
 outcome exclusions. Missing selected observations are not replaced by another

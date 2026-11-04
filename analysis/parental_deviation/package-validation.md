@@ -1,11 +1,35 @@
-Current bundle update (2026-11-02): the archive now includes the optional mixed-family
-estimator, updated auxiliary diagnostics and workflow integration. The original
-estimator implementation is unchanged. The current package check has no errors
-or warnings and one pre-existing CPU-runtime NOTE; legacy and new-module tests
-passed separately. See [current validation](../../docs/mixed-family-validation.md)
-and BUILD-MANIFEST.txt for checksums and limits, including the calibration
-warning accompanying nominal binary one-factor p-values. The report below
-records the earlier family-model release.
+Reporting scripts updated **4 November 2026** with consistent Excel-ready
+exports and all implied genetic-liability pair correlations. The package stays
+at **0.2.0.9003**; this reporting update requires only the revised scripts.
+All 247 reporting checks passed; see
+[workflow validation](parental-workflow-validation.md) and BUILD-MANIFEST.txt.
+
+Current bundle: **RAVEL 0.2.0.9003** fixes the joint-covariate covariance block
+for sparse sibling families and retains exactly shared covariates. Transfer the
+updated child script and package together; no analysis settings need changing.
+Three final integration simulations passed with regular inference, and all 100
+first-stage covariance simulations succeeded. These are not 100 full SEM fits.
+See [the current validation report](../../docs/mixed-family-validation.md#sparse-sibling-covariates-0209003),
+[archive comparison](checks/archive-compare-9003.json), and BUILD-MANIFEST.txt.
+The package archive's 103 R, help and test files match the checkout.
+The regression suite passed 56 tests / 647 assertions; package check had no
+errors or warnings and one existing CPU-runtime NOTE (tests run separately).
+
+Earlier bundle update (2026-11-03): RAVEL 0.2.0.9002 adds genetically associated
+child covariates to the optional mixed model. Sex, age and child PCs can be
+included with family/individual random effects and genetic interactions without
+asserting blanket genetic-covariate independence. Marginal AM and pi scales are
+retained under the documented hidden-residual and score-error assumptions.
+The original `ravel_fit()` implementation is unchanged.
+
+The current package check has **0 errors, 0 warnings and 1 pre-existing
+CPU-runtime NOTE**, with tests run separately. The archive's 100 R, help and test
+files match the checkout byte for byte. See
+[the current validation report](../../docs/mixed-family-validation.md),
+[package check](checks/package-check-9002.log),
+[archive comparison](checks/archive-compare-9002.json), and BUILD-MANIFEST.txt.
+The report below is retained as the record of the earlier family-model release;
+its test counts and publication status do not describe this update.
 
 # Final package validation — 29 October 2026
 

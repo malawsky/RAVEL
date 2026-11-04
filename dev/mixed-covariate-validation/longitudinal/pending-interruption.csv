@@ -1,0 +1,2 @@
+scenario,replicate,seed,status,reason
+balanced_long_random_slope,8,531008,pending,In-flight fit interrupted to relieve memory pressure; no result or successful inference claimed.

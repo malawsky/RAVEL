@@ -2,22 +2,21 @@
 ## RAVEL: parental phenotypes, with the child retained for genetic identification
 ## =============================================================================
 ## Edit SETTINGS and source this file, just as for ravel_parental_deviation.R.
-## Keep these scripts, ravel_sem_audit.R and the RAVEL package bundle together. The original script
+## Keep both workflow scripts and the RAVEL package bundle together. The child script
 ## supplies the same preprocessing, source fits, pi grid and one-factor check.
 ##
 ## The child's scores stay in every genetic model. Reported outcome regressions
-## contain adults only and always include the focal parent: eight subsets with
-## four adults, four with three adults, or two with the two parents. Set
-## focal = "mother" for maternal outcomes or "father" for paternal outcomes.
+## contain every nonempty subset of the available adults: 15 subsets with
+## four adults, seven with three adults, or three with the two parents.
+## The same combinations are used for maternal and paternal outcomes.
 ## These are reduced regressions of the corrected joint moments. The child's
 ## source outcome association is a nuisance parameter, not fixed to zero.
 ##
-## The one-factor diagnostic concerns an unadjusted auxiliary full genetic-block
-## model, once per main fit; it omits covariates/interactions with warnings.
+## The one-factor diagnostic uses an auxiliary unadjusted genetic-block model, once per main fit.
 ## It does not test whether the child's outcome coefficient is zero, or validate
 ## every reduced regression. Full diagnostics and fits are saved in the RDS file.
-## Separate SEM audit CSVs contain fit statistics, all parameter estimates,
-## variances/covariances with SEs, and the parameter uncertainty covariance.
+## Matching Excel-ready tables contain fit statistics, model parameters, genetic
+## structure and diagnostics. Full fitted objects remain available in the RDS.
 ## To load functions without running SETTINGS: set
 ## options(ravel.workflow_functions_only = TRUE) before sourcing, then reset it.
 ## =============================================================================
@@ -66,8 +65,7 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
   genetic_configurations <- "available"  # all supplied scores inform every subset
   # "nested" also runs trio-only, + maternal sibling, + paternal sibling, + both,
   # for the configurations your score columns support, as in the original script.
-  focal <- "mother"                # required in every subset; use "father" for paternal outcomes
-  outcome_models <- NULL           # optional named list, e.g.
+  outcome_models <- NULL           # all adult combinations; optional named list, e.g.
   # outcome_models <- list(own = "mother", sib = c("mother", "mat_sib"),
   #                       partners = c("mother", "father"))
 
@@ -77,7 +75,7 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
   # Cov(T - M'G, W) = 0. Set TRUE only when using this assumption (family-models.md).
   # Otherwise visible estimates remain available and corrected rows explain why not.
   family_id <- "FID"              # true family ID; NULL if rows are independent
-  subject_id <- "FID"             # cross-sectional: unique focal-adult ID, or NULL
+  subject_id <- "FID"             # cross-sectional: unique phenotyped-adult ID, or NULL
   diagnostic_cluster <- "auto"    # original FID, otherwise family_id; NULL only for independent adults
   # Choose one row per adult: clustering repeated copies once per child does not
   # remove duplicate-adult weighting. Longitudinal measurements may repeat adults.
@@ -93,22 +91,22 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
     "3 generations" = list(fit_constraints = "n_gen", am_n_generations = 3L),
     "Equilibrium" = list(fit_constraints = "equilibrium"))
   include_raw <- FALSE
-  include_sem_audit <- TRUE        # extra detailed SEM tables; primary results stay unchanged
+  include_sem_audit <- FALSE       # Optional full covariance audit in RDS; needs ravel_sem_audit.R.
   output_csv <- "ravel_parental_phenotypes.csv"
 }
 
 ## ---- ANALYSIS FUNCTIONS (no need to edit) -----------------------------------
 
-.ravel_adult_outcome_models <- function(adults, focal = "mother", outcome_models = NULL) {
+.ravel_adult_outcome_models <- function(adults, outcome_models = NULL) {
   if (is.null(outcome_models)) {
     ans <- list()
     for (mask in seq_len(2^length(adults) - 1L)) {
       roles <- adults[as.logical(intToBits(mask)[seq_along(adults)])]
-      if (focal %in% roles) ans[[paste(roles, collapse = "+")]] <- roles
+      ans[[paste(roles, collapse = "+")]] <- roles
     }
     return(ans)
   }
-  Filter(function(x) all(x %in% adults) && focal %in% x, outcome_models)
+  Filter(function(x) all(x %in% adults), outcome_models)
 }
 
 .ravel_adult_parameter <- function(x) {
@@ -218,7 +216,7 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
 
 ravel_parental_phenotypes <- function(
     dat, outcome = "Y", pgs_columns, sib_columns = NULL,
-    genetic_configurations = c("available", "nested"), focal = "mother", outcome_models = NULL,
+    genetic_configurations = c("available", "nested"), focal = NULL, outcome_models = NULL,
     models = list("Estimated state" = list(fit_constraints = "estimated_state"),
       "3 generations" = list(fit_constraints = "n_gen", am_n_generations = 3L),
       "Equilibrium" = list(fit_constraints = "equilibrium")),
@@ -262,16 +260,17 @@ ravel_parental_phenotypes <- function(
     if (!is.character(subject_id) || length(subject_id) != 1L) stop("subject_id must name one column.")
     if (anyNA(dat[[subject_id]])) stop("subject_id must be observed.")
     if (design == "cross_sectional" && anyDuplicated(dat[[subject_id]]))
-      stop("subject_id must be unique: choose one record per focal adult before a cross-sectional analysis.")
+      stop("subject_id must be unique: choose one record per phenotyped adult before a cross-sectional analysis.")
   }
   adults <- c("mother", "father", sib_roles)
-  if (!is.character(focal) || length(focal) != 1L || is.na(focal) || !focal %in% c("mother", "father"))
-    stop("focal must be mother or father; every outcome regression includes that parent.")
+  # Retain the argument position for older callers; predictor selection is symmetric.
+  if (!is.null(focal))
+    warning("focal is deprecated and ignored; use outcome_models to select adult subsets.", call. = FALSE)
   if (!is.null(outcome_models)) {
     if (!is.list(outcome_models) || !length(outcome_models) ||
         any(vapply(outcome_models, function(x) !is.character(x) || !length(x) || anyNA(x) ||
-          anyDuplicated(x) || !all(x %in% adults) || !focal %in% x, logical(1))))
-      stop("outcome_models must contain adult-role subsets including the focal parent; child is never an outcome predictor.")
+          anyDuplicated(x) || !all(x %in% adults), logical(1))))
+      stop("outcome_models must contain nonempty adult-role subsets; child is never an outcome predictor.")
     if (is.null(names(outcome_models)))
       names(outcome_models) <- vapply(outcome_models, paste, collapse = "+", character(1))
     if (anyNA(names(outcome_models)) || any(!nzchar(names(outcome_models))) || anyDuplicated(names(outcome_models)))
@@ -327,7 +326,7 @@ ravel_parental_phenotypes <- function(
     siblings <- switch(ps, none = character(), maternal = "mat_sib", paternal = "pat_sib",
                        both = c("mat_sib", "pat_sib"))
     genetic <- c("child", "mother", "father", siblings)
-    subsets <- .ravel_adult_outcome_models(setdiff(genetic, "child"), focal, outcome_models)
+    subsets <- .ravel_adult_outcome_models(setdiff(genetic, "child"), outcome_models)
     subset_records[[ps]] <- subsets
     if (!length(subsets)) {
       message("No requested adult subset is supported by genetic configuration '", ps, "'; skipped.")
@@ -360,7 +359,7 @@ ravel_parental_phenotypes <- function(
       for (i in which(keep)) {
         row <- source[i, , drop = FALSE]
         scope_note <- if (row$parameter == "one_factor_test")
-          "Unadjusted auxiliary full genetic-block model; not a test of excluding child liability" else "Shared genetic model"
+          "Auxiliary unadjusted full genetic-block diagnostic; not a test of excluding child liability" else "Shared genetic model"
         add(row, ps, model_name, row$analysis, row$pi, row$pi_se, genetic = genetic, N = st$N,
           note = scope_note)
       }
@@ -380,6 +379,8 @@ ravel_parental_phenotypes <- function(
         record$parental_sibs <- ps
         record$genetic_roles <- genetic
         record$outcome <- outcome
+        record$settings <- st
+        if (identical(record$kind, "main")) record$diagnostic <- attr(source, "one_factor")
         fits[[key]] <- record
         projections[[key]] <- list()
         for (nm in names(subsets)) {
@@ -451,7 +452,7 @@ ravel_parental_phenotypes <- function(
   attr(table, "diagnostics") <- diagnostics
   attr(table, "projections") <- projections
   attr(table, "settings") <- list(outcome = outcome, design = design,
-    genetic_configurations = genetic_configurations, focal = focal, source_settings = settings,
+    genetic_configurations = genetic_configurations, source_settings = settings,
     covariate_mapping_confirmed = covariate_mapping_confirmed, subject_id = subject_id,
     note = "Child scores inform the joint genetic model; all reported outcome predictors are adults.")
   attr(table, "outcome_models") <- subset_records
@@ -541,7 +542,7 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
   for (y in outcome) {
     is_binary <- if (is.logical(binary_outcome)) isTRUE(binary_outcome) else y %in% binary_outcome
     res <- tryCatch(ravel_parental_phenotypes(dat, y, pgs_columns, sib_columns,
-      genetic_configurations = genetic_configurations, focal = focal, outcome_models = outcome_models,
+      genetic_configurations = genetic_configurations, outcome_models = outcome_models,
       models = models, pi = pi, pi_se = pi_se, pi_grid = pi_grid, grid_pi_se = grid_pi_se,
       covariates = covariates, covariate_mapping_confirmed = covariate_mapping_confirmed,
       family_id = family_id, subject_id = subject_id, diagnostic_cluster = diagnostic_cluster,
@@ -556,14 +557,10 @@ if (!isTRUE(getOption("ravel.workflow_functions_only", FALSE))) {
     print_parental_phenotypes(res)
     base <- sub("[.]csv$", "", output_csv)
     path <- paste0(base, "_", gsub("[^A-Za-z0-9_.-]+", "_", y), ".csv")
-    utils::write.csv(res, path, row.names = FALSE)
-    engine$write_excel_csv(res, sub("[.]csv$", "_excel.csv", path))
-    audit <- attr(res, "sem_audit")
-    if (length(audit)) for (nm in names(audit))
-      utils::write.csv(audit[[nm]], sub("[.]csv$", paste0("_", nm, ".csv"), path), row.names = FALSE)
-    saveRDS(res, sub("[.]csv$", "_fits.rds", path))
-    message("Saved table, Excel copy, ", length(audit), " SEM audit tables and fitted objects/diagnostics for ",
-      y, " at ", normalizePath(path))
+    paths <- engine$write_ravel_workflow_outputs(res, sub("[.]csv$", "", path), workflow = "parental")
+    message("Excel-ready results and reporting tables for ", y, ": ",
+      normalizePath(paths[["results"]]), "\nFitted objects and diagnostics: ",
+      normalizePath(paths[["fits"]]))
   }
   message("Done. Analysed: ", if (length(results)) paste(names(results), collapse = ", ") else "none")
 }

@@ -1,5 +1,25 @@
 # Parental-phenotype workflow validation
 
+Reporting update validated on **4 November 2026**: all **247 checks** passed
+in `dev/check-paper-reporting.R`. Synthetic checks cover child SEMs with and
+without parental siblings, eight focal-parent subsets, and child mixed models
+with and without covariates. All source main/pi-grid fits are retained.
+Native fit statistics and scientific measurement parameters agree with the
+fitted models. Five-member models report ten visible and ten total-liability
+correlations, including parent–own-sibling and cross-family pairs; estimates
+were checked against independent population calculations and SEs against
+numerical differentiation of the complete parameter covariance.
+
+The outputs retain valid one-factor p-values and warning text, mark failed or
+nonconverged fits, distinguish source SEM fit from reduced adult regressions,
+and distinguish ordinary AIC from the descriptive covariate-moments-fixed
+criterion. Eight Excel writer combinations verified decimal points/commas,
+quoting, embedded newlines, unchanged primary values and retained RDS objects.
+No ordinary CSV duplicate or large covariance-matrix CSV is written by default.
+These are reporting checks; no new estimator or Monte Carlo claim is made.
+Results and tested source hashes are in `dev/paper-reporting-validation/`.
+The earlier validation below remains a record of the regression implementation.
+
 Validated on 29 October 2026 using bundled or synthetic observations only.
 The original Desktop analysis files were not modified. No GitHub push was made.
 
@@ -82,3 +102,28 @@ Its generated observations are synthetic; replace the settings for your data.
 The SEM audit tables preserve extraction warnings and unavailable indices.
 Source-SEM uncertainty is conditional on the supplied pi; external pi
 uncertainty continues to enter the corrected regression tables separately.
+
+
+## Symmetric adult predictor selection (2026-11-04)
+
+The parental workflow now selects every nonempty adult subset, rather than
+requiring a focal parent's liability. There are 15 subsets with both parental
+siblings, seven with one sibling and three with the parents alone. The generic
+function-based companion uses the same default. Older explicit `focal` arguments
+warn and are ignored; `outcome_models` still selects particular regressions.
+The earlier focal-subset counts above describe the previous workflow.
+
+The expanded workflow's 15 corrected regressions matched independent population
+projection targets on synthetic data, including founder and present-day scales.
+Plain-PGS subset regressions, their SEs and external-pi uncertainty checks passed.
+All 247 reporting checks passed after regenerating the parental source fits;
+unchanged child fits were reused. Checks include all genetic-liability pairs,
+fit statistics, Excel decimal/quoting round trips and full fitted-object retention.
+These are functional and exact-moment recovery checks, not Monte Carlo coverage
+estimates. The statistical package and its bundled archive are unchanged.
+
+`dev/run-parental-phenotype-checks.R` passed all 15 check groups, including
+3/7/7/15 nested configurations, opposite-parent custom selections, deprecated
+argument compatibility, missing-data accounting, finite-generation pi-grid fits
+and the function-based companion. The retained log is
+`checks/symmetric-parental-workflow-20261104.log`.

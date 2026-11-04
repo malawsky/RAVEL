@@ -1,0 +1,6 @@
+This attempt used an invalid synthetic fixture: visible_raw_sd is unnamed,
+so indexing it by "mother" and "father" introduced NA PC1 and NA outcomes.
+The fitter correctly rejected the missing-outcome data before estimation.
+The driver now uses positional role indices and asserts finite PC1/Y.
+The corrected identical-seed attempt is retained separately in shared-fit-final.
+This record is not evidence of a fitted-model convergence failure.

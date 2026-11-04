@@ -1,18 +1,50 @@
-RAVEL 0.2.0.9001 family-regression and optional mixed-model analysis bundle
-Built and checked 2026-11-02
-Source base commit: 03ec3271757b1f405bf990ebd17d229975d35be1
+RAVEL 0.2.0.9003 sparse-sibling covariate covariance correction
+Package built and checked 2026-11-03; reporting scripts updated 2026-11-04
+Source base commit: 74de31d0c11326cf060552f60fbd750dfe74ecf8
 Local branch: codex/family-outcome-subsets
-Includes optional child-workflow random-effect controls and updated auxiliary diagnostics.
 Author: Daniel Malawsky <d.malawsky@gmail.com>
-SHA256 RAVEL_0.2.0.9001.tar.gz: 084604227406fe4368e1fb4353ac85765cb814ca04f4555cb87772b9afc36518
-All validation/example observations are synthetic.
-Legacy estimator R implementation files are unchanged.
-Tests: legacy 252 tests / 4316 expectations; new modules 32 tests / 318 expectations; no failures.
-Workflow checks: 28 simple-setting checks and 36 integration checks passed.
-Package check: 0 errors, 0 warnings, 1 pre-existing detectCores/unlockBinding NOTE; tests run separately.
-Binary one-factor nominal p-values are reported with a calibration warning (8.0% null rejection at nominal 5%).
-See README.md and ../../docs/mixed-family-validation.md for supported scope and validation.
 
-SHA256 ravel_parental_deviation.R: c0749cbc40fda6797dbeafc880e4b69038b62fe544074e8805200214ca1c0413
-SHA256 ravel_parental_phenotypes.R: b9d5433853843a8be959d7cbcf023d35449933094025b0ded040775be38394f6
-SHA256 ravel_sem_audit.R: bb1cfc56f7b30de87ecb56e45ff0167de542cf3703369bfb1e031ac2cd5f7bf7
+The optional joint-covariate mixed model now estimates coherent self/sibling
+covariances and supports exactly family-shared covariates. First-stage uncertainty
+remains in FID sandwich SEs. Marginal AM/pi mapping and original ravel_fit code
+are unchanged. Child script settings and coefficient-table formats are unchanged.
+Prepared for publication to origin/dev. All validation observations are synthetic.
+
+SHA256 RAVEL_0.2.0.9003.tar.gz: a14b870a94d534515d498302b9e1f7646c5ed0bd099a337e6823c829e0ae6376
+SHA256 ravel_parental_deviation.R: 702e9d58a711d8f4e8779dee519e5d2929755d98c2b9a6c2c06c784c283c6eee
+Reporting update: both workflows now write six Excel-ready CSV tables and one
+_fits.rds per phenotype. Primary coefficient columns and model estimates are
+preserved. All implied visible/total liability correlations are included with
+joint-parameter SEs conditional on pi. Descriptive mixed-model AIC is labelled.
+Update ravel_parental_deviation.R and, for parental outcomes,
+ravel_parental_phenotypes.R. The existing 0.2.0.9003 package is unchanged.
+ravel_sem_audit.R is needed only for the optional full parental SEM audit.
+Reporting validation: 247/247 checks passed across child/parental SEMs and mixed
+models with/without covariates, main/pi-grid retention, all liability pairs,
+natural measurement parameters, failures and Excel decimal/quoting round trips.
+See dev/check-paper-reporting.R and dev/paper-reporting-validation/ in the repo.
+
+Tests: 56 tests / 647 assertions in mixed-model, covariate and diagnostic suites;
+0 failures, errors, test warnings or skips. Original SEM core tests were not rerun.
+Editable workflow: 29 checks passed, including two simulated fits and diagnostics.
+Package check: 0 errors, 0 warnings, 1 existing detectCores/unlockBinding NOTE;
+tests run separately. Archive comparison: 103 R/help/test files matched byte for byte.
+
+Sparse-family integration: three final runs (ordinary cross-sectional, exactly
+shared PC cross-sectional, and shared PC longitudinal with genetic sex slopes)
+had regular inference with finite effect SEs; 16, 17 and 19 checks passed.
+All used 95% singleton and 5% two-child families.
+First-stage covariance simulation: 100/100 runs successful; the old empirical
+subtraction failed positive definiteness in 98/100. Coverage for PC variance,
+sibling covariance, within-sibling variance and age variance was 92%-96%.
+These are covariance simulations, not 100 full SEM coverage runs. Nonregular
+Bernoulli(.5) variance coverage is not evidence of nominal calibration.
+The clean rerun repeats the same 100 seeds; it is not an additional 100 replicates.
+See ../../docs/mixed-family-validation.md for scope, retained failures, and commands.
+
+Symmetric parental regressions (2026-11-04): all nonempty adult combinations
+are now selected by default (15/7/3 with two/one/no parental siblings).
+No focal parent is required. Child scores still identify the genetic block.
+The package archive is unchanged; update the parental workflow script.
+Reporting checks rerun successfully: 247/247, including all genetic correlations.
+Symmetric workflow validation: all 15 check groups passed.

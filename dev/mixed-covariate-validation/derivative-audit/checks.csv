@@ -1,0 +1,7 @@
+"check","error"
+"information_relative_error",4.16464593152814e-06
+"family_score_max_error",1.59945372502079e-08
+"moment_gradient_max_error",1.35742761420143e-07
+"moment_influence_max_error",8.7486462518882e-11
+"cross_derivative_relative_error",4.49798007472532e-07
+"stacked_covariance_relative_error",2.49110593037415e-05

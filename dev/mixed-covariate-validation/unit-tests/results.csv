@@ -1,0 +1,18 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","child covariate preparation preserves person and family information",89,0,FALSE,FALSE,0,0.721,0.022,0.762,89
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate raw-moment influence and unpacking derivatives agree with direct changes",8,0,FALSE,FALSE,0,0.325,0.003,0.332,8
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","exchangeable conditioning matches a dense full-family Schur complement",7,0,FALSE,FALSE,0,0.201,0.012,0.244,7
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","redundant person features and invalid exchangeability are explicit",5,0,FALSE,FALSE,0,0.144,0.00700000000000001,0.361,5
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate audit propagates cross-stage covariance and works without raw moment scores",9,0,FALSE,FALSE,0,0.342,0.005,0.349,9
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate audit does not invent sibling moments and retains binary boundary estimates",6,0,FALSE,FALSE,0,0.145,0.006,0.17,6
+"test-mixed-covariates.R","mixed-covariates","correlated child covariate fixtures preserve person identities and reference ages",76,0,FALSE,FALSE,0,0.081,0.006,0.0870000000000006,76
+"test-mixed-covariates.R","mixed-covariates","the independent Schur oracle retains marginal pi and AM state",42,0,FALSE,FALSE,0,0.111,0.004,0.115,42
+"test-mixed-covariates.R","mixed-covariates","family covariate moments are projectively consistent across sibling counts",5,0,FALSE,FALSE,0,0.00599999999999978,0,0.00600000000000023,5
+"test-mixed-covariates.R","mixed-covariates","sampled correlated PCs and binary sex match independent population moments",9,0,FALSE,FALSE,0,0.328,0.018,0.372999999999999,9
+"test-mixed-covariates.R","mixed-covariates","marginal pi alone does not identify a generic covariate-adjusted total map",4,0,FALSE,FALSE,0,0.004,0,0.00400000000000045,4
+"test-mixed-covariates.R","mixed-covariates","binary correlated-covariate data use the stated conditional-probit residual scale",4,0,FALSE,FALSE,0,0.0230000000000001,0.001,0.024,4
+"test-mixed-covariates.R","mixed-covariates","fitted conditional covariance and mean match the independent primitive oracle",6,0,FALSE,FALSE,0,0.0499999999999998,0.005,0.0589999999999993,6
+"test-mixed-covariates.R","mixed-covariates","full information, family scores and stacked covariate uncertainty agree with independent differences",8,0,FALSE,FALSE,0,10.051,0.312,11.757,8
+"test-mixed-covariates.R","mixed-covariates","genetic estimates and stacked SEs are invariant to covariate affine units",5,0,FALSE,FALSE,0,5.718,0.232,6.555,5
+"test-mixed-covariates.R","mixed-covariates","no-covariate calls preserve the established mixed path exactly",4,0,FALSE,FALSE,0,2.516,0.268,3.967,4
+"test-mixed-covariates.R","mixed-covariates","joint optimizer polishes a failed interior certificate without relaxing it",5,0,FALSE,FALSE,0,0.00900000000000034,0.00300000000000011,0.0120000000000005,5

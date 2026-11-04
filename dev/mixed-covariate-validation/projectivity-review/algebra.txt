@@ -1,0 +1,29 @@
+For the current constrained Mendelian covariance model, write V for founder-
+scaled visible liability and T* for founder-scaled total liability. A child's
+V innovation after .5(Vm+Vp) has variance .5; its T* innovation has covariance
+.5 sqrt(1-pi) with that V innovation. Innovations for distinct children are
+independent. Parent T* projections use only Vm,Vp, because offspring V
+innovations are uncorrelated with parental liabilities.
+
+Let Rp* = Cov(T*parents,Vparents) Var(Vparents)^(-1). Then
+
+  E_linear(T*i | V_all) = .5 1' Rp* Vparents
+                         + sqrt(1-pi)[Vi-.5(Vm+Vp)].
+
+Divide the parental rows by sqrt(Vp) and child rows by sqrt(Vc) for the
+present-day role-standardized R used in the fitter. No other child's V has
+a coefficient. Therefore embedded rows/columns of R agree across family
+sizes, and R D has the same common marginal total-covariate associations for
+arbitrary free exchangeable D. This does not require imposing the additional
+constraint D_child,sibling=.5(D_mother+D_father).
+
+check.R compares this independent algebra with the implemented R and embedded
+R D blocks for 1--6 children, all three constrained modes, pi 0/.4/.8 and rho
+-.2/0/.3. D has distinct free role coefficients, including a sibling coefficient
+that deliberately violates the extra Mendelian-covariate constraint.
+
+Conditioning on more observed children's C legitimately changes conditional
+means and Schur covariances. Marginal compatibility does not itself establish
+positive definiteness for every larger hypothetical family size. The fitter
+checks the sizes represented in the data; it does not certify an infinite
+exchangeable pedigree or unobserved family-size distributions.

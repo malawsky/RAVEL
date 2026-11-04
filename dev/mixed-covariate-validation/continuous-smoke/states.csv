@@ -1,0 +1,10 @@
+"scenario","replicate","parameter","truth","estimate"
+"continuous_pc",1,"rho",0.3,0.322726824959974
+"continuous_pc",1,"parent",1.2,1.45142159652629
+"continuous_pc",1,"child",1.28,1.45991714002578
+"continuous_equilibrium",1,"rho",0.3,0.299502981656778
+"continuous_equilibrium",1,"parent",1.42857142857143,1.42755782510702
+"continuous_equilibrium",1,"child",1.42857142857143,1.42755782510702
+"continuous_n_gen",1,"rho",0.3,0.278991137103126
+"continuous_n_gen",1,"parent",1.2475,1.22870236647287
+"continuous_n_gen",1,"child",1.310875,1.28574971842822

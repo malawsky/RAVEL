@@ -1,0 +1,5 @@
+"run","scenario","attempted","errors","converged","regular_inference","statuses","total_fit_seconds","median_fit_seconds"
+"longitudinal","balanced_long_random_slope",50,0,39,38,"boundary:9; not_converged:3; ok:38",1898.368,29.1115
+"binary-pilot","binary_pc",20,0,20,17,"boundary:3; ok:17",5046.302,45.5564999999999
+"mc-continuous","continuous_pc",100,0,100,100,"ok:100",1172.66,7.703
+"mc-continuous","extended_fid",100,0,100,100,"ok:100",817.115999999999,7.67400000000004

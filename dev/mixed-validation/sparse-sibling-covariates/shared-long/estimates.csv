@@ -1,0 +1,7 @@
+"parameter","scale","estimate","se","ci_low","ci_high","p_value","uncertainty_source","outcome_scale","truth","covered_95"
+"beta_D","corrected_std",0.282666323343878,0.0614858931747634,0.162156187164065,0.403176459523692,4.28093775535487e-06,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.339411254969543,TRUE
+"beta_M","corrected_std",0.183501322349902,0.052266783903389,0.0810603083115219,0.285942336388282,0.000446660804765392,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.13145341380124,TRUE
+"beta_F","corrected_std",-0.0199125444729557,0.0531366654066861,-0.124058494928616,0.0842334059827045,0.707852294301877,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",-0.0438178046004133,TRUE
+"beta_D:sex","corrected_std",0.251757506143218,0.0816465637154346,0.0917331817995117,0.411781830486925,0.0020457835711563,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.135764501987817,TRUE
+"beta_M:sex","corrected_std",-0.223482352290934,0.0746017028774438,-0.369699003116082,-0.0772657014657862,0.00273839372701602,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",-0.0657267069006199,FALSE
+"beta_F:sex","corrected_std",-0.0156705292748641,0.0723158948744737,-0.157407078738617,0.126066020188889,0.828445652179432,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.0219089023002066,TRUE

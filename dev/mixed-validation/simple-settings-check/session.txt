@@ -16,7 +16,7 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base
 
 other attached packages:
-[1] RAVEL_0.2.0.9001 testthat_3.3.2
+[1] RAVEL_0.2.0.9002 testthat_3.3.2
 
 loaded via a namespace (and not attached):
  [1] desc_1.4.3          R6_2.6.1            numDeriv_2016.8-1.1
@@ -29,7 +29,7 @@ loaded via a namespace (and not attached):
 
 Source hashes:
 analysis/parental_deviation/ravel_parental_deviation.R
-                    "9f6c4e8a7718038bb1e309be4e6284cc"
+                    "c5cdf30ad158e4891999ecabeb77fa6f"
                   dev/check-workflow-simple-settings.R
                     "4e7eacefd6992c8b6051d766533cc9c5"
               tests/testthat/helper-mixed-validation.R

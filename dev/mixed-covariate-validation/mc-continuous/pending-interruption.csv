@@ -1,0 +1,2 @@
+scenario,replicate,seed,status,reason
+continuous_pc,24,491024,pending,In-flight fit interrupted to relieve memory pressure; no result or successful inference claimed.

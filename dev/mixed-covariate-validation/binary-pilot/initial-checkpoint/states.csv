@@ -1,0 +1,4 @@
+"scenario","replicate","parameter","truth","estimate"
+"binary_pc",1,"rho",0.3,0.420520699680972
+"binary_pc",1,"parent",1.2,1.47111137062015
+"binary_pc",1,"child",1.28,1.54487207675098

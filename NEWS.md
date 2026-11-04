@@ -1,3 +1,36 @@
+# RAVEL 0.2.0.9003 (development)
+
+## Sparse sibling families with covariates
+
+- The optional joint-covariate mixed model estimates a coherent exchangeable
+  covariance structure, avoiding indefinite within-sibling covariance estimates
+  when most families contain one observed child. No covariates are silently
+  dropped and no nearest-positive-definite replacement is used.
+- Exactly family-shared covariates retain their outcome adjustment and shared
+  genetic association, without inventing within-sibling variation.
+- First-stage covariance-estimation uncertainty remains in the FID sandwich,
+  including its covariance with fitted genetic and outcome parameters.
+- Child workflow settings and output table formats are unchanged. The script
+  checks for this updated package before fitting.
+
+# RAVEL 0.2.0.9002 (development)
+
+## Covariates in the optional mixed model
+
+- `ravel_mixed_fit()` now estimates associations between child covariates and
+  the family's genetic liabilities by default. Sex, age and child PCs can be
+  included with family/individual random effects and genetic interactions.
+  The existing child workflow selects this model automatically.
+- The model retains marginal AM and pi scales, conditions on every child's
+  covariates together, and counts each parent's PGS measurements once.
+  Total-liability interpretation assumes the hidden residual after projection
+  onto visible genetics has no further covariate association.
+- FID sandwich SEs include uncertainty in the estimated covariate moments.
+  Additional audit tables report marginal and conditional covariances with SEs.
+- The original `ravel_fit()` estimator and the mixed model without covariates
+  retain their existing statistical paths. Explicit `covariate_model =
+  "independent"` preserves the previous mixed-covariate assumption.
+
 # RAVEL 0.2.0.9000 (development)
 
 ## Review fixes for interactions, clustering and reporting

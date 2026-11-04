@@ -1,0 +1,6 @@
+Interrupted to reduce heavy simulation jobs from three to two after roughly 1 GB each of swap-in and swap-out over 90 seconds.
+Completed records retained: 6 (replicates 1--6).
+In-flight replicate 7, seed 541007, has no completed result and remains pending. This is scheduling, not a scientific failure.
+Replicate 6 completed with boundary status before interruption and remains in attempts.csv.
+Resume only after the coordinator confirms a heavy-job slot is free.
+Resolution: all 20 prespecified completed attempts are now retained; interrupted replicate 7 completed with regular inference in source batch 20261103T142442Z. No interruption was counted as a scientific failure.

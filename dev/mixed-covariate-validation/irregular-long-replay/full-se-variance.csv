@@ -1,0 +1,6 @@
+"component","estimate","se","uncertainty_conditions"
+"residual",0.729292131261068,0.0382310462970676,"conditional on supplied pi"
+"family_intercept",0.179434406466527,0.0676786774148747,"conditional on supplied pi"
+"individual_intercept",0.198581090448434,0.0501559731588905,"conditional on supplied pi"
+"individual_slope",0.0016476824634863,0.00314517977870013,"conditional on supplied pi"
+"individual_intercept_slope_covariance",0.00733985983548695,0.00762658632707238,"conditional on supplied pi"

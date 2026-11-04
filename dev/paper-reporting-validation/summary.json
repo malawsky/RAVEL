@@ -1,0 +1,13 @@
+{
+  "checks": 247,
+  "passed": 247,
+  "failed": 0,
+  "fit_scenarios": [
+    "child SEM with and without parental siblings",
+    "parental outcome 15 adult subsets",
+    "child mixed with covariates",
+    "child mixed without covariates"
+  ],
+  "covariance_simulations": 0,
+  "export_variants": 8
+}

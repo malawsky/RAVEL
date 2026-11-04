@@ -1,0 +1,4 @@
+"scenario","replicate","parameter","truth","estimate"
+"long_random_slope",1,"rho",0.3,0.153685635218746
+"long_random_slope",1,"parent",1.2,1.11772205905938
+"long_random_slope",1,"child",1.28,1.14474994185196

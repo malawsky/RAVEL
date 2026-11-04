@@ -1,0 +1,2 @@
+status,elapsed_seconds,cpu_seconds,note
+interrupted,319.5,101.94,"Redundant manual-tight check stopped to reduce contention; no result or successful inference claimed. Final automatic-polish replay retained separately."

@@ -1,0 +1,8 @@
+"stage","elapsed_seconds"
+"generate",0.611
+"prepare_genetic_records",17.327
+"prepare_covariate_moments",17.527
+"compress_covariance_patterns",4.845
+"one_likelihood",0.405999999999999
+"one_likelihood_and_gradient",0.518999999999998
+"public_fit_with_SE",290.659

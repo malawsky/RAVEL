@@ -1,0 +1,4 @@
+All 100 covariance attempts and the summary completed successfully. Rscript
+then encountered a trailing parse error because the driver source was edited
+while its top-level expressions were being evaluated. The completed estimates
+are retained. A clean run from a frozen driver is saved in moment-mc-final.

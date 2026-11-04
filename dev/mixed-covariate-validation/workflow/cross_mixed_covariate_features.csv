@@ -1,0 +1,7 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","column","aggregation","center","scale","status","missing_repeat_values"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PC1","constant_within_person",0.0247444246623029,0.940366462209511,"included",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"sex","constant_within_person",0.505833333333333,0.500070163202724,"included",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"VisitAge","constant_within_person",9.96044127835864,1.09912842706492,"included",0
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"PC1","constant_within_person",0.0247444246623029,0.940366462209511,"included",0
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"sex","constant_within_person",0.505833333333333,0.500070163202724,"included",0
+"none|Estimated state|grid_1",NA,"Estimated state","Y","grid",0.45,0,"VisitAge","constant_within_person",9.96044127835864,1.09912842706492,"included",0

@@ -1,0 +1,2 @@
+Genetic-covariate associations are estimated jointly with the conditional outcome model; marginal AM and pi scales are retained.
+Covariate moments are estimated separately and their uncertainty is included in the FID sandwich. Ordinary joint-model AIC is unavailable; the conditional-moments-fixed criterion is descriptive only.

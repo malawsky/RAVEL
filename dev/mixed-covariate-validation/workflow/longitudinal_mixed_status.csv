@@ -1,0 +1,2 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","converged","optimizer_converged","inference_status"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,TRUE,TRUE,"ok"

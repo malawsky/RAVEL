@@ -1,0 +1,6 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","statistic","value","basis"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"logLik",-3256.25074864448,"Internally standardized data; maternal-family working-independence likelihood"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"n_parameters",44,"Internally standardized data; maternal-family working-independence likelihood"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"AIC",NA,"Internally standardized data; maternal-family working-independence likelihood"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"n_covariate_moments",15,"Internally standardized data; maternal-family working-independence likelihood"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"AIC_conditional_moments_fixed",6600.50149728896,"Internally standardized data; maternal-family working-independence likelihood"

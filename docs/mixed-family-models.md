@@ -4,7 +4,9 @@
 `ravel_fit()` models retain their existing behavior, and the analysis scripts
 retain that estimator by default.
 Use the new interface when the residual family or individual variation is
-itself part of the model you want to fit.
+itself part of the model you want to fit. It also supports genetic interactions
+and adjustment for covariates associated with genetics, including child ancestry
+PCs. These additions do not change the legacy or parental-phenotype models.
 
 ## Start with your identifiers
 
@@ -61,9 +63,9 @@ fit_long <- ravel_mixed_fit(long_dat,
   paternal_id = "F_ID", pi = .4, pi_se = .03,
   family_random = TRUE, individual_random = TRUE,
   random_slope = "age",
+  fixed_effects = paste0("PC", 1:20),
   interactions = c("age", "sex"),
-  interaction_center = c(age = 10, sex = 0),
-  covariate_mapping_confirmed = TRUE)
+  interaction_center = c(age = 10, sex = 0))
 ```
 
 This estimates a family intercept, an individual intercept, an individual age
@@ -78,11 +80,47 @@ be a numeric coding such as 0/1. Continuous coefficients are returned in your
 original phenotype units, and interactions per original moderator unit.
 Internal score/outcome standardization is only for numerical stability.
 
-`covariate_mapping_confirmed = TRUE` explicitly accepts independence of the
-genetic components and score errors from the supplied covariates/moderators.
-Do not use it as an automatic switch for ancestry-correlated or genetically
-associated covariates. A small sample correlation does not establish the
-assumption. Age-dependent selection or missingness may also violate it.
+The default `covariate_model = "joint"` estimates genetic associations with the
+supplied covariates. No independence-confirmation flag is needed. Add child PCs
+to `fixed_effects`, and keep `age` and `sex` in `interactions` when their genetic
+slopes are wanted. The model conditions on **all children's covariates within
+the maternal family**, including a sibling's PCs; parental PCs are not required.
+It retains the marginal AM state and interpretation of the supplied pi rather
+than treating residualized scores as a new population with the same pi.
+
+PCs and sex must be stable within a child. For changing age, the genetic block
+uses one person mean across the supplied visits; the outcome and genetic age
+slopes still use each visit's age. Parents' scores remain single measurements
+whose genetic mean uses the full child-covariate vector. `person_mean_covariates`
+defaults to supplied columns named `age` or used as `random_slope`. Name a
+different time column explicitly, for example
+`person_mean_covariates = "age_years"`; use `character(0)` to reject all changing
+person features. This does not average changing PCs or sex automatically.
+
+Each child needs a finite value for every person-level feature. Missing repeat
+copies of an otherwise observed stable value can use that child's observed
+value; a wholly missing feature produces an error. Allowed person means use
+the observed supplied visits. Outcome rows still need their visit-level outcome
+covariates observed to enter the outcome model. Constant or exactly redundant person features
+are recorded in `fit$covariate_features` and omitted from the genetic
+conditioning vector without removing their visit-level outcome terms.
+
+The joint model still makes substantive assumptions. PGS measurement errors
+are independent of covariates. The part of total genetic liability left after
+its marginal projection onto visible genetic liability is also independent of
+covariates. Genetic conditional means are linear, with a common conditional
+covariance for the specified family design, and child covariate self/sibling
+covariances are exchangeable across families. These assumptions allow the
+visible association to inform total liability while retaining marginal pi;
+pi alone does not identify how unmeasured genetic components relate to PCs.
+This is not a guarantee that ancestry adjustment removes every source of
+confounding or selection.
+
+To reproduce the earlier independence model, explicitly set
+`covariate_model = "independent", covariate_mapping_confirmed = TRUE`.
+That confirmation applies only to the independence mode and should not be used
+to declare genetically associated PCs independent. With no covariates or
+moderators, the original mixed likelihood remains unchanged.
 
 Family and individual intercepts need observed sibling families to separate
 their variances. Individual effects require repeated outcomes; random age
@@ -98,7 +136,7 @@ not establish validity under selective attendance.
 fit_binary <- ravel_mixed_fit(dat,
   outcome = "binary_liability", family_random = TRUE,
   paternal_id = "F_ID", pi = .4,
-  interactions = "sex", covariate_mapping_confirmed = TRUE)
+  fixed_effects = paste0("PC", 1:20), interactions = "sex")
 ```
 
 Binary outcomes must be numeric 0/1 and cross-sectional. Install `mvtnorm` for
@@ -124,6 +162,9 @@ audit$fit_statistics
 audit$state
 audit$genetic_covariances
 audit$implied_covariances
+audit$covariate_moments
+audit$genetic_covariate_covariances
+audit$conditional_implied_covariances
 audit$implied_outcome_design
 audit$parameters
 
@@ -142,14 +183,46 @@ Joint coefficient and variance-component covariance matrices are available for
 contrasts. The audit also returns full internal parameter covariance and the
 joint covariance of state and reference-family genetic moments.
 
-`implied_covariances` adds the fitted score/outcome covariance matrix and its
+`implied_covariances` adds the score/outcome covariance matrix and its
 SEs for the first retained covariance-design group. Inspect
 `implied_outcome_design` for its children, moderator values and ages, or select
 another group with `design_group`. This is a particular observed design pattern,
 not an average over ages or sexes. Values use the input score and phenotype
 units; for binary outcomes, Y denotes the latent probit response. These SEs
 condition on pi. Fitting with `keep_data = FALSE` makes this extraction
-unavailable without affecting the other audit tables.
+unavailable.
+
+The covariate first stage estimates self/sibling covariances together using
+an exchangeable Gaussian working covariance likelihood. Its within-sibling
+and largest-family mean blocks are positive definite on the observed support;
+this accommodates mostly singleton families without subtracting incompatible
+covariance estimates. Population self/sibling covariances are assumed common
+across family sizes. Family influence, including estimated means and observed
+working-likelihood curvature, enters the FID sandwich; Gaussian covariate
+model SEs are not substituted. Exactly shared covariate columns retain their
+family-level information and outcome adjustment, with equal own-child/sibling
+genetic-covariate paths. `covariate_features$shared_within_family` identifies
+these columns. Other unidentified within-sibling linear combinations still
+produce an explicit error. `fit$diagnostics$covariate_estimation` records the
+first-stage convergence and covariance checks.
+
+With joint covariates, `implied_covariances` (also returned as
+`marginal_implied_covariances`) uses the marginal genetic covariance at the
+selected outcome design. It is not an average over the covariate distribution.
+`conditional_implied_covariances` uses the covariance conditional on the full
+child-covariate vector and corresponds to the fitted likelihood. Additional
+tables report `covariate_moments`, `genetic_covariate_covariances` and
+`conditional_genetic_covariances`, with SEs and intervals. Covariates use their
+input units; genetic scales are named in each table. These SEs propagate the
+estimated covariate moments and their joint covariance with fitted parameters
+through the FID sandwich. They are not conditional on treating sample PC
+covariances as known.
+
+Conditional tables use an actual retained family design, so singleton data do
+not acquire an invented sibling-covariate block. Inspect
+`covariate_audit_status` and `covariate_features` for scope and feature handling.
+With `keep_data = FALSE`, covariate moment tables and their SEs remain available;
+the design-dependent tables are unavailable with an explicit status.
 
 Genetic covariance tables describe an exchangeable reference family with two
 children by default; `n_children` changes this reference, not the fitted sample.
@@ -159,10 +232,15 @@ uncertainty when `pi_se` is supplied and sensitivity refits succeed. This joint
 likelihood depends on pi in every supported assortment mode, so pi sensitivity
 requires full refits rather than only a post-fit coefficient transformation.
 
-Log-likelihood and AIC refer to internally standardized data. Compare only fits
+Log-likelihood refers to internally standardized data. Compare only fits
 using the same observations and scaling. When maternal families within FID are
 dependent, these describe a working-independence likelihood; robust SEs do not
-make the AIC dependence-adjusted. Chi-square SEM fit, CFI and RMSEA are not
+make a model-selection criterion dependence-adjusted. For joint covariates,
+`n_parameters` counts the likelihood's genetic, residual and mean coefficients;
+`n_covariate_moments` records the separately estimated first-stage moments.
+Ordinary `AIC` is `NA`: `AIC_conditional_moments_fixed` is a descriptive criterion
+that treats those moments as fixed, not a joint-model AIC. The earlier AIC is
+retained for the independent/no-covariate likelihood. Chi-square SEM fit, CFI and RMSEA are not
 available for this custom family likelihood.
 
 ## Automatic one-factor diagnostic

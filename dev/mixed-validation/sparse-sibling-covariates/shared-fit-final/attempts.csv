@@ -1,0 +1,2 @@
+"scenario","seed","N_families","N_rows","singleton_families","sibling_families","error","converged","inference_status","elapsed_seconds","note"
+"shared",713,4000,4200,3800,200,FALSE,TRUE,"ok",29.321,"Genetic-covariate associations are estimated jointly with the conditional outcome model; marginal AM and pi scales are retained.; Covariate moments are estimated separately and their uncertainty is included in the FID sandwich. Ordinary joint-model AIC is unavailable; the conditional-moments-fixed criterion is descriptive only."

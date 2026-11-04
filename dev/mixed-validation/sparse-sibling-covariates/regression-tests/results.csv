@@ -1,0 +1,57 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-binary-score-signal.R","binary-score-signal","binary score diagnostic propagates measurement uncertainty and recognizes score-specific signal",8,0,FALSE,FALSE,0,13.399,0.433,14.961,8
+"test-binary-score-signal.R","binary-score-signal","binary score diagnostic preserves explicit limitations",4,0,FALSE,FALSE,0,0.0670000000000002,0.00700000000000001,0.0920000000000023,4
+"test-binary-score-signal.R","binary-score-signal","binary score map agrees with the independently extracted covariance matrices",2,0,FALSE,FALSE,0,0.00900000000000034,0.002,0.0110000000000028,2
+"test-binary-score-signal.R","binary-score-signal","binary diagnostic preserves fixed outcome paths and dependence restrictions",3,0,FALSE,FALSE,0,0.0329999999999995,0.00299999999999989,0.0569999999999986,3
+"test-binary-score-signal.R","binary-score-signal","binary diagnostic is invariant to affine score units",4,0,FALSE,FALSE,0,2.516,0.136,3.104,4
+"test-binary-score-signal.R","binary-score-signal","binary diagnostic avoids nearly proportional score rows in its restriction basis",4,0,FALSE,FALSE,0,2.927,0.314,5.172,4
+"test-mixed-audit.R","mixed-audit","mixed audit exposes covariance estimates and conditional uncertainty",13,0,FALSE,FALSE,0,0.282999999999998,0.018,0.346,13
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","child covariate preparation preserves person and family information",89,0,FALSE,FALSE,0,1.058,0.0270000000000001,1.134,89
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate raw-moment influence and unpacking derivatives agree with direct changes",8,0,FALSE,FALSE,0,0.393000000000001,0.0069999999999999,0.409000000000002,8
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","exchangeable conditioning matches a dense full-family Schur complement",7,0,FALSE,FALSE,0,0.213000000000001,0.00500000000000012,0.224,7
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","redundant person features and invalid exchangeability are explicit",5,0,FALSE,FALSE,0,0.128,0.00299999999999989,0.134,5
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate audit propagates cross-stage covariance and works without raw moment scores",9,0,FALSE,FALSE,0,0.468,0.0110000000000001,0.491999999999997,9
+"test-mixed-covariate-preparation.R","mixed-covariate-preparation","covariate audit does not invent sibling moments and retains binary boundary estimates",6,0,FALSE,FALSE,0,0.179000000000002,0.00499999999999989,0.186,6
+"test-mixed-covariate-shared-support.R","mixed-covariate-shared-support","exactly shared covariates retain their mean-space conditioning",11,0,FALSE,FALSE,0,0.0139999999999993,0.002,0.0169999999999995,11
+"test-mixed-covariate-shared-support.R","mixed-covariate-shared-support","a single entirely family-shared feature has estimable moments and influence",5,0,FALSE,FALSE,0,0.0219999999999985,0.00100000000000011,0.0240000000000009,5
+"test-mixed-covariate-shared-support.R","mixed-covariate-shared-support","shared-covariate genetic paths are tied and moment derivatives respect support",8,0,FALSE,FALSE,0,0.268999999999998,0.006,0.279,8
+"test-mixed-covariate-sparse.R","mixed-covariate-sparse","sparse sibling covariance estimation gives a coherent pair distribution",5,0,FALSE,FALSE,0,0.0589999999999975,0.00300000000000011,0.0629999999999988,5
+"test-mixed-covariate-sparse.R","mixed-covariate-sparse","covariance influence includes weighted singleton and sibling contributions",2,0,FALSE,FALSE,0,0.189,0.004,0.202000000000002,2
+"test-mixed-covariate-sparse.R","mixed-covariate-sparse","balanced sibling covariances agree with their direct empirical solution",2,0,FALSE,FALSE,0,0.0169999999999995,0.00199999999999978,0.0190000000000019,2
+"test-mixed-covariate-sparse.R","mixed-covariate-sparse","a truly family-shared covariate retains its zero within-family support",4,0,FALSE,FALSE,0,0.0640000000000001,0.00200000000000022,0.0689999999999991,4
+"test-mixed-covariates.R","mixed-covariates","correlated child covariate fixtures preserve person identities and reference ages",76,0,FALSE,FALSE,0,0.0870000000000033,0.006,0.0949999999999989,76
+"test-mixed-covariates.R","mixed-covariates","the independent Schur oracle retains marginal pi and AM state",42,0,FALSE,FALSE,0,0.132999999999999,0.004,0.141999999999999,42
+"test-mixed-covariates.R","mixed-covariates","family covariate moments are projectively consistent across sibling counts",5,0,FALSE,FALSE,0,0.00799999999999912,0.00100000000000011,0.0100000000000016,5
+"test-mixed-covariates.R","mixed-covariates","sampled correlated PCs and binary sex match independent population moments",9,0,FALSE,FALSE,0,0.588000000000001,0.04,0.649999999999999,9
+"test-mixed-covariates.R","mixed-covariates","marginal pi alone does not identify a generic covariate-adjusted total map",4,0,FALSE,FALSE,0,0.00700000000000145,0.002,0.00900000000000034,4
+"test-mixed-covariates.R","mixed-covariates","binary correlated-covariate data use the stated conditional-probit residual scale",4,0,FALSE,FALSE,0,0.0380000000000003,0.002,0.0429999999999993,4
+"test-mixed-covariates.R","mixed-covariates","fitted conditional covariance and mean match the independent primitive oracle",6,0,FALSE,FALSE,0,0.0609999999999999,0.00299999999999989,0.0680000000000014,6
+"test-mixed-covariates.R","mixed-covariates","full information, family scores and stacked covariate uncertainty agree with independent differences",8,0,FALSE,FALSE,0,16.509,1.482,24.262,8
+"test-mixed-covariates.R","mixed-covariates","genetic estimates and stacked SEs are invariant to covariate affine units",5,0,FALSE,FALSE,0,7.807,0.423,10.131,5
+"test-mixed-covariates.R","mixed-covariates","no-covariate calls preserve the established mixed path exactly",4,0,FALSE,FALSE,0,2.97499999999999,0.189,4.319,4
+"test-mixed-covariates.R","mixed-covariates","joint optimizer polishes a failed interior certificate without relaxing it",5,0,FALSE,FALSE,0,0.0169999999999959,0.00499999999999989,0.0750000000000028,5
+"test-mixed-fit.R","mixed-fit","probit orthant derivatives agree with direct probability differences",24,0,FALSE,FALSE,0,0.166999999999994,0.0179999999999998,0.259,24
+"test-mixed-fit.R","mixed-fit","binary family score retains its natural variance derivative at zero",5,0,FALSE,FALSE,0,1.277,0.146,2.92700000000001,5
+"test-mixed-fit.R","mixed-fit","continuous sufficient statistics preserve differing fixed-effect designs",5,0,FALSE,FALSE,0,0.271000000000001,0.0829999999999997,0.739999999999995,5
+"test-mixed-fit.R","mixed-fit","continuous variance scores include correlated individual slopes",4,0,FALSE,FALSE,0,0.0889999999999986,0.0089999999999999,0.197999999999993,4
+"test-mixed-fit.R","mixed-fit","mixed family identity checks apply after missing outcome exclusions",7,0,FALSE,FALSE,0,0.131,0.073,0.507000000000005,7
+"test-mixed-fit.R","mixed-fit","binary maternal-family boundary is distinguished from optimizer failure",10,0,FALSE,FALSE,0,10.756,0.592,15.9,10
+"test-mixed-fit.R","mixed-fit","continuous zero and near-zero family variance cannot falsely certify Wald inference",12,0,FALSE,FALSE,0,7.92999999999999,0.359999999999999,11.034,12
+"test-mixed-fit.R","mixed-fit","mixed-model sandwich uses scores aggregated at FID",5,0,FALSE,FALSE,0,2.09399999999999,0.180000000000001,3.375,5
+"test-mixed-fit.R","mixed-fit","binary uncertainty uses extended-family scores and the full joint Hessian",6,0,FALSE,FALSE,0,28.17,1.342,39.559,6
+"test-mixed-scaling.R","mixed-scaling","mixed coefficients and residual variances preserve input outcome units",17,0,FALSE,FALSE,0,4.14500000000001,0.262,5.70599999999999,17
+"test-mixed-validation.R","mixed-validation","mixed validation preserves IDs, person-level scores and RNG state",87,0,FALSE,FALSE,0,0.135000000000005,0.0139999999999993,0.175000000000011,87
+"test-mixed-validation.R","mixed-validation","independent component algebra reproduces genetic moments and Mendelian score errors",8,0,FALSE,FALSE,0,0.194999999999993,0.0200000000000005,0.244,8
+"test-mixed-validation.R","mixed-validation","visible oracle is an independent covariance projection in each history mode",10,0,FALSE,FALSE,0,0.0249999999999915,0.00300000000000011,0.0320000000000107,10
+"test-mixed-validation.R","mixed-validation","extended-family dependence preserves the declared maternal-family variance",3,0,FALSE,FALSE,0,0.090999999999994,0.00699999999999967,0.138000000000005,3
+"test-mixed-validation.R","mixed-validation","continuous outcome covariance separates genetic, family and individual terms",3,0,FALSE,FALSE,0,0.215000000000003,0.0129999999999999,0.266999999999996,3
+"test-mixed-validation.R","mixed-validation","binary data use a fixed conditional-probit scale and retain concordant sibships",6,0,FALSE,FALSE,0,0.206000000000003,0.0289999999999999,0.329999999999984,6
+"test-mixed-validation.R","mixed-validation","mixed likelihood covariance agrees with the independent primitive oracle",3,0,FALSE,FALSE,0,0.0790000000000077,0.0170000000000003,0.123000000000019,3
+"test-mixed-validation.R","mixed-validation","one-trio no-random-effects likelihood reproduces the original fitted effects",4,0,FALSE,FALSE,0,5.14400000000001,0.379,7.86999999999998,4
+"test-score-diagnostic.R","score-diagnostic","unadjusted refit runs despite covariates and preserves genetic restrictions",12,0,FALSE,FALSE,0,12.749,0.817,18.221,12
+"test-score-diagnostic.R","score-diagnostic","primary fits supply settings and custom data maps without mutation",8,0,FALSE,FALSE,0,15.478,0.494,17.472,8
+"test-score-diagnostic.R","score-diagnostic","FID selection is reproducible under row order and preserves the RNG",9,0,FALSE,FALSE,0,15.16,0.346,16.987,9
+"test-score-diagnostic.R","score-diagnostic","selection precedes completeness filtering and missing selected rows are not replaced",5,0,FALSE,FALSE,0,15.524,0.506,18.293,5
+"test-score-diagnostic.R","score-diagnostic","invalid family structure and ambiguous repeated records have explicit statuses",8,0,FALSE,FALSE,0,0.0160000000000196,0.000999999999999446,0.0180000000000007,8
+"test-score-diagnostic.R","score-diagnostic","the helper never substitutes a constrained model for none",3,0,FALSE,FALSE,0,0.272999999999996,0.0129999999999999,0.292000000000002,3
+"test-score-diagnostic.R","score-diagnostic","public binary diagnostics report nominal p-values with calibration warnings",16,0,FALSE,FALSE,0,5.17599999999999,0.248000000000001,7.21700000000001,16

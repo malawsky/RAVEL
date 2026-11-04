@@ -1,0 +1,4 @@
+"q","covariate","true_sibling_covariance","estimated_sibling_covariance","maximum_family_mean_min_eigenvalue","status"
+1,1,-0.3,-0.133326610097619,0.663527128508161,"pass"
+2,1,-0.3,-0.343214919576149,0.326109893018289,"pass"
+2,2,-0.3,-0.223380108343572,0.326109893018289,"pass"

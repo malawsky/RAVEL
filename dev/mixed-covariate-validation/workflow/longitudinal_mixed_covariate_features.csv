@@ -1,0 +1,4 @@
+"source_fit","covariance_scale","model","outcome","assumption","pi","supplied_pi_se","column","aggregation","center","scale","status","missing_repeat_values"
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"PC1","constant_within_person",-0.129004672919642,0.869863627595989,"included",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"sex","constant_within_person",0.4725,0.499868403735055,"included",0
+"none|Estimated state|main",NA,"Estimated state","Y","main",0.4,0,"VisitAge","person_mean_of_supplied_visits",9.8926218677793,1.04707303638233,"included",0

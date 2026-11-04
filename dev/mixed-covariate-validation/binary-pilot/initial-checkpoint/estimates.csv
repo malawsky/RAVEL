@@ -1,0 +1,10 @@
+"scenario","replicate","scale","parameter","truth","se","estimate","finite_point","finite_inference","covered"
+"binary_pc",1,"corrected_raw","beta_D",0.3,0.131825587399773,0.267321555516237,TRUE,TRUE,TRUE
+"binary_pc",1,"corrected_raw","beta_M",0.12,0.109124362059343,0.137994018518702,TRUE,TRUE,TRUE
+"binary_pc",1,"corrected_raw","beta_F",-0.04,0.104560140080695,-0.124048091453877,TRUE,TRUE,TRUE
+"binary_pc",1,"corrected_std","beta_D",0.339411254969543,0.162512493340581,0.332261668264462,TRUE,TRUE,TRUE
+"binary_pc",1,"corrected_std","beta_M",0.13145341380124,0.131198233440433,0.167372089529235,TRUE,TRUE,TRUE
+"binary_pc",1,"corrected_std","beta_F",-0.0438178046004133,0.126364401163483,-0.150457161053941,TRUE,TRUE,TRUE
+"binary_pc",1,"visible","beta_D",0.251141394437476,0.116827542981603,0.238524231896273,TRUE,TRUE,TRUE
+"binary_pc",1,"visible","beta_M",0.119842245871991,0.0955072277133984,0.146133765778613,TRUE,TRUE,TRUE
+"binary_pc",1,"visible","beta_F",-0.00203299155676717,0.0912361944987302,-0.0688652992373056,TRUE,TRUE,TRUE

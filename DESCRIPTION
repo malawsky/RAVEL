@@ -1,6 +1,6 @@
 Package: RAVEL
 Title: Recovering Assortment-Adjusted Variance Explained by Genetic Liabilities
-Version: 0.2.0.9001
+Version: 0.2.0.9003
 Authors@R:
     person("Daniel", "Malawsky", , "d.malawsky@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-4421-8688"))
@@ -28,6 +28,7 @@ Imports:
     utils
 Suggests:
     mvtnorm,
+    numDeriv,
     testthat (>= 3.0.0)
 URL: https://github.com/malawsky/RAVEL
 BugReports: https://github.com/malawsky/RAVEL/issues

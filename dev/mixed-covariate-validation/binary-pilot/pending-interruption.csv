@@ -1,0 +1,3 @@
+scenario,replicate,seed,status,reason,source_run_id,current_state,completed_source_run_id,completed_inference_status
+binary_pc,2,541002,pending,In-flight fit interrupted to relieve memory pressure; no result or successful inference claimed.,historical_pre_natural_polish,completed_result_retained,20261103T141637Z,ok
+binary_pc,7,541007,pending,In-flight fit interrupted to reduce memory pressure; no completed result or scientific failure classified.,20261103T141637Z,completed_result_retained,20261103T142442Z,ok

@@ -55,6 +55,12 @@
 
 .ravel_mixed_binary_evaluator <- function(groups, spec, covariance_names) {
   cache <- new.env(parent = emptyenv())
+  joint_covariates <- !is.null(spec[["covariate"]])
+  family_model <- function(theta, z) {
+    if (joint_covariates) return(.ravel_mixed_covariate_joint(theta, z, spec))
+    S <- .ravel_mixed_covariance(theta, z, spec)
+    list(S = S, offset = matrix(0, z$n, nrow(S)))
+  }
   evaluate <- function(par, derivatives = TRUE, keep = FALSE) {
     if (exists("par", cache, inherits = FALSE) && identical(par, cache$par) &&
         (!derivatives || !is.null(cache$value$gradient))) return(cache$value)
@@ -67,14 +73,18 @@
       for (g in seq_along(groups)) {
         z <- groups[[g]]; np <- 2L * (z$nchild + 2L); ny <- length(z$child)
         ip <- seq_len(np); yi <- np + seq_len(ny)
-        S <- .ravel_mixed_covariance(theta, z, spec)
+        current <- family_model(theta, z)
+        S <- current$S
         P <- S[ip, ip, drop = FALSE]; PY <- S[ip, yi, drop = FALSE]
         Q <- chol2inv(chol(P)); H <- Q %*% PY
         R <- S[yi, yi, drop = FALSE] - crossprod(PY, H)
         Dp <- z$D[ip, , drop = FALSE]; Dy <- z$D[yi, , drop = FALSE]
-        residual <- sweep(z$observed[, ip, drop = FALSE], 2, drop(Dp %*% alpha))
+        mean <- if (joint_covariates) .ravel_mixed_covariate_mean(z, alpha) else
+          .ravel_mixed_mean_matrix(z, alpha)
+        mean <- mean + current$offset
+        residual <- z$observed[, ip, drop = FALSE] - mean[, ip, drop = FALSE]
         U <- residual %*% Q
-        mu <- sweep(residual %*% H, 2, drop(Dy %*% alpha), "+")
+        mu <- residual %*% H + mean[, yi, drop = FALSE]
         score <- matrix(0, z$n, length(par), dimnames = list(NULL, names(par)))
         gradient_mean <- matrix(0, z$n, ny)
         gradient_cov <- vector("list", z$n)
@@ -90,7 +100,10 @@
         value <- value + .5 * (z$n * (np * log(2 * pi) + 2 * sum(log(diag(chol(P))))) +
                               sum(residual * U)) - sum(log_probability)
         if (derivatives) {
-          score[, spec$mean_names] <- U %*% Dp + gradient_mean %*% (Dy - crossprod(H, Dp))
+          score[, spec$mean_names] <- if (joint_covariates)
+            .ravel_mixed_covariate_mean_scores(z,
+              cbind(U - gradient_mean %*% t(H), gradient_mean), length(spec$mean_names)) else
+                U %*% Dp + gradient_mean %*% (Dy - crossprod(H, Dp))
           for (name in covariance_names) {
             if (name == "family_variance") {
               # The natural variance has a nonvanishing score at zero. A log
@@ -100,15 +113,19 @@
             }
             step <- 1e-5 * max(1, abs(theta[name])); plus <- minus <- theta
             plus[name] <- plus[name] + step; minus[name] <- minus[name] - step
-            sp <- .ravel_mixed_covariance(plus, z, spec)
-            sm <- .ravel_mixed_covariance(minus, z, spec)
+            jp <- family_model(plus, z); jm <- family_model(minus, z)
+            sp <- jp$S; sm <- jm$S
             hp <- solve(sp[ip, ip, drop = FALSE], sp[ip, yi, drop = FALSE])
             hm <- solve(sm[ip, ip, drop = FALSE], sm[ip, yi, drop = FALSE])
             dr <- (sp[yi, yi, drop = FALSE] - crossprod(sp[ip, yi, drop = FALSE], hp) -
                     sm[yi, yi, drop = FALSE] + crossprod(sm[ip, yi, drop = FALSE], hm)) / (2 * step)
             dp <- (sp[ip, ip, drop = FALSE] - sm[ip, ip, drop = FALSE]) / (2 * step)
-            dm <- residual %*% ((hp - hm) / (2 * step))
+            offset_derivative <- (jp$offset - jm$offset) / (2 * step)
+            dm <- residual %*% ((hp - hm) / (2 * step)) +
+              offset_derivative[, yi, drop = FALSE] -
+              offset_derivative[, ip, drop = FALSE] %*% H
             score[, name] <- .5 * (rowSums((U %*% dp) * U) - sum(Q * dp)) +
+              rowSums(U * offset_derivative[, ip, drop = FALSE]) +
               rowSums(gradient_mean * dm) + vapply(gradient_cov, function(x) sum(x * dr), numeric(1))
           }
         }
@@ -128,6 +145,8 @@
                                     diagnostic_control = list()) {
   if (!requireNamespace("mvtnorm", quietly = TRUE)) stop("Binary mixed fitting requires the optional mvtnorm package.")
   spec <- prepared$spec
+  joint_covariates <- !is.null(spec[["covariate"]])
+  if (joint_covariates) prepared <- .ravel_mixed_covariate_compress(prepared)
   if (spec$individual_random || !is.null(spec$random_slope)) stop("Cross-sectional binary fitting supports only the maternal-family random intercept.")
   if (max(vapply(prepared$groups, function(g) length(g$child), integer(1))) > 20L)
     stop("Deterministic probit integration currently supports at most 20 observed siblings per maternal family.")
@@ -156,9 +175,11 @@
   evaluate <- .ravel_mixed_binary_evaluator(prepared$groups, spec, covariance_names)
   initial <- evaluate(par)
   if (!isTRUE(initial$valid)) stop("Invalid initial probit family likelihood: ", initial$reason)
-  optimize <- function(ev, initial) stats::optim(initial, function(x) ev(x)$value,
-    function(x) ev(x, derivatives = TRUE)$gradient, method = "L-BFGS-B",
-    lower = lower, upper = upper, control = settings)
+  optimize <- function(ev, initial) if (joint_covariates)
+    .ravel_mixed_covariate_optimize(initial, ev, lower, upper, settings, prepared$n_families) else
+      stats::optim(initial, function(x) ev(x)$value,
+        function(x) ev(x, derivatives = TRUE)$gradient, method = "L-BFGS-B",
+        lower = lower, upper = upper, control = settings)
   fit <- optimize(evaluate, par); par <- fit$par; final <- evaluate(par)
   if (!isTRUE(final$valid)) stop("Invalid final probit family likelihood: ", final$reason)
   projected_gradient <- final$gradient
@@ -181,16 +202,26 @@
     H <- (H + t(H)) / 2
     ev <- eigen(H, symmetric = TRUE, only.values = TRUE)$values
     if (min(ev) <= max(ev) * 1e-9) stop("Binary model information is singular or indefinite.")
-    bread <- solve(H)
     clusters <- unlist(lapply(prepared$groups, `[[`, "clusters"), use.names = FALSE)
-    scores <- rowsum(final$family_scores, clusters, reorder = FALSE)
-    V <- bread %*% crossprod(scores) %*% bread
-    dimnames(V) <- dimnames(bread) <- list(names(par), names(par))
-    list(vcov = (V + t(V)) / 2, model_vcov = bread, information = H,
-         family_scores = final$family_scores, cluster_scores = scores,
-         family_ids = unlist(lapply(prepared$groups, `[[`, "families"), use.names = FALSE),
-         cluster_ids = clusters,
-         method = "FID-clustered CR0 sandwich")
+    if (joint_covariates) {
+      total_score <- function(x, s) {
+        v <- .ravel_mixed_binary_evaluator(prepared$groups, s, covariance_names)(x)
+        if (!isTRUE(v$valid)) stop(v$reason)
+        -v$gradient
+      }
+      .ravel_mixed_covariate_sandwich(par, prepared, spec, H,
+        final$family_scores, clusters, score_total_function = total_score)
+    } else {
+      bread <- solve(H)
+      scores <- rowsum(final$family_scores, clusters, reorder = FALSE)
+      V <- bread %*% crossprod(scores) %*% bread
+      dimnames(V) <- dimnames(bread) <- list(names(par), names(par))
+      list(vcov = (V + t(V)) / 2, model_vcov = bread, information = H,
+           family_scores = final$family_scores, cluster_scores = scores,
+           family_ids = unlist(lapply(prepared$groups, `[[`, "families"), use.names = FALSE),
+           cluster_ids = clusters,
+           method = "FID-clustered CR0 sandwich")
+    }
   }, error = function(e) { messages <<- c(messages, conditionMessage(e)); NULL })
   V <- if (is.null(uncertainty)) matrix(NA_real_, length(par), length(par), dimnames = list(names(par), names(par))) else uncertainty$vcov
   maps <- lapply(c("visible", "corrected_std", "corrected_raw"), function(scale)
@@ -270,5 +301,5 @@
       score_measurements_counted_once_per_person_within_maternal_family = TRUE),
     prepared = if (keep_data) prepared else NULL), class = "ravel_mixed_results")
   if (diagnostic) result$one_factor <- .ravel_mixed_run_diagnostic(prepared, diagnostic_control)
-  result
+  .ravel_mixed_finish_covariates(result, prepared)
 }

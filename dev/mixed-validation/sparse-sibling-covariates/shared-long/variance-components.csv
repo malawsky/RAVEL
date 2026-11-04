@@ -1,0 +1,3 @@
+"component","estimate","se","uncertainty_conditions"
+"residual",0.733859010710147,0.0155067508703407,"conditional on supplied pi"
+"individual_intercept",0.321532273079271,0.0254103902132893,"conditional on supplied pi"

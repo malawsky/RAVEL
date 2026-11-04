@@ -1,0 +1,2 @@
+scenario,replicate,seed,status,reason,resolution,completed_inference_status,completed_source_run_id
+continuous_pc,24,491024,pending,In-flight fit interrupted to relieve memory pressure; no result or successful inference claimed.,completed in resumed batch,ok,20261103T140051Z

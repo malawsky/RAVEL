@@ -1,0 +1,7 @@
+"scenario","replicate","parameter","truth","estimate"
+"balanced_long_random_slope",5,"rho",0.3,0.120498881061207
+"balanced_long_random_slope",5,"parent",1.2,1.08180605846261
+"balanced_long_random_slope",5,"child",1.28,1.1060812390163
+"balanced_long_random_slope",7,"rho",0.3,0.309336441532102
+"balanced_long_random_slope",7,"parent",1.2,1.13373553902671
+"balanced_long_random_slope",7,"child",1.28,1.24222062815385

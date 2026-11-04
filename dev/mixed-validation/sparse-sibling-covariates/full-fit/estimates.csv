@@ -1,0 +1,4 @@
+"parameter","scale","estimate","se","ci_low","ci_high","p_value","uncertainty_source","outcome_scale","truth","covered_95"
+"beta_D","corrected_std",0.292025874181477,0.0431537852674179,0.207446009260763,0.376605739102191,1.31391500798848e-11,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.339411254969543,TRUE
+"beta_M","corrected_std",0.176237139796451,0.0377171330653033,0.102312917388352,0.25016136220455,2.97408179955676e-06,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",0.13145341380124,TRUE
+"beta_F","corrected_std",-0.00840391668827812,0.0369596400245453,-0.080843480017952,0.0640356466413958,0.820127560929206,"FID-clustered CR0 sandwich with estimated covariate moments","input outcome units",-0.0438178046004133,TRUE

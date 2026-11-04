@@ -409,20 +409,24 @@ and genetic-by-sex terms, and cross-sectional binary sibling outcomes:
 mixed <- ravel_mixed_fit(long_dat, pi = .4,
   family_id = "M_ID", subject_id = "IID", cluster = "FID",
   family_random = TRUE, individual_random = TRUE, random_slope = "age",
-  interactions = c("age", "sex"), interaction_center = c(age = 10, sex = 0),
-  covariate_mapping_confirmed = TRUE)
+  fixed_effects = c("sex", "age", "PC1", "PC2"),
+  interactions = c("age", "sex"), interaction_center = c(age = 10, sex = 0))
 as.data.frame(mixed)
 mixed$variance_components
 ravel_mixed_audit(mixed)$genetic_covariances
 ```
 
 This separate interface assumes full siblings and constrained genetic models.
-Check the independence assumption before setting `covariate_mapping_confirmed`.
-Existing fitting scripts retain their current estimator by default.
+Covariates such as child PCs may correlate with the genetic components. The
+default joint covariate model conditions on all children in each family and
+includes uncertainty in the estimated covariate moments in the FID sandwich.
+It retains marginal AM and pi scales under the documented hidden-residual
+mapping assumption; no blanket genetic-covariate independence confirmation is needed.
+Existing package fitting interfaces remain available.
 [Quick start, supported designs, output scales and diagnostics](docs/mixed-family-models.md).
-The child-outcome script exposes this through optional `random_family`,
-`random_individual` and `random_slope` settings, with separate maternal, child
-and sandwich-cluster IDs; see its [workflow quick start](analysis/parental_deviation/README.md#optional-random-effects-for-child-outcomes).
+The child-outcome script exposes this through `family_random_effect`,
+`individual_random_effect`, `interactions` and `random_slope`, with `iid` and
+`se_cluster` identifying people and sandwich clusters; see its [workflow quick start](analysis/parental_deviation/README.md#optional-random-effects-for-child-outcomes).
 
 ## Dataframe reports and pi grids
 

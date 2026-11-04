@@ -2,7 +2,7 @@
 # Requires RAVEL >= 0.2.0.9001. See README.md in this directory for an example.
 
 ravel_family_regressions <- function(
-    dat, outcomes, genetic_roles, focal = "mother", pgs_columns = NULL,
+    dat, outcomes, genetic_roles, focal = NULL, pgs_columns = NULL,
     outcome_models = NULL, covariates = NULL, cluster = NULL,
     subject_id = NULL, pi = .4, pi_se = NULL, pi_grid = NULL,
     models = list(
@@ -20,8 +20,8 @@ ravel_family_regressions <- function(
   allowed <- c("child", "mother", "father", "mat_sib", "pat_sib")
   if (!length(genetic_roles) || anyDuplicated(genetic_roles) ||
       any(!genetic_roles %in% allowed)) stop("Invalid or duplicated genetic_roles.")
-  if (length(focal) != 1L || !focal %in% genetic_roles || focal == "child")
-    stop("focal must name one adult in genetic_roles.")
+  if (!is.null(focal))
+    warning("focal is deprecated and ignored; use outcome_models to select adult subsets.", call. = FALSE)
   if (!is.character(outcomes) || !length(outcomes) || anyNA(outcomes) || anyDuplicated(outcomes))
     stop("outcomes must contain unique outcome column names.")
   if (!is.list(models) || !length(models) || is.null(names(models)) ||
@@ -47,15 +47,15 @@ ravel_family_regressions <- function(
   if (any(vapply(dat[numeric_cols], function(x) any(!is.na(x) & !is.finite(x)), logical(1))))
     stop("Numeric analysis columns contain infinite values.")
   if (!is.null(subject_id) && (anyNA(dat[[subject_id]]) || anyDuplicated(dat[[subject_id]])))
-    stop("subject_id must be observed and unique. Choose one record per focal adult before ",
+    stop("subject_id must be observed and unique. Choose one record per phenotyped adult before ",
          "this cross-sectional analysis; clustering alone does not remove duplicate-adult weighting.")
   if (!is.null(cluster) && anyNA(dat[[cluster]])) stop("Cluster IDs must be observed.")
   if (is.null(outcome_models)) {
-    optional <- setdiff(genetic_roles, c("child", focal))
+    adults <- setdiff(genetic_roles, "child")
+    if (!length(adults)) stop("Include at least one adult genetic role.")
     outcome_models <- list()
-    for (mask in 0:(2^length(optional) - 1L)) {
-      take <- if (length(optional)) as.logical(intToBits(mask)[seq_along(optional)]) else logical(0)
-      roles <- c(focal, optional[take])
+    for (mask in seq_len(2^length(adults) - 1L)) {
+      roles <- adults[as.logical(intToBits(mask)[seq_along(adults)])]
       outcome_models[[paste(roles, collapse = "+")]] <- roles
     }
   }

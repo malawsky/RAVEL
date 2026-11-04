@@ -61,11 +61,11 @@ check("legacy table schema and fitted-object attributes survive the new workflow
     all(vapply(c("fits", "settings", "diagnostics", "projections"),
       function(nm) is.list(attr(main, nm)), logical(1))))
 })
-check("default maternal analysis contains precisely eight focal-preserving subsets", {
-  stopifnot(length(sets(main)) == 8L,
-    all(vapply(sets(main), function(x) "mother" %in% x && !"child" %in% x, logical(1))),
+check("default maternal analysis contains all 15 nonempty adult subsets", {
+  stopifnot(length(sets(main)) == 15L,
+    all(vapply(sets(main), function(x) !"child" %in% x, logical(1))),
     setequal(vapply(sets(main), function(x) paste(sort(x), collapse = "+"), ""),
-      vapply(family_validation_subsets("mother"), function(x) paste(sort(x), collapse = "+"), "")))
+      vapply(unlist(lapply(1:4, function(k) combn(roles[-1], k, simplify = FALSE)), recursive = FALSE), function(x) paste(sort(x), collapse = "+"), "")))
 })
 check("every corrected maternal regression matches the independent population oracle", {
   outcome_sd <- stats::sd(dat$Y)
@@ -129,31 +129,38 @@ check("genetic diagnostics are retained once per shared source model", {
     length(attr(main, "diagnostics")) == 1L)
 })
 
-father <- run(focal = "father", include_comparison = FALSE)
-check("paternal analysis keeps father in all eight subsets and recovers its oracle targets", {
-  stopifnot(length(sets(father)) == 8L,
-    all(vapply(sets(father), function(x) "father" %in% x, logical(1))))
-  for (model in names(sets(father))) {
-    selected <- sets(father)[[model]]
-    equal(estimates(father, "Corrected for pi (founder scale)", model, selected),
-          family_validation_oracle(population, selected)$beta_raw / stats::sd(dat$Y))
+custom_opposite <- run(outcome_models = list(partner = "father", partner_sib = c("father", "pat_sib")),
+  include_comparison = FALSE)
+check("custom partner-only and partner-plus-sibling regressions agree with the default", {
+  for (model in names(sets(custom_opposite))) {
+    selected <- sets(custom_opposite)[[model]]
+    equal(estimates(custom_opposite, "Corrected for pi (founder scale)", model, selected),
+      estimates(main, "Corrected for pi (founder scale)", paste(selected, collapse = "+"), selected))
   }
+})
+check("deprecated focal argument warns and leaves symmetric predictor selection unchanged", {
+  warned <- FALSE
+  old <- withCallingHandlers(run(focal = "father", include_comparison = FALSE),
+    warning = function(w) {
+      if (grepl("focal is deprecated and ignored", conditionMessage(w), fixed = TRUE)) {
+        warned <<- TRUE; invokeRestart("muffleWarning")
+      }
+    })
+  stopifnot(warned, identical(sets(old), sets(main)))
 })
 
 nested <- run(genetic_configurations = "nested", include_comparison = FALSE)
-check("nested genetic configurations have two, four, four and eight maternal subsets", {
+check("nested genetic configurations have three, seven, seven and 15 adult subsets", {
   combinations <- attr(nested, "outcome_models")
   equal(vapply(combinations[c("none", "maternal", "paternal", "both")], length, integer(1)),
-        c(none = 2L, maternal = 4L, paternal = 4L, both = 8L), tolerance = 0)
+        c(none = 3L, maternal = 7L, paternal = 7L, both = 15L), tolerance = 0)
   stopifnot(all(vapply(unlist(combinations, recursive = FALSE), function(x)
-    "mother" %in% x && !"child" %in% x, logical(1))),
+    !"child" %in% x, logical(1))),
     all(vapply(attr(nested, "fits"), function(x) isTRUE(x$fit$converged), logical(1))))
 })
 
-check("invalid focal choices, omitted focal predictors and duplicate subjects are rejected", {
-  rejects(run(focal = NULL), "focal")
-  rejects(run(focal = "mat_sib"), "focal")
-  rejects(run(outcome_models = list(omit_mother = "father")), "focal|mother")
+check("invalid adult subsets and duplicate subjects are rejected", {
+  rejects(run(outcome_models = list(empty = character())), "nonempty|adult")
   rejects(run(outcome_models = list(child = c("mother", "child"))), "adult|child")
   rejects(run(outcome_models = list(a = c("mother", "father"), b = c("father", "mother"))), "same subset|repeat")
   rejects(run(rbind(dat, dat[1L, ])), "subject_id|unique")
@@ -216,3 +223,12 @@ check("finite-generation grid fits actually use the corresponding pi", {
 })
 
 cat(sprintf("\nParental-phenotype workflow: all %d independent check groups passed.\n", checks_passed))
+
+source("analysis/parental_deviation/ravel_family_regressions.R", local = workflow_env)
+companion <- workflow_env$ravel_family_regressions(dat, outcomes = "Y", genetic_roles = roles,
+  pgs_columns = c(pgs, sibs), subject_id = "FID", pi = .4, models = state_model)
+check("function-based companion uses the same 15 adult subsets", {
+  stopifnot(length(companion$outcome_models) == 15L,
+    setequal(names(companion$outcome_models), names(sets(main))))
+})
+cat(sprintf("Including companion: all %d check groups passed.\n", checks_passed))
