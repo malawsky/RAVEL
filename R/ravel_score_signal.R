@@ -37,6 +37,8 @@
   pt <- lavaan::parameterTable(fit)
   S <- lavaan::lavInspect(fit, "cov.ov")
   if (is.list(S)) S <- S[[1]]
+  if (!is.matrix(S) || any(!is.finite(S)) || any(diag(S) <= 0))
+    stop("The fitted observed covariance has nonfinite entries or nonpositive variances.")
   sd <- sqrt(diag(S))
   latent <- lavaan::lavNames(fit, "lv")
   sd <- c(sd, stats::setNames(rep(1, length(latent)), latent))
@@ -48,6 +50,8 @@
       "~1" = sd[[pt$lhs[i]]], 1)
     scale[pt$free[i]] <- z
   }
+  if (any(!is.finite(scale)) || any(scale <= 0))
+    stop("The fitted parameter scales are nonfinite or nonpositive.")
   list(parameter = scale, observed = sd[colnames(S)])
 }
 
@@ -69,6 +73,7 @@
   if (length(moment_scale) != nrow(J) || any(!is.finite(moment_scale)) || any(moment_scale <= 0))
     stop("The moment ordering or marginal scales are unsupported.")
   D <- sweep(sweep(J, 1, moment_scale, "/"), 2, scales$parameter, "*")
+  if (any(!is.finite(D))) stop("The scaled moment Jacobian is nonfinite; check the fitted covariance and measurement scales.")
   A <- fit@Model@con.jac
   equal <- attr(A, "ceq.idx")
   inequality <- attr(A, "cin.idx")
@@ -78,6 +83,12 @@
   if (ncol(A) != p || any(!is.finite(A))) stop("The constraint Jacobian is unavailable.")
   E <- if (length(equal)) A[equal, , drop = FALSE] else matrix(0, 0, p)
   E <- sweep(E, 2, scales$parameter, "*")
+  if (any(!is.finite(E))) stop("The scaled constraint Jacobian is nonfinite.")
+  # Normalize before squaring to avoid overflow in a finite constraint row.
+  largest <- if (nrow(E)) apply(abs(E), 1L, max) else numeric()
+  nonzero <- largest > 0
+  E <- E[nonzero, , drop = FALSE]
+  if (nrow(E)) E <- E / largest[nonzero]
   norms <- sqrt(rowSums(E^2))
   E <- E[norms > 0, , drop = FALSE]
   if (nrow(E)) E <- E / norms[norms > 0]
@@ -94,22 +105,29 @@
     if (erank >= p) stop("The constraint tangent has zero dimension.")
     N <- z$v[, seq.int(erank + 1L, p), drop = FALSE]
   }
-  singular <- svd(D %*% N, nu = 0, nv = 0)$d
+  projected <- D %*% N
+  if (any(!is.finite(projected))) stop("The projected moment Jacobian is nonfinite.")
+  singular <- svd(projected, nu = 0, nv = 0)$d
   dimension <- ncol(N)
   ranks <- vapply(thresholds, function(tol) sum(singular > tol * max(singular)), integer(1))
   ratio <- if (length(singular) < dimension) 0 else min(singular) / max(singular)
-  # Where lavaan retains a linear equality basis, verify its compatibility.
-  # Nonlinear fits may leave that slot empty; the robust comparison explicitly
-  # constructs the final equality tangent below.
+  # A cached lavaan basis may cover only linear constraints or an earlier
+  # nonlinear iterate. Record its compatibility separately: inference uses the
+  # independently reconstructed final tangent N, installed by the LRT helper.
   K <- fit@Model@eq.constraints.K
-  tangent_match <- TRUE
+  stored_tangent_match <- TRUE
   if (nrow(E)) {
-    tangent_match <- !length(K) || (is.matrix(K) && nrow(K) == p && ncol(K) == dimension)
-    if (tangent_match && length(K)) {
+    stored_tangent_match <- !length(K) || (is.matrix(K) && nrow(K) == p && ncol(K) == dimension &&
+      all(is.finite(K)) && qr(K)$rank == dimension)
+    if (stored_tangent_match && length(K)) {
       KN <- sweep(K, 1, scales$parameter, "/")
-      tangent_match <- max(abs(E %*% KN)) <= 1e-5 * max(1, max(abs(KN)))
+      stored_tangent_match <- max(abs(E %*% KN)) <= 1e-5 * max(1, max(abs(KN)))
     }
   }
+  tangent_residual <- if (nrow(E)) max(abs(E %*% N)) else 0
+  tangent_match <- all(is.finite(N)) && nrow(N) == p && ncol(N) == p - erank &&
+    is.finite(tangent_residual) && tangent_residual <= 1e-7 &&
+    max(abs(crossprod(N) - diag(ncol(N)))) <= 1e-7
   list(rank = ranks[2], tangent_dimension = dimension,
     covariance_rank = ranks[2] - if (isTRUE(fit@Options$meanstructure)) length(sd) else 0L,
     constraint_rank = erank, singular_values = singular,
@@ -119,6 +137,7 @@
     rank_tolerance = tolerance, weak_tolerance = weak_tolerance,
     identified = all(ranks == dimension) && all(constraint_ranks == erank) && ratio >= weak_tolerance,
     active_inequalities = active, tangent_match = tangent_match,
+    stored_tangent_match = stored_tangent_match, final_tangent_residual = tangent_residual,
     tangent = N, parameter_scale = scales$parameter)
 }
 
@@ -193,18 +212,23 @@
 #' Fit one diagnostic model with explicit starts and preserved likelihood options
 #' @noRd
 .ravel_score_signal_fit <- function(model, dat, reference, estimator, start_values = NULL, do_fit = TRUE,
-                                    reference_units = NULL) {
+                                    reference_units = NULL, transfer_reference_start = TRUE) {
   args <- list(model = model, data = dat, std.lv = TRUE, fixed.x = FALSE,
     conditional.x = FALSE, estimator = estimator, missing = "fiml",
     meanstructure = isTRUE(reference@Options$meanstructure),
     likelihood = reference@Options$likelihood, check.gradient = TRUE, warn = TRUE,
     control = list(iter.max = 20000L, rel.tol = 1e-10))
-  initial <- do.call(lavaan::sem, c(args, list(do.fit = FALSE)))
-  pt <- lavaan::parameterTable(initial)
+  # Parse without evaluating the nonlinear constraints at lavaan defaults.
+  # The converged reference supplies admissible starts before any SEM call.
+  pt <- lavaan::lavaanify(model, std.lv = TRUE, fixed.x = FALSE,
+    conditional.x = FALSE, meanstructure = isTRUE(reference@Options$meanstructure),
+    int.ov.free = TRUE, auto = TRUE, model.type = "sem")
   old <- lavaan::parameterTable(reference)
   key <- function(x) paste(x$lhs, x$op, x$rhs, sep = "\r")
   pos <- match(key(pt), key(old))
-  good <- !is.na(pos) & pt$op %in% c("=~", "~", "~~", "~1")
+  good <- isTRUE(transfer_reference_start) & !is.na(pos) & pt$op %in% c("=~", "~", "~~", "~1")
+  if (any(!is.finite(old$est[pos[good]])))
+    stop("The converged reference contains nonfinite diagnostic starting values.")
   pt$ustart[good] <- old$est[pos[good]]
   if (!is.null(reference_units)) {
     units <- c(reference_units, stats::setNames(rep(1, length(lavaan::lavNames(reference, "lv"))),
@@ -222,10 +246,11 @@
     good <- !is.na(selected)
     pt$ustart[good] <- start_values[selected[good]]
   }
-  start <- as.numeric(initial@Fit@x)
-  for (i in which(pt$free > 0L & is.finite(pt$ustart))) start[pt$free[i]] <- pt$ustart[i]
+  if (any(is.infinite(pt$ustart)) || any(is.nan(pt$ustart)))
+    stop("The diagnostic starting values contain NaN/Inf.")
+  # NA ustart entries denote new alternative-model paths; lavaan initializes
+  # these normally. Existing fitted parameters and explicit starts are finite.
   args$model <- pt
-  args$start <- start
   args$do.fit <- do_fit
   do.call(lavaan::sem, args)
 }
@@ -233,9 +258,40 @@
 #' Resolve numerical trial warnings only by a clean, equivalent refit
 #' @noRd
 .ravel_score_signal_fit_checked <- function(model, dat, reference, estimator,
-                                           start_values = NULL, reference_units = NULL) {
+                                           start_values = NULL, reference_units = NULL, fresh_start_model = NULL) {
   first <- .ravel_score_signal_capture(.ravel_score_signal_fit(model, dat, reference,
     estimator, start_values = start_values, reference_units = reference_units))
+  numerical_error <- is.null(first$value) && length(first$error) &&
+    grepl("NA/NaN/Inf|NA/NaN|NaNs|non-finite|nonfinite|infinite or missing", first$error, ignore.case = TRUE)
+  if (numerical_error && !is.null(fresh_start_model)) {
+    candidate <- .ravel_score_signal_capture(if (is.function(fresh_start_model))
+      fresh_start_model() else fresh_start_model)
+    if (is.null(candidate$value)) {
+      first$retry <- list(method = "same_model_data_derived_starts",
+        initial_error = first$error, restart_error = candidate$error, resolved = FALSE)
+      return(first)
+    }
+    fresh_start_model <- candidate$value
+    if (!identical(.ravel_score_signal_model_key(model), .ravel_score_signal_model_key(fresh_start_model)))
+      stop("A diagnostic restart must preserve the complete model and constraints.")
+    retry <- .ravel_score_signal_capture(.ravel_score_signal_fit(fresh_start_model, dat,
+      reference, estimator, start_values = start_values, transfer_reference_start = FALSE))
+    checked <- if (!is.null(retry$value))
+      .ravel_score_signal_capture(.ravel_score_signal_validate_fit(retry$value)) else NULL
+    resolved <- isTRUE(checked$value$valid)
+    record <- list(method = "same_model_data_derived_starts", initial_error = first$error,
+      initial_warnings = first$warnings, retry_error = retry$error, retry_warnings = retry$warnings,
+      validation_error = checked$error, validation_warnings = checked$warnings,
+      retry_validation = checked$value, resolved = resolved)
+    if (!resolved) {
+      first$retry <- record
+      first$error <- paste(first$error, "Data-derived restart:",
+        retry$error %||% checked$error %||% checked$value$reason %||% "validation failed")
+      return(first)
+    }
+    first <- retry
+    first$retry <- record
+  }
   trial_warnings <- c("NaNs produced", "NA/NaN function evaluation")
   if (is.null(first$value) || !length(first$warnings) ||
       !all(first$warnings %in% trial_warnings)) return(first)
@@ -252,7 +308,7 @@
     as.numeric(lavaan::fitMeasures(second$value, "logl") - lavaan::fitMeasures(first$value, "logl")) else NA_real_
   resolved <- !length(second$warnings) && !length(after$warnings) &&
     isTRUE(after$value$valid) && is.finite(difference) && abs(difference) <= 1e-5
-  record <- list(initial_warnings = first$warnings, retry_warnings = second$warnings,
+  record <- list(numerical_error_restart = first$retry, initial_warnings = first$warnings, retry_warnings = second$warnings,
     validation_warnings = after$warnings, validation_error = after$error,
     retry_error = second$error,
     resolved = resolved, log_likelihood_difference = difference,
@@ -325,6 +381,9 @@
       stop("The final equality tangent could not be constructed.")
     fit@Model@eq.constraints <- TRUE
     fit@Model@eq.constraints.K <- basis
+    check <- .ravel_score_signal_rank(fit)
+    if (!isTRUE(check$tangent_match) || !isTRUE(check$stored_tangent_match))
+      stop("The installed robust-test tangent does not satisfy the final constraints.")
   }
   fit
 }
@@ -396,10 +455,12 @@
 #'   so nonlinear measurement constraints enter that comparison. Diagnostic
 #'   ranks and conditioning use the same final constraint Jacobian. The
 #'   \code{crossperson = "equal_pc"} configuration is currently unsupported.
-#'   Numerical NaN trial warnings are resolved only when a second fit from the
-#'   admissible optimum is warning-free, passes all checks and reproduces its
-#'   likelihood. Both attempts and the warning history are recorded under
-#'   \code{diagnostics$refit_retries}; other warnings block inference.
+#'   Reference starts are installed before evaluating nonlinear constraints. A
+#'   nonfinite null-refit error permits one restart of the identical model with
+#'   data-derived starts. All numerical and identification checks still apply.
+#'   Attempts and warning history are recorded under \code{diagnostics$refit_retries}.
+#'   A finite validated comparison retains its p-value with status
+#'   \code{ok_with_warnings} when warnings remain.
 #' @export
 ravel_test_score_signal <- function(result, data = NULL) {
   if (!is.list(result)) result <- list()
@@ -500,8 +561,12 @@ ravel_test_score_signal <- function(result, data = NULL) {
   out$diagnostics$assumptions <- "Observed, complete independent families; externally imputed inputs cannot always be detected."
   out$diagnostics$input_standard_deviations <- units
   out$diagnostics$likelihood_units <- "Reported log likelihoods are restored to original input units; retained diagnostic fits use sample-SD units."
+  fresh_null <- function() if (out$mode != "none") .ravel_constraint_starts(diagnostic_model, dat,
+    out$mode, result$constraint_spec$h %||% result$h,
+    result$constraint_spec$n_generations %||% result$am_n_generations %||% 1L,
+    .parental_sib_roles(result$parental_sibs$mode %||% "none")) else diagnostic_model
   h0 <- .ravel_score_signal_fit_checked(diagnostic_model, dat, original,
-    estimator, reference_units = units)
+    estimator, reference_units = units, fresh_start_model = fresh_null)
   out$diagnostics$warnings$H0 <- h0$warnings
   out$diagnostics$refit_retries$H0 <- h0$retry
   if (is.null(h0$value)) return(finish("fit_error", paste("Null refit failed:", h0$error)))
@@ -588,8 +653,8 @@ ravel_test_score_signal <- function(result, data = NULL) {
   if (!is.finite(raw) || raw < -1e-6) return(finish("negative_likelihood_improvement", "The alternative likelihood is materially worse than the null; inference is unavailable."))
   # A harmless negative value below floating-point resolution is recorded in
   # raw_statistic; only the numerical round-off is removed for the ML tail.
-  if (any(lengths(out$diagnostics$warnings) > 0L))
-    return(finish("fit_warning", "A refit or nesting calculation emitted a warning; inspect diagnostics$warnings before using this comparison."))
+  # Retain warnings alongside a numerically validated statistic; they do not
+  # erase a finite p-value after the model and comparison checks have passed.
   if (estimator == "ML") {
     out$statistic <- max(0, raw)
     out$df <- expected
@@ -609,7 +674,7 @@ ravel_test_score_signal <- function(result, data = NULL) {
     comparison <- .ravel_score_signal_capture(do.call(lavaan::lavTestLRT, args))
     out$diagnostics$warnings$test <- comparison$warnings
     out$diagnostics$test_table <- comparison$value
-    if (is.null(comparison$value) || length(comparison$warnings))
+    if (is.null(comparison$value))
       return(finish("invalid_robust_test", comparison$error %||% paste(comparison$warnings, collapse = "; ")))
     tab <- comparison$value
     row <- which(is.finite(tab[["Df diff"]]))
@@ -641,7 +706,9 @@ ravel_test_score_signal <- function(result, data = NULL) {
       tangent = "final equality-constraint Jacobian",
       scale = scale, shift = shift, heading = heading)
   }
-  finish("ok", "Score-phenotype compatibility test under the retained measurement assumptions.")
+  if (any(lengths(out$diagnostics$warnings) > 0L))
+    finish("ok_with_warnings", "Numerically validated comparison; refit warnings are retained in diagnostics$warnings.") else
+    finish("ok", "Score-phenotype compatibility test under the retained measurement assumptions.")
 }
 
 #' Print a score-specific association diagnostic
@@ -651,7 +718,7 @@ ravel_test_score_signal <- function(result, data = NULL) {
 print.ravel_score_signal_test <- function(x, ...) {
   cat("Score-specific phenotype association test\n")
   cat("Status:", x$status, "\n")
-  if (identical(x$status, "ok")) {
+  if (is.finite(x$statistic) && is.finite(x$df) && is.finite(x$p_value)) {
     cat(sprintf("Statistic: %.4f; df: %g; p: %.4g; N: %d\n", x$statistic, x$df, x$p_value, x$N))
     cat(x$test, "\n")
     if (isTRUE(x$diagnostics$conditional_on_pi)) cat("Inference is conditional on pi used in fitting.\n")

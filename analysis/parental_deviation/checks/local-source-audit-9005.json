@@ -1,0 +1,23 @@
+{
+  "counts": {
+    "working_files": 728,
+    "git_objects": 1087,
+    "archive_members": 584,
+    "decompressed_payloads": 20
+  },
+  "matches": [],
+  "inspection_errors": [],
+  "history_identities": [
+    "Daniel Malawsky <d.malawsky@gmail.com>"
+  ],
+  "archives": [
+    {
+      "path": "RAVEL_0.2.0.9005.tar.gz",
+      "sha256": "7af79c7ae3dfe05ab312f724547913a00aec12b9ee72dcd2d477f337040b932e"
+    },
+    {
+      "path": "analysis/parental_deviation/RAVEL_0.2.0.9005.tar.gz",
+      "sha256": "7af79c7ae3dfe05ab312f724547913a00aec12b9ee72dcd2d477f337040b932e"
+    }
+  ]
+}

@@ -70,10 +70,10 @@ shared **source SEM**, once per fit, rather than each derived adult subset.
 
 | Filename suffix | Contents |
 |---|---|
-| `_excel.csv` | Existing effects, contrasts, SEs, confidence intervals, p-values and pi sensitivity. |
+| `_excel.csv` | Effects, contrasts, SEs, confidence intervals, p-values, pi sensitivity and standardized PGS1/PGS2 comparisons. |
 | `_fit_statistics_excel.csv` | Sample counts, likelihood, parameter count and available fit indices, with reasons for unavailable values. Lavaan models include ordinary/scaled/robust chi-square, CFI/TLI, RMSEA with its interval, SRMR and AIC/BIC where supplied. |
 | `_parameters_excel.csv` | Measurement and regression parameters, residual/random-effect variances, and relevant covariances. Standardized SEM rows have their own SEs and intervals; mixed-model loadings and variance components use scientific rather than log-optimizer scales. |
-| `_genetic_structure_excel.csv` | Genetic state and all pairwise implied liability correlations, including parent–child, spouse and parental-sibling pairs, with SEs/intervals. Visible and pi-corrected total liabilities are distinguished. |
+| `_genetic_structure_excel.csv` | Genetic state and all pairwise implied liability correlations, including parent–child, spouse and parental-sibling pairs, with SEs/intervals. Visible and pi-corrected total liabilities are distinguished. PGS rows add observed-score variances, covariances and correlations with SEs. |
 | `_diagnostics_excel.csv` | Auxiliary one-factor statistic, df, p-value, sample size and warnings. |
 | `_status_excel.csv` | Convergence, admissibility/inference status, estimation/SE method, warnings and extraction failures. |
 | `_fits.rds` | Full fitted objects, detailed diagnostics and the reporting tables. |
@@ -83,10 +83,27 @@ AIC reporting. The joint-covariate model estimates covariate moments separately,
 so ordinary `AIC` is unavailable. Its numerical
 `AIC_conditional_moments_fixed` is shown as **descriptive**, treating those
 moments as fixed; random effects are integrated out. Compare only fits using
-the same observations and scaling. The custom mixed likelihood does not fit
-the reference models needed for SEM chi-square/CFI/TLI/RMSEA/SRMR, so those
-entries state why they are unavailable. Zero-df SEM fit indices are flagged as
-uninformative.
+the same observations and scaling. The independent-sample auxiliary SEM supplies
+the standard SEM indices in
+rows labelled `lavaan_auxiliary`, with its own sample size. Zero-df SEM fit
+indices are flagged as uninformative.
+
+The auxiliary SEM uses one person and one occasion per independent family,
+with covariates and interactions omitted. Its AIC, RMSEA, CFI, TLI and SRMR
+appear alongside the primary fit statistics with a separate `source_fit` and
+`scope`. Notes contain fitting warnings/errors; sample and model details have
+their own columns.
+
+The child mixed workflow also fits standardized PGS1 and PGS2 comparisons
+using the specified covariates, interactions and continuous-outcome random
+effects, with the same SE-clustering column. Binary comparisons use probit
+regression with clustered SEs. No extra settings or helper file are needed.
+Comparator fit statistics and parameters have `engine = "pgs_comparator"`.
+
+PGS covariance rows use original input score units when scaling metadata are
+available; PGS correlations use fitted marginal SDs. These include measurement
+error. Older saved fits without scaling metadata retain explicitly labelled
+workflow units. The mixed PGS block includes a two-child reference family.
 
 The genetic table retains every pair among included liabilities. With child,
 mother, father and both parental siblings this gives ten visible correlations
@@ -122,13 +139,13 @@ from older scripts so earlier CSVs are not mixed with the new exports.
 
 ## Install the bundled package
 
-Keep `RAVEL_0.2.0.9003.tar.gz` alongside these scripts. With this directory as your
+Keep `RAVEL_0.2.0.9005.tar.gz` alongside these scripts. With this directory as your
 working directory, install into a local library:
 
 ```r
 dir.create("library", showWarnings = FALSE)
 .libPaths(c(normalizePath("library"), .libPaths()))
-install.packages("RAVEL_0.2.0.9003.tar.gz", repos = NULL, type = "source",
+install.packages("RAVEL_0.2.0.9005.tar.gz", repos = NULL, type = "source",
                  lib = "library")
 library(RAVEL)
 source("ravel_family_regressions.R")
@@ -279,7 +296,7 @@ attr(res, "reporting_tables")$fit_statistics
 attr(res, "mixed_fit_records", exact = TRUE)
 ```
 
-Keep the script beside `RAVEL_0.2.0.9003.tar.gz`, restart R and run it as before.
+Keep the script beside `RAVEL_0.2.0.9005.tar.gz`, restart R and run it as before.
 See [model assumptions and advanced API](../../docs/mixed-family-models.md) and
 [validation and limitations](../../docs/mixed-family-validation.md) for details.
 

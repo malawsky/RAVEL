@@ -115,7 +115,7 @@ for (name in names(objects)) {
     paste0(name, "_source_keys_are_unique_and_nonempty"))
   check(all(vapply(records, function(z) !is.null(z$fit) && length(z$model) == 1L &&
     is.finite(z$pi), logical(1))), paste0(name, "_every_main_and_grid_record_has_fit_model_and_pi"))
-  check(setequal(unique(report$fit_statistics$source_fit), names(records)),
+  check(setequal(unique(report$fit_statistics$source_fit[report$fit_statistics$engine != "lavaan_auxiliary"]), names(records)),
     paste0(name, "_all_main_and_grid_fits_reported"))
   for (key in names(records)) {
     fit <- records[[key]]$fit
@@ -146,7 +146,7 @@ check(length(attr(legacy, "report_fit_records")) == 4L &&
   "child_SEM_retains_unnamed_grid_fits_for_both_genetic_blocks")
 check(length(attr(adult, "outcome_models")$both) == 15L,
   "parental_workflow_keeps_all_15_adult_subsets")
-check(length(unique(reports$parent_sem$fit_statistics$source_fit)) == 2L,
+check(length(unique(reports$parent_sem$fit_statistics$source_fit[reports$parent_sem$fit_statistics$engine != "lavaan_auxiliary"])) == 2L,
   "parental_fit_statistics_describe_two_source_fits_not_thirty_subsets")
 
 # Every implied liability-pair correlation is present on both visible and
@@ -237,7 +237,7 @@ for (name in names(objects)) {
   check(nrow(diagnostic) == nrow(native_rows), paste0(name, "_diagnostic_count_matches_main_results"))
   check(equal(sort(diagnostic$p_value, na.last = TRUE), sort(native_rows$p_value, na.last = TRUE)),
     paste0(name, "_diagnostic_p_values_preserved"))
-  check(all(grepl("unadjusted", diagnostic$note, ignore.case = TRUE)),
+  check(all(grepl("unadjusted", diagnostic$sample, ignore.case = TRUE)),
     paste0(name, "_diagnostic_scope_is_explicit"))
 }
 

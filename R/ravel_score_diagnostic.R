@@ -224,6 +224,11 @@ ravel_score_diagnostic <- function(dat, ..., primary_fit = NULL,
     "It does not test random effects or genetic interaction slopes."), out$N, nrow(dat)))
   if (sum(complete) < 50L) return(finish("insufficient_data", "Fewer than 50 complete independently selected observations remain."))
   d <- d[complete, , drop = FALSE]
+  sample_variances <- vapply(d, stats::var, numeric(1))
+  invalid_variances <- names(sample_variances)[!is.finite(sample_variances) | sample_variances <= 0]
+  if (length(invalid_variances)) return(finish("invalid_data", paste(
+    "Selected diagnostic variables must have finite positive variance:",
+    paste(invalid_variances, collapse = ", "))))
   for (j in seq_along(arguments)) args[[arguments[j]]] <- canonical[j]
   args$fixed_effects <- NULL
   args$interactions <- NULL

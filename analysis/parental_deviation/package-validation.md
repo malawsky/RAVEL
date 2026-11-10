@@ -87,3 +87,61 @@ env LC_ALL=C LANG=C Rscript dev/run-family-wrapper-smoke.R
 The original Desktop checkout and analysis files were not modified. The new
 source checkout, package bundle and analysis companion are available locally;
 no branch has been pushed to GitHub.
+
+
+## Version 0.2.0.9004: diagnostics and PGS reporting (2026-11-05)
+
+The diagnostic constructor now installs transformed fitted starts before the
+first SEM evaluation. The test suite reproduces a constructor failure from
+invalid syntax starts and checks a successful same-model refit. A separate
+fault-injection test reproduces the reported `NA/NaN/Inf in foreign function
+call (arg 1)` message and verifies a validated restart, preserved error history,
+and failure when the restarted fit fails validation. The exact user's dataset
+was unavailable; the tests distinguish that injected error from the naturally
+reproduced constructor failure.
+
+Observed-PGS comparators passed 39 seeded synthetic checks: ordinary regression
+and FID CR0, continuous family and longitudinal family/individual random effects,
+correlated age slopes and age/sex interactions against independent mixed-model
+fits, and joint score/Hessian sandwich calculations. Additional checks cover
+binary probit regression, 5% sibling families, tiny raw PGS units, variance
+boundaries, separation and insufficient clusters. No new runtime dependency was
+added. These validate numerical calculations, not Monte Carlo coverage.
+
+Reporting passed 95 PGS/auxiliary-index checks and all 247 existing reporting
+checks. New PGS covariance/correlation SEs matched independent derivatives;
+auxiliary fit measures matched native lavaan output. Fresh raw-PGS and family
+mixed workflow runs retained both vanilla regressions and successfully wrote
+all seven output files. Older synthetic child fits were reused for the existing
+reporting-only checks.
+
+`R CMD check --no-tests --no-manual` completed with no errors or warnings and the
+existing `unlockBinding("detectCores", ...)` NOTE. A separate comparison matched
+106 R/help/test/namespace files in the built archive to the source tree. The
+archive and updated child script are required; update the parental script too
+when using parental outcomes.
+
+Commands: `dev/check-pgs-comparators.R`, `dev/check-pgs-reporting.R`,
+`dev/check-pgs-raw-workflow.R`, `dev/check-pgs-mixed-workflow.R`, and
+`dev/check-paper-reporting.R --reuse-fits`. Synthetic caches for reporting checks
+can be generated with `dev/check-paper-reporting.R --prepare-only`.
+
+Diagnostic suites passed 420 assertions: 306 score-signal, 61 continuous
+auxiliary diagnostic, 25 binary diagnostic and 28 numerical-restart checks.
+The independent review found no correctness blocker in the start transformations
+or same-model restart. Logs are retained in `checks/*9004.log`.
+
+
+## Version 0.2.0.9005: final constraint tangent (2026-11-05)
+
+A valid estimated-state fit with a deliberately incompatible cached lavaan
+constraint basis reproduces the diagnostic rejection. Validation now uses the
+final reconstructed tangent; cache compatibility remains metadata. The complete
+robust comparison reproduces the baseline statistic and p-value within 1e-7.
+Wrong-sized, nonfinite and rank-deficient cached bases are covered; a nonfinite
+actual constraint Jacobian still fails. No fitted coefficients or original
+fitted objects are changed.
+
+The tangent-cache suite passed 21 assertions, and the existing numerical-refit
+suite passed 28. R CMD check (--no-tests --no-manual) passed with the same existing
+NOTE and no errors or warnings. Archive sources match the working R/help/tests.

@@ -1,0 +1,96 @@
+"check","passed"
+"child-sem none|Estimated state|main all_PGS_pairs",TRUE
+"child-sem none|Estimated state|main finite_estimates_SEs",TRUE
+"child-sem none|Estimated state|main native_covariances",TRUE
+"child-sem none|Estimated state|main native_correlations",TRUE
+"child-sem none|Estimated state|main raw_scale_and_SE_transformation",TRUE
+"child-sem none|Estimated state|grid_1 all_PGS_pairs",TRUE
+"child-sem none|Estimated state|grid_1 finite_estimates_SEs",TRUE
+"child-sem none|Estimated state|grid_1 native_covariances",TRUE
+"child-sem none|Estimated state|grid_1 native_correlations",TRUE
+"child-sem none|Estimated state|grid_1 raw_scale_and_SE_transformation",TRUE
+"child-sem both|Estimated state|main all_PGS_pairs",TRUE
+"child-sem both|Estimated state|main finite_estimates_SEs",TRUE
+"child-sem both|Estimated state|main native_covariances",TRUE
+"child-sem both|Estimated state|main native_correlations",TRUE
+"child-sem both|Estimated state|main raw_scale_and_SE_transformation",TRUE
+"child-sem both|Estimated state|grid_1 all_PGS_pairs",TRUE
+"child-sem both|Estimated state|grid_1 finite_estimates_SEs",TRUE
+"child-sem both|Estimated state|grid_1 native_covariances",TRUE
+"child-sem both|Estimated state|grid_1 native_correlations",TRUE
+"child-sem both|Estimated state|grid_1 raw_scale_and_SE_transformation",TRUE
+"child-sem one_auxiliary_per_main",TRUE
+"child-sem none|Estimated state|main auxiliary aic",TRUE
+"child-sem none|Estimated state|main auxiliary bic",TRUE
+"child-sem none|Estimated state|main auxiliary rmsea",TRUE
+"child-sem none|Estimated state|main auxiliary cfi",TRUE
+"child-sem none|Estimated state|main auxiliary tli",TRUE
+"child-sem none|Estimated state|main auxiliary srmr",TRUE
+"child-sem none|Estimated state|main auxiliary chisq",TRUE
+"child-sem none|Estimated state|main auxiliary df",TRUE
+"child-sem none|Estimated state|main auxiliary_N",TRUE
+"child-sem both|Estimated state|main auxiliary aic",TRUE
+"child-sem both|Estimated state|main auxiliary bic",TRUE
+"child-sem both|Estimated state|main auxiliary rmsea",TRUE
+"child-sem both|Estimated state|main auxiliary cfi",TRUE
+"child-sem both|Estimated state|main auxiliary tli",TRUE
+"child-sem both|Estimated state|main auxiliary srmr",TRUE
+"child-sem both|Estimated state|main auxiliary chisq",TRUE
+"child-sem both|Estimated state|main auxiliary df",TRUE
+"child-sem both|Estimated state|main auxiliary_N",TRUE
+"child-sem concise_diagnostic_notes",TRUE
+"parent-sem both|Estimated state|main|0.4|1 all_PGS_pairs",TRUE
+"parent-sem both|Estimated state|main|0.4|1 finite_estimates_SEs",TRUE
+"parent-sem both|Estimated state|main|0.4|1 native_covariances",TRUE
+"parent-sem both|Estimated state|main|0.4|1 native_correlations",TRUE
+"parent-sem both|Estimated state|main|0.4|1 raw_scale_and_SE_transformation",TRUE
+"parent-sem both|Estimated state|grid|0.45|2 all_PGS_pairs",TRUE
+"parent-sem both|Estimated state|grid|0.45|2 finite_estimates_SEs",TRUE
+"parent-sem both|Estimated state|grid|0.45|2 native_covariances",TRUE
+"parent-sem both|Estimated state|grid|0.45|2 native_correlations",TRUE
+"parent-sem both|Estimated state|grid|0.45|2 raw_scale_and_SE_transformation",TRUE
+"parent-sem one_auxiliary_per_main",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary aic",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary bic",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary rmsea",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary cfi",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary tli",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary srmr",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary chisq",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary df",TRUE
+"parent-sem both|Estimated state|main|0.4|1 auxiliary_N",TRUE
+"parent-sem concise_diagnostic_notes",TRUE
+"child-mixed none|Estimated state|main all_PGS_pairs",TRUE
+"child-mixed none|Estimated state|main finite_estimates_SEs",TRUE
+"child-mixed none|Estimated state|main mixed_correlations",TRUE
+"child-mixed none|Estimated state|main independent_numerical_correlation_SE",TRUE
+"child-mixed none|Estimated state|grid_1 all_PGS_pairs",TRUE
+"child-mixed none|Estimated state|grid_1 finite_estimates_SEs",TRUE
+"child-mixed none|Estimated state|grid_1 mixed_correlations",TRUE
+"child-mixed none|Estimated state|grid_1 independent_numerical_correlation_SE",TRUE
+"child-mixed one_auxiliary_per_main",TRUE
+"child-mixed none|Estimated state|main auxiliary aic",TRUE
+"child-mixed none|Estimated state|main auxiliary bic",TRUE
+"child-mixed none|Estimated state|main auxiliary rmsea",TRUE
+"child-mixed none|Estimated state|main auxiliary cfi",TRUE
+"child-mixed none|Estimated state|main auxiliary tli",TRUE
+"child-mixed none|Estimated state|main auxiliary srmr",TRUE
+"child-mixed none|Estimated state|main auxiliary chisq",TRUE
+"child-mixed none|Estimated state|main auxiliary df",TRUE
+"child-mixed none|Estimated state|main auxiliary_N",TRUE
+"child-mixed concise_diagnostic_notes",TRUE
+"child-mixed-no-covariates none|Estimated state|main all_PGS_pairs",TRUE
+"child-mixed-no-covariates none|Estimated state|main finite_estimates_SEs",TRUE
+"child-mixed-no-covariates none|Estimated state|main mixed_correlations",TRUE
+"child-mixed-no-covariates none|Estimated state|main independent_numerical_correlation_SE",TRUE
+"child-mixed-no-covariates one_auxiliary_per_main",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary aic",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary bic",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary rmsea",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary cfi",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary tli",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary srmr",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary chisq",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary df",TRUE
+"child-mixed-no-covariates none|Estimated state|main auxiliary_N",TRUE
+"child-mixed-no-covariates concise_diagnostic_notes",TRUE

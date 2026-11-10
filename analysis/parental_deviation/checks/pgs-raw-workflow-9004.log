@@ -1,0 +1,4 @@
+Warning message:
+package 'testthat' was built under R version 4.4.3
+estimated_state: fitting at pi = 0.4 ...
+Fresh raw-PGS workflow, scaling metadata, both vanilla regressions: passed

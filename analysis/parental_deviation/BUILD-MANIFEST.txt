@@ -1,50 +1,38 @@
-RAVEL 0.2.0.9003 sparse-sibling covariate covariance correction
-Package built and checked 2026-11-03; reporting scripts updated 2026-11-04
-Source base commit: 74de31d0c11326cf060552f60fbd750dfe74ecf8
+RAVEL 0.2.0.9005 diagnostic numerics and observed-PGS reporting
+Package built and checked 2026-11-05
+Source base commit: 0540e567e343c3665409e2a042759418ecac4277
 Local branch: codex/family-outcome-subsets
 Author: Daniel Malawsky <d.malawsky@gmail.com>
 
-The optional joint-covariate mixed model now estimates coherent self/sibling
-covariances and supports exactly family-shared covariates. First-stage uncertainty
-remains in FID sandwich SEs. Marginal AM/pi mapping and original ravel_fit code
-are unchanged. Child script settings and coefficient-table formats are unchanged.
-Prepared for publication to origin/dev. All validation observations are synthetic.
+Update the package archive and ravel_parental_deviation.R. For parental outcomes,
+also update ravel_parental_phenotypes.R. No extra helper file or dependency is
+required. ravel_sem_audit.R remains optional for the full parental SEM audit.
 
-SHA256 RAVEL_0.2.0.9003.tar.gz: a14b870a94d534515d498302b9e1f7646c5ed0bd099a337e6823c829e0ae6376
-SHA256 ravel_parental_deviation.R: 702e9d58a711d8f4e8779dee519e5d2929755d98c2b9a6c2c06c784c283c6eee
-Reporting update: both workflows now write six Excel-ready CSV tables and one
-_fits.rds per phenotype. Primary coefficient columns and model estimates are
-preserved. All implied visible/total liability correlations are included with
-joint-parameter SEs conditional on pi. Descriptive mixed-model AIC is labelled.
-Update ravel_parental_deviation.R and, for parental outcomes,
-ravel_parental_phenotypes.R. The existing 0.2.0.9003 package is unchanged.
-ravel_sem_audit.R is needed only for the optional full parental SEM audit.
-Reporting validation: 247/247 checks passed across child/parental SEMs and mixed
-models with/without covariates, main/pi-grid retention, all liability pairs,
-natural measurement parameters, failures and Excel decimal/quoting round trips.
-See dev/check-paper-reporting.R and dev/paper-reporting-validation/ in the repo.
+SHA256 RAVEL_0.2.0.9005.tar.gz: 7af79c7ae3dfe05ab312f724547913a00aec12b9ee72dcd2d477f337040b932e
+SHA256 ravel_parental_deviation.R: 182fe100980d75803a8c384516bea2c3fffa19365e12ec3f1b765d574a2dfea9
 
-Tests: 56 tests / 647 assertions in mixed-model, covariate and diagnostic suites;
-0 failures, errors, test warnings or skips. Original SEM core tests were not rerun.
-Editable workflow: 29 checks passed, including two simulated fits and diagnostics.
-Package check: 0 errors, 0 warnings, 1 existing detectCores/unlockBinding NOTE;
-tests run separately. Archive comparison: 103 R/help/test files matched byte for byte.
+Diagnostic refits install transformed fitted starts before the first SEM
+construction. A numerical failure can retry the same restricted model; all
+regularity checks remain. Numerically valid warnings retain computed p-values.
 
-Sparse-family integration: three final runs (ordinary cross-sectional, exactly
-shared PC cross-sectional, and shared PC longitudinal with genetic sex slopes)
-had regular inference with finite effect SEs; 16, 17 and 19 checks passed.
-All used 95% singleton and 5% two-child families.
-First-stage covariance simulation: 100/100 runs successful; the old empirical
-subtraction failed positive definiteness in 98/100. Coverage for PC variance,
-sibling covariance, within-sibling variance and age variance was 92%-96%.
-These are covariance simulations, not 100 full SEM coverage runs. Nonregular
-Bernoulli(.5) variance coverage is not evidence of nominal calibration.
-The clean rerun repeats the same 100 seeds; it is not an additional 100 replicates.
-See ../../docs/mixed-family-validation.md for scope, retained failures, and commands.
+The mixed child workflow adds standardized observed-PGS1/PGS2 comparisons,
+continuous family/individual random effects and interactions, with FID sandwich
+SEs. Binary comparisons use clustered probit regression. Model/sample/scale
+metadata identify the analyses in the common Excel tables.
 
-Symmetric parental regressions (2026-11-04): all nonempty adult combinations
-are now selected by default (15/7/3 with two/one/no parental siblings).
-No focal parent is required. Child scores still identify the genetic block.
-The package archive is unchanged; update the parental workflow script.
-Reporting checks rerun successfully: 247/247, including all genetic correlations.
-Symmetric workflow validation: all 15 check groups passed.
+The independent auxiliary SEM contributes native AIC/BIC, chi-square, CFI/TLI,
+RMSEA and SRMR. PGS variances, covariances and correlations include model SEs;
+input scaling is retained. Notes contain actual fitting warnings and errors.
+
+Validation uses synthetic data only. See package-validation.md and the checks/
+directory for scope and numerical comparisons. R CMD check --no-tests --no-manual:
+0 errors, 0 warnings, 1 existing detectCores/unlockBinding NOTE. Tests run separately.
+Archive source comparison: 107 R/help/test/namespace files matched.
+
+Diagnostic suites: 420 passing assertions. PGS comparators: 39 passing checks.
+PGS/auxiliary reporting: 95 checks; existing reporting: 247 checks, all passed.
+Fresh raw-PGS and mixed-workflow integrations passed.
+
+9005 tangent correction: cached lavaan basis mismatches are metadata;
+the independently reconstructed final tangent is validated and used.
+49 targeted assertions passed (21 tangent-cache, 28 numeric-refit checks).

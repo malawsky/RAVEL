@@ -359,7 +359,7 @@ ravel_parental_phenotypes <- function(
       for (i in which(keep)) {
         row <- source[i, , drop = FALSE]
         scope_note <- if (row$parameter == "one_factor_test")
-          "Auxiliary unadjusted full genetic-block diagnostic; not a test of excluding child liability" else "Shared genetic model"
+          "Auxiliary independent-sample SEM" else "Shared genetic model"
         add(row, ps, model_name, row$analysis, row$pi, row$pi_se, genetic = genetic, N = st$N,
           note = scope_note)
       }
@@ -416,8 +416,8 @@ ravel_parental_phenotypes <- function(
             label <- if (sc == "visible") "Visible (measured by the PGSs)" else
               paste0(if (record$kind == "main") "Corrected for pi" else "Grid",
                 if (sc == "total_raw") " (founder scale)")
-            note <- c(record$note, projection_warnings, projected$uncertainty_note, projected$uncertainty_errors,
-              if (binary_outcome) "Reduced regression on the fitted probit liability; not a refitted marginal probit model",
+            note <- c(record$note, projection_warnings, projected$uncertainty_errors,
+              if (binary_outcome) "Probit-liability projection",
               if (sc != "visible" && !identical(projected$correction_status, "ok")) projected$correction_status)
             note <- unique(note[!is.na(note) & nzchar(note)])
             add(selected_rows, ps, model_name, label,
@@ -437,7 +437,7 @@ ravel_parental_phenotypes <- function(
               msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning")
             }), error = identity)
           if (inherits(plain, "error")) plain <- failure(conditionMessage(plain))
-          note <- c(if (!is.null(st$cluster_by)) "Ordinary comparison SEs treat rows as independent; RAVEL uses clustered SEs",
+          note <- c(if (!is.null(st$cluster_by)) "Ordinary regression SEs",
                     if (binary_outcome) "Conditional probit coefficients; SEM reduced-liability coefficients use a different normalization", msgs)
           add(plain, ps, "Plain PGS regressions (comparison)", paste0("Plain PGS", version, " regression"),
             subset = nm, selected = subsets[[nm]], genetic = genetic, N = st$N, note = paste(note, collapse = "; "))
@@ -448,6 +448,7 @@ ravel_parental_phenotypes <- function(
   }
   if (!length(rows)) stop("No requested adult regression could be analysed.")
   table <- do.call(rbind, rows); rownames(table) <- NULL
+  table$note <- engine$.ravel_output_note(table$note)
   attr(table, "fits") <- fits
   attr(table, "diagnostics") <- diagnostics
   attr(table, "projections") <- projections

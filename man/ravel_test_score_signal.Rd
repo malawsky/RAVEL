@@ -43,8 +43,10 @@ Jacobian. Copies of both fits receive the final equality-constraint tangent
 so nonlinear measurement constraints enter that comparison. Diagnostic
 ranks and conditioning use the same final constraint Jacobian. The
 \code{crossperson = "equal_pc"} configuration is currently unsupported.
-Numerical NaN trial warnings are resolved only when a second fit from the
-admissible optimum is warning-free, passes all checks and reproduces its
-likelihood. Both attempts and the warning history are recorded under
-\code{diagnostics$refit_retries}; other warnings block inference.
+Reference starts are installed before evaluating nonlinear constraints. A
+nonfinite null-refit error permits one restart of the identical model with
+data-derived starts. All numerical and identification checks still apply.
+Attempts and warning history are recorded under \code{diagnostics$refit_retries}.
+A finite validated comparison retains its p-value with status
+\code{ok_with_warnings} when warnings remain.
 }

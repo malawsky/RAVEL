@@ -1,0 +1,4 @@
+Warning message:
+package 'testthat' was built under R version 4.4.3
+Fresh mixed workflow: both vanilla regressions, auxiliary fit indices, PGS moments and Excel exports passed.
+/tmp/ravel-pgs-mixed-export-c5a95d18f359

@@ -1,3 +1,28 @@
+# RAVEL 0.2.0.9005 (development)
+
+- The one-factor diagnostic validates the reconstructed final constraint tangent,
+  rather than rejecting an otherwise valid fit because lavaan retains a different
+  cached basis. Cached-basis compatibility remains in diagnostic metadata.
+- The robust comparison verifies the reconstructed basis after installing it.
+  Convergence, constraint, identification and robust-statistic checks are retained.
+
+# RAVEL 0.2.0.9004 (development)
+
+## Diagnostics and observed-PGS reporting
+
+- Diagnostic SEM refits install transformed fitted starting values before the
+  first model evaluation. Numerical refit failures can retry the same model
+  with data-derived starts; convergence and identification checks are retained.
+- Numerically valid one-factor results with warnings retain their p-values.
+  Invalid selected-sample variances identify the affected outcome or PGS column.
+- The child mixed workflow restores standardized PGS1/PGS2 comparisons with
+  family/individual random effects and genetic interactions for continuous
+  outcomes, using FID-clustered SEs. Binary comparisons use observed-PGS probit
+  regression with FID-clustered SEs.
+- Reporting includes independent auxiliary SEM fit indices and PGS-scale
+  variances, covariances and correlations with SEs. Model and sample metadata
+  have dedicated columns; repetitive qualifications were removed from notes.
+
 # RAVEL 0.2.0.9003 (development)
 
 ## Sparse sibling families with covariates
